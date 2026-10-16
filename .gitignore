@@ -62,3 +62,6 @@ Thumbs.db
 __pycache__/
 /Assets/_Recovery/
 /Assets/_Recovery.meta
+
+# Android build temp (IL2CPP/CMake)
+/.utmp/
