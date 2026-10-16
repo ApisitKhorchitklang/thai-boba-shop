@@ -7,6 +7,13 @@ public class CustomerController : MonoBehaviour
 {
     public Order order;
     [System.NonSerialized] public RegularsSystem.Regular regular;    // set when this is one of the soi's regulars
+    CustomerEmote emote;
+    bool warnedImpatient;
+    void Emote(CustomerEmote.Kind k, float seconds = 2f)
+    {
+        if (emote == null) emote = GetComponent<CustomerEmote>();
+        if (emote != null) emote.Show(k, seconds);
+    }
     public int payment = 10; // fallback flat payment when no ShopProgress exists
 
     [Header("Thai customer")]
@@ -193,12 +200,18 @@ public class CustomerController : MonoBehaviour
             {
                 greeted = true;
                 Say(regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.Greeting(regular, order) : CustomerProfiles.Line(Profile.greet, order), 4f);
+                if (regular != null) Emote(CustomerEmote.Kind.Happy);       // a familiar face is happy to be back
             }
         }
 
         // Only the customer being served (at the counter) loses patience; people further back in line just wait
         if (slot == 0 && arrivedAtSlot && !PatienceFrozen)
             Patience -= Time.deltaTime;
+        if (!warnedImpatient && slot == 0 && arrivedAtSlot && PatienceNormalized < 0.25f)
+        {
+            warnedImpatient = true;
+            Emote(CustomerEmote.Kind.Angry, 2.5f);                       // hurry up!
+        }
 
         if (Patience <= 0f)
             LeaveAngry();
@@ -215,6 +228,7 @@ public class CustomerController : MonoBehaviour
     void LeaveAngry()
     {
         if (regular != null && RegularsSystem.Instance != null) RegularsSystem.Instance.OnLeftAngry(regular);
+        Emote(CustomerEmote.Kind.Angry, 2.5f);
         Say(CustomerProfiles.Line(Profile.angry, order), 3f);
         if (ShopProgress.Instance != null)
             ShopProgress.Instance.RegisterAngry(this);
@@ -369,6 +383,7 @@ public class CustomerController : MonoBehaviour
         {
             Patience -= maxPatience * 0.15f;
             Say(CustomerProfiles.Line(Profile.wrong, order) + "\n" + result.Summary, 3f);
+            Emote(CustomerEmote.Kind.Meh);
             if (ShopProgress.Instance != null)
                 ShopProgress.Instance.RegisterRejected(this);
             return false;
@@ -387,6 +402,8 @@ public class CustomerController : MonoBehaviour
             GameManager.Instance.AddMoney(payment);
         }
 
+        Emote(result.quality == ServeQuality.Perfect ? CustomerEmote.Kind.Love : CustomerEmote.Kind.Meh);
+        if (customerType == CustomerType.Influencer && emote != null) emote.TakePhoto();   // the reviewer posts it
         if (regular != null && RegularsSystem.Instance != null)
         {
             RegularsSystem.Instance.OnServed(regular, result.quality);

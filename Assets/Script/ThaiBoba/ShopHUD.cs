@@ -239,6 +239,18 @@ public class ShopHUD : MonoBehaviour
 
     static string Regulars() => RegularsSystem.Instance != null ? RegularsSystem.Instance.TodaySummary() : "";
 
+    // best seller + busiest hour, to plan tomorrow (cook pearls before the rush, stock up the favourite)
+    static string Insights(ShopProgress.DayStats s)
+    {
+        string best = s.BestSeller(out int n);
+        int hour = s.BusiestHour(out int hc);
+        if (best == null && hour < 0) return "";
+        string line = "\n<size=90%>";
+        if (best != null) line += Loc.T($"ขายดีสุด: <b>{best}</b> ({n} แก้ว)", $"Best seller: <b>{best}</b> ({n})");
+        if (hour >= 0) line += (best != null ? "   ·   " : "") + Loc.T($"คนเยอะสุด: <b>{hour:00}:00–{hour + 1:00}:00</b> ({hc} คน)", $"Busiest: <b>{hour:00}:00–{hour + 1:00}:00</b> ({hc})");
+        return line + "</size>";
+    }
+
     ShopProgress.DayStats lastStats;
     string lastStock;
 
@@ -267,7 +279,7 @@ public class ShopHUD : MonoBehaviour
                   $"Tips  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
                   $"Bonus  <color=#4E8A3C>+{s.bonus} ฿</color>\n" +
                   $"Expenses  <color=#C23A66>-{s.expenses} ฿</color>\n" +
-                  $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + Regulars() + lastStock
+                  $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + Insights(s) + Regulars() + lastStock
                 : $"เสิร์ฟ  <b>{s.served}</b> แก้ว   (เป๊ะ {s.perfect} · พอใช้ {s.okay})\n" +
                   $"ลูกค้าเดินหนี  {s.angry}     แก้วโดนปฏิเสธ  {s.rejected}\n" +
                   $"คอมโบสูงสุด  x{s.bestCombo}\n\n" +
@@ -275,7 +287,7 @@ public class ShopHUD : MonoBehaviour
                   $"ทิป  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
                   $"โบนัส  <color=#4E8A3C>+{s.bonus} ฿</color>\n" +
                   $"ค่าใช้จ่าย  <color=#C23A66>-{s.expenses} ฿</color>\n" +
-                  $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + Regulars() + lastStock;
+                  $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + Insights(s) + Regulars() + lastStock;
         }
         if (upgradesText != null && UpgradeShop.Instance != null)
             upgradesText.text = UpgradeShop.Instance.Describe();

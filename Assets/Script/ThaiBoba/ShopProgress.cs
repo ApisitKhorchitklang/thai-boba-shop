@@ -20,7 +20,24 @@ public class ShopProgress : MonoBehaviour
         public int served, perfect, okay, rejected, angry;
         public int revenue, tips, expenses, bonus;
         public int bestCombo;
+        public int[] soldByDrink = new int[16];     // index = DrinkMenu.All order
+        public int[] servedByHour = new int[24];
         public int Profit => revenue + tips + bonus - expenses;
+
+        public string BestSeller(out int count)
+        {
+            count = 0; string best = null;
+            for (int i = 0; i < DrinkMenu.All.Length && i < soldByDrink.Length; i++)
+                if (soldByDrink[i] > count) { count = soldByDrink[i]; best = DrinkMenu.All[i].Name; }
+            return best;
+        }
+
+        public int BusiestHour(out int count)
+        {
+            count = 0; int hour = -1;
+            for (int h = 0; h < 24; h++) if (servedByHour[h] > count) { count = servedByHour[h]; hour = h; }
+            return hour;
+        }
     }
 
     public DayStats today = new DayStats();
@@ -132,6 +149,13 @@ public class ShopProgress : MonoBehaviour
 
         today.served++;
         if (perfect) today.perfect++; else today.okay++;
+        if (customer != null && customer.order != null)
+        {
+            int di = Array.FindIndex(DrinkMenu.All, d => d.id == customer.order.flavor);
+            if (di >= 0 && di < today.soldByDrink.Length) today.soldByDrink[di]++;
+        }
+        TimeCyc clk = FindFirstObjectByType<TimeCyc>();
+        if (clk != null) today.servedByHour[Mathf.Clamp(clk.Hours, 0, 23)]++;
         today.revenue += pay;
         today.tips += tip;
         today.bonus += lucky;

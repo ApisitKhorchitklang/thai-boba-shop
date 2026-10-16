@@ -78,6 +78,10 @@ public static partial class ThaiBobaSetup
         agent.height = 1.7f;
         agent.speed = 2.2f;
         CustomerController controller = root.AddComponent<CustomerController>();
+        EnsureUISprites();                                                      // new Illustrator PNGs must be Sprites before we load them
+        CustomerEmote emote = root.AddComponent<CustomerEmote>();               // emote bubbles over their heads
+        emote.love = S("emote_love"); emote.happy = S("emote_happy"); emote.meh = S("emote_meh");
+        emote.angry = S("emote_angry"); emote.camera = S("emote_camera");
         AddNpcModels(root.transform, CustomerModels);
 
         GameObject bar = GameObject.CreatePrimitive(PrimitiveType.Cube);

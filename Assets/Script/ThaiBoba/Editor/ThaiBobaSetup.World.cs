@@ -260,6 +260,7 @@ public static partial class ThaiBobaSetup
         Add(Sfx.Start, 0.6f, 0, "jingle_start");
         Add(Sfx.Step, 0.35f, 0, "sfx_step0", "sfx_step1", "sfx_step2", "sfx_step3", "sfx_step4");
         Add(Sfx.Thunder, 1f, 0, "sfx_thunder");
+        Add(Sfx.Camera, 0.8f, 0, "sfx_camera");
         a.music = Clip("music_shop");
         a.trafficLoop = Clip("amb_traffic");
         a.rainLoop = Clip("amb_rain");

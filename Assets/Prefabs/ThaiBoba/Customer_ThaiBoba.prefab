@@ -375,6 +375,7 @@ GameObject:
   - component: {fileID: 4727732797502002807}
   - component: {fileID: 756480014699250075}
   - component: {fileID: 1753098964516822763}
+  - component: {fileID: 2110766734988340125}
   m_Layer: 0
   m_Name: Customer_ThaiBoba
   m_TagString: Untagged
@@ -475,6 +476,25 @@ MonoBehaviour:
   orderArea: {fileID: 0}
   exitArea: {fileID: 0}
   waypoints: []
+--- !u!114 &2110766734988340125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7203700114699584232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e8ece94199f7c74cb64ae4e111bea08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerEmote
+  love: {fileID: 21300000, guid: bbad9124b96a8d04ba5cde02e068b1d5, type: 3}
+  happy: {fileID: 21300000, guid: f40d7f8dcb9ef1741845c080ef6d0a08, type: 3}
+  meh: {fileID: 21300000, guid: a8f1ca765b73de34bb40d53d5778ffc9, type: 3}
+  angry: {fileID: 21300000, guid: 57a660dd34462de448192059bff933f4, type: 3}
+  camera: {fileID: 21300000, guid: a476184dc3786e847b4b23851a51e97b, type: 3}
+  height: 2.25
+  size: 0.42
 --- !u!1001 &87950557724585385
 PrefabInstance:
   m_ObjectHideFlags: 0

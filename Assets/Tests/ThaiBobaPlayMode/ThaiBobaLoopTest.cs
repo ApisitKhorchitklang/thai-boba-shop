@@ -517,6 +517,80 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
     }
 
+    [UnityTest, Timeout(60000)]
+    public IEnumerator DrinkAnimationsEmotesAndDayReport()
+    {
+        yield return LoadScene();
+        // pouring: a stream appears and the level rises from the bottom
+        Component dispenser = Find("CupDispenser");
+        GameObject cupGo = UnityEngine.Object.Instantiate((GameObject)dispenser.GetType().GetField("cupPrefab").GetValue(dispenser), new Vector3(0, 30, 0), Quaternion.identity);
+        cupGo.GetComponent<Rigidbody>().isKinematic = true;
+        Component cup = cupGo.GetComponent(T("CupController"));
+        Type ct = cup.GetType();
+        Component slosh = cupGo.GetComponent(T("LiquidSlosh"));
+        PropertyInfo fillP = slosh.GetType().GetProperty("Fill");
+        yield return null;
+        ct.GetMethod("Grab").Invoke(cup, null);
+        ct.GetMethod("Fill").Invoke(cup, new object[] { "Taro" });
+        yield return null;
+        float fillStart = (float)fillP.GetValue(slosh);
+        Transform stream = cupGo.transform.Find("PourStream");
+        bool streamShown = stream != null && stream.gameObject.activeSelf;
+        float t0 = Time.time;
+        while (Time.time - t0 < 1.2f) yield return null;
+        float fillEnd = (float)fillP.GetValue(slosh);
+
+        // pearls drop in from above
+        Transform pearls = null;
+        foreach (Transform t in cupGo.GetComponentsInChildren<Transform>(true)) if (t.name == "Cup_Pearls") pearls = t;
+        Vector3 rest = pearls.localPosition;
+        ct.GetMethod("AddBoba").Invoke(cup, new object[] { 1 });
+        yield return null;
+        float dropOffset = pearls.localPosition.y - rest.y;
+        UnityEngine.Object.Destroy(cupGo);
+
+        // emote bubble + reviewer photo flash
+        Component sp = Find("Spawner");
+        GameObject custPrefab = (GameObject)sp.GetType().GetField("customerPrefab").GetValue(sp);
+        Component prefabEmote = custPrefab.GetComponent(T("CustomerEmote"));
+        Assert.IsNotNull(prefabEmote, "customers have no emote bubble");
+        GameObject dummy = new GameObject("EmoteDummy");
+        dummy.transform.position = new Vector3(0, 30, 0);
+        Component emote = dummy.AddComponent(T("CustomerEmote"));
+        foreach (string f in new[] { "love", "happy", "meh", "angry", "camera" })
+            emote.GetType().GetField(f).SetValue(emote, emote.GetType().GetField(f).GetValue(prefabEmote));
+        yield return null;
+        emote.GetType().GetMethod("Show").Invoke(emote, new object[] { Enum.Parse(T("CustomerEmote+Kind"), "Love"), 1f, 0f });
+        yield return null;
+        var bubble = dummy.GetComponentInChildren<SpriteRenderer>();
+        bool bubbleOn = bubble != null && bubble.enabled && bubble.sprite != null;
+        emote.GetType().GetMethod("TakePhoto").Invoke(emote, null);
+        bool flashed = false;
+        t0 = Time.time;
+        while (Time.time - t0 < 1.5f) { Light l = dummy.GetComponentInChildren<Light>(); if (l != null && l.enabled) flashed = true; yield return null; }
+        UnityEngine.Object.Destroy(dummy);
+
+        // end-of-day insights
+        Type ds = T("ShopProgress+DayStats");
+        object stats = Activator.CreateInstance(ds);
+        ((int[])ds.GetField("soldByDrink").GetValue(stats))[0] = 5;
+        ((int[])ds.GetField("servedByHour").GetValue(stats))[12] = 7;
+        object[] outArg = { 0 };
+        string best = (string)ds.GetMethod("BestSeller").Invoke(stats, outArg);
+        object[] outH = { 0 };
+        int hour = (int)ds.GetMethod("BusiestHour").Invoke(stats, outH);
+
+        Debug.Log($"[TEST] feel: fill {fillStart:0.00} -> {fillEnd:0.00}, stream {streamShown}, pearl drop +{dropOffset:0.000}, bubble {bubbleOn}, flash {flashed}, best '{best}' x{outArg[0]}, busiest {hour}:00 x{outH[0]}");
+        Assert.Less(fillStart, 0.5f, "tea did not start low");
+        Assert.AreEqual(1f, fillEnd, 0.001f, "cup never filled up");
+        Assert.IsTrue(streamShown, "no pouring stream");
+        Assert.Greater(dropOffset, 0.02f, "pearls did not drop in");
+        Assert.IsTrue(bubbleOn, "emote bubble not shown");
+        Assert.IsTrue(flashed, "reviewer photo did not flash");
+        Assert.IsNotNull(best, "no best seller");
+        Assert.AreEqual(12, hour);
+    }
+
     [UnityTest, Timeout(120000)]
     public IEnumerator DecorateHireAndExpand()
     {

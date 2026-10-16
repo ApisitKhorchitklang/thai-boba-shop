@@ -6,7 +6,7 @@ public enum Sfx
     Click, Open, Close, Confirm, Error,
     Cup, Boba, Ice, Sweet, Pour, SealStart, SealDone, Trash,
     Coins, Tip, Combo, Angry, Reject, Bless,
-    LevelUp, Goal, DayEnd, Start, Step, Thunder
+    LevelUp, Goal, DayEnd, Start, Step, Thunder, Camera
 }
 
 // Music, ambience (traffic / rain / boiling pot) and one-shot sound effects. All clips are CC0 (see Assets/Audio/ThaiBoba/CREDITS.txt).

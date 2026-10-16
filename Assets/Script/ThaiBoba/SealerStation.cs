@@ -11,6 +11,13 @@ public class SealerStation : MonoBehaviour, IInteractable
 
     private bool busy;
 
+    void Awake()
+    {
+        if (lever == null)                                             // SM_CupSealer's "Sealer_Lever" part (pivot at its hinge)
+            foreach (Transform t in GetComponentsInChildren<Transform>(true))
+                if (t.name == "Sealer_Lever") { lever = t; break; }
+    }
+
     public string Prompt(RaycastAim player)
     {
         if (busy) return Loc.T("กำลังซีล...", "Sealing...");

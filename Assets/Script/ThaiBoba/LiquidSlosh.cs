@@ -28,7 +28,12 @@ public class LiquidSlosh : MonoBehaviour
     static readonly int TopColorId = Shader.PropertyToID("_TopColor");
     static readonly int FoamColorId = Shader.PropertyToID("_FoamColor");
 
-    class Liquid { public Renderer r; public Material mat; public float topY; }
+    class Liquid { public Renderer r; public Material mat; public float topY, bottomY; }
+
+    // pour animation: the surface rises from the bottom of the cup to the top
+    float fill = 1f, fillRate;
+    public float Fill => fill;
+    public void AnimateFill(float seconds) { fill = 0f; fillRate = 1f / Mathf.Max(0.05f, seconds); }
     readonly List<Liquid> liquids = new List<Liquid>();
     Transform ice;
     Quaternion iceRest;
@@ -57,7 +62,7 @@ public class LiquidSlosh : MonoBehaviour
             m.SetColor(TopColorId, Color.Lerp(c, Color.white, 0.22f));
             m.SetColor(FoamColorId, Color.Lerp(c, Color.white, 0.6f));
             r.sharedMaterial = m;
-            liquids.Add(new Liquid { r = r, mat = m, topY = mf.sharedMesh.bounds.max.y - topInset });
+            liquids.Add(new Liquid { r = r, mat = m, topY = mf.sharedMesh.bounds.max.y - topInset, bottomY = mf.sharedMesh.bounds.min.y + 0.004f });
         }
     }
 
@@ -73,6 +78,7 @@ public class LiquidSlosh : MonoBehaviour
 
     void LateUpdate()
     {
+        if (fill < 1f) fill = Mathf.Min(1f, fill + Time.deltaTime * fillRate);
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
         Vector3 pos = transform.position;
@@ -113,7 +119,7 @@ public class LiquidSlosh : MonoBehaviour
         foreach (Liquid l in liquids)
         {
             if (!l.r.gameObject.activeInHierarchy) continue;
-            Vector3 fill = l.r.transform.TransformPoint(new Vector3(0f, l.topY, 0f));
+            Vector3 fill = l.r.transform.TransformPoint(new Vector3(0f, Mathf.Lerp(l.bottomY, l.topY, this.fill), 0f));
             l.mat.SetVector(FillPoint, fill);
             l.mat.SetVector(Slope, new Vector4(slope.x, slope.y, 0f, 0f));
         }

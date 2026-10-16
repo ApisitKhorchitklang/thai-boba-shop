@@ -277,6 +277,45 @@ opacity(ellipse(b, 38, 34, 22, 10, C.white), 80);
 ellipse(b, 74, 42, 8, 8, C.goldDark);
 ellipse(b, 52, 50, 6, 6, C.goldDark);
 
+// ---------------------------------------------------------------- customer emotes (speech bubble, floats over heads)
+function bubble(name) {
+    var e = board(name, 160, 160);
+    poly(e, [[62, 128], [80, 156], [96, 128]], C.white, C.brown, 6);            // tail
+    ellipse(e, 8, 8, 144, 124, C.white, C.brown, 7);
+    poly(e, [[64, 126], [80, 150], [94, 126]], C.white);                         // hide the seam
+    return e;
+}
+function eyes(e, y, shape) {
+    if (shape === "heart") {
+        for (var k = 0; k < 2; k++) {
+            var cx = 52 + k * 56;
+            ellipse(e, cx - 15, y - 12, 18, 18, C.pink); ellipse(e, cx - 2, y - 12, 18, 18, C.pink);
+            poly(e, [[cx - 15, y - 2], [cx + 15, y - 2], [cx, y + 16]], C.pink);
+        }
+    } else if (shape === "closed") {
+        poly(e, [[38, y + 4], [52, y - 8], [66, y + 4]], null, C.boba, 7, false);
+        poly(e, [[94, y + 4], [108, y - 8], [122, y + 4]], null, C.boba, 7, false);
+    } else if (shape === "flat") {
+        poly(e, [[40, y], [64, y]], null, C.boba, 8, false); poly(e, [[96, y], [120, y]], null, C.boba, 8, false);
+    } else if (shape === "angry") {
+        poly(e, [[38, y - 16], [64, y - 4]], null, C.boba, 7, false); poly(e, [[96, y - 4], [122, y - 16]], null, C.boba, 7, false);
+        ellipse(e, 45, y - 2, 14, 16, C.boba); ellipse(e, 101, y - 2, 14, 16, C.boba);
+    }
+}
+var em;
+em = bubble("emote_love");  eyes(em, 54, "heart"); poly(em, [[56, 86], [80, 104], [104, 86]], null, C.boba, 7, false);
+opacity(ellipse(em, 26, 70, 26, 14, C.pinkLight), 80); opacity(ellipse(em, 108, 70, 26, 14, C.pinkLight), 80);
+em = bubble("emote_happy"); eyes(em, 56, "closed"); poly(em, [[54, 82], [80, 102], [106, 82]], null, C.boba, 7, false);
+opacity(ellipse(em, 26, 70, 26, 14, C.pinkLight), 80); opacity(ellipse(em, 108, 70, 26, 14, C.pinkLight), 80);
+em = bubble("emote_meh");   eyes(em, 54, "flat");   poly(em, [[58, 92], [102, 88]], null, C.boba, 7, false);
+em = bubble("emote_angry"); eyes(em, 56, "angry"); poly(em, [[56, 100], [80, 86], [104, 100]], null, C.boba, 7, false);
+poly(em, [[112, 22], [126, 34], [114, 40], [128, 52]], null, C.pinkDark, 6, false);
+em = bubble("emote_camera");                                                    // reviewer taking a photo
+rrect(em, 34, 40, 92, 62, 12, C.boba);
+rrect(em, 52, 30, 28, 14, 5, C.boba);
+ellipse(em, 60, 48, 40, 40, C.white, C.boba, 6); ellipse(em, 70, 58, 20, 20, C.blue);
+ellipse(em, 106, 46, 10, 10, C.gold);
+
 // ---------------------------------------------------------------- logo cup for the main menu
 b = board("logo_cup", 512, 512);
 ellipse(b, 96, 440, 320, 50, C.brownDark);

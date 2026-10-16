@@ -25,3 +25,5 @@ sfx_moto_pass.wav ("Scooter Passage" #0533), sfx_moto_pass2.wav ("2 motorcycle p
 sfx_car_pass.wav ("Car on a Road" #1286), sfx_horn_car.wav ("Recent Car Horn #2" #0258), sfx_horn_short.wav ("Car horn #4" #0260),
 amb_birds.wav ("Campaign Morning" #0912), amb_night.wav ("Campaign at Night #4" #1880), amb_market.wav ("Outdoor market 1" #2728)
     BigSoundBank (CC0)                   https://bigsoundbank.com  (cut / looped in Blender; originals in /AudioSource/bsb_ambience)
+sfx_camera.wav ("iPhone camera" #0448)
+    BigSoundBank (CC0)                   https://bigsoundbank.com/iphone-camera-s0448.html
