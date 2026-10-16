@@ -35,6 +35,8 @@ public static class DrinkMenu
         new Drink("Taro",     "เผือก",         "Taro",          50, 4, new Color(0.62f, 0.48f, 0.80f)),
         new Drink("Cocoa",    "โกโก้",         "Cocoa",         45, 5, new Color(0.33f, 0.18f, 0.10f)),
         new Drink("RedLime",  "แดงมะนาวโซดา",  "Red Lime Soda", 40, 6, new Color(0.85f, 0.08f, 0.15f)),
+        // secret recipe: shared by a regular at friendship 5/5 (RegularsSystem), never unlocked by level
+        new Drink("ButterflyPea", "อัญชันมะนาว", "Butterfly Pea Lime", 55, 99, new Color(0.33f, 0.36f, 0.92f)),
     };
 
     // ระดับความหวาน (sweetness %) — Thai customers are picky about this!
@@ -47,11 +49,19 @@ public static class DrinkMenu
         return null;
     }
 
+    public static bool IsSecret(Drink d) => d != null && d.id == RegularsSystem.SecretDrink;
+
+    public static bool IsUnlocked(Drink d, int shopLevel)
+    {
+        if (d == null) return false;
+        return IsSecret(d) ? RegularsSystem.SecretUnlocked : d.unlockLevel <= shopLevel;
+    }
+
     public static List<Drink> Unlocked(int shopLevel)
     {
         List<Drink> list = new List<Drink>();
         foreach (Drink d in All)
-            if (d.unlockLevel <= shopLevel) list.Add(d);
+            if (IsUnlocked(d, shopLevel)) list.Add(d);
         return list;
     }
 

@@ -26,6 +26,8 @@ public static class SaveSystem
         public int level = 1;
         public int bestCombo;
         public string[] upgrades = new string[0];
+        public int[] regularHearts = new int[0];
+        public bool secretDrink;
         public string savedAt = "";
     }
 
@@ -64,6 +66,11 @@ public static class SaveSystem
         }
         if (UpgradeShop.Instance != null)
             data.upgrades = UpgradeShop.Instance.OwnedIds();
+        if (RegularsSystem.Instance != null)
+        {
+            data.regularHearts = RegularsSystem.Instance.HeartsArray();
+            data.secretDrink = RegularsSystem.SecretUnlocked;
+        }
         data.savedAt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         return data;
     }
@@ -168,6 +175,8 @@ public static class SaveSystem
 
         if (UpgradeShop.Instance != null)
             UpgradeShop.Instance.LoadOwned(data.upgrades);
+        if (RegularsSystem.Instance != null)
+            RegularsSystem.Instance.Load(data.regularHearts, data.secretDrink);
 
         TimeCyc tc = Object.FindFirstObjectByType<TimeCyc>();
         if (tc != null && data.day > 0)

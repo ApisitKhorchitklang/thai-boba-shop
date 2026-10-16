@@ -89,6 +89,8 @@ public class Spawner : MonoBehaviour
             mult *= DailyEventSystem.Instance.HourSpawnMultiplier(h);
         if (WeatherSystem.Instance != null)
             mult *= 1f + 0.8f * WeatherSystem.Instance.Rain;      // people duck into the shop to escape the rain
+        if (RegularsSystem.Instance != null)
+            mult *= RegularsSystem.Instance.SpawnBonus;           // good friends bring friends
         return mult;
     }
 
@@ -112,7 +114,12 @@ public class Spawner : MonoBehaviour
         // 60% chance to spawn a customer prefab if available (and the queue isn't full)
         bool queueFull = CustomerController.Queue.Count >= maxQueue;
         bool tutorialCustomer = false;
-        if (TutorialActive)
+        RegularsSystem.Regular regular = null;
+        if (!TutorialActive && customerPrefab != null && !queueFull && RegularsSystem.Instance != null)
+            regular = RegularsSystem.Instance.TakeDue(h);            // a regular whose hour has come
+        if (regular != null)
+            prefab = customerPrefab;
+        else if (TutorialActive)
         {
             tutorialCustomer = !TutorialCustomerSpawned && customerPrefab != null;
             prefab = tutorialCustomer ? customerPrefab : npcPrefab;
@@ -133,6 +140,12 @@ public class Spawner : MonoBehaviour
                 TutorialCustomerSpawned = true;
                 customerController.customerType = CustomerType.Student;
                 customerController.order = new Order(TutorialOrder.bobaCount, TutorialOrder.wantsIce, TutorialOrder.flavor, TutorialOrder.sweetness) { wantsFoam = TutorialOrder.wantsFoam };
+            }
+            if (regular != null)
+            {
+                customerController.regular = regular;
+                customerController.customerType = regular.type;
+                customerController.order = RegularsSystem.Instance.FavoriteOrder(regular);
             }
             customerController.AssignSpawnPoint(spawn);
             customerController.AssignEnterArea(enterArea);

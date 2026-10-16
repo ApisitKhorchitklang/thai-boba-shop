@@ -16,6 +16,7 @@ public class CustomerAppearance : MonoBehaviour
         CustomerController customer = GetComponentInParent<CustomerController>();
         if (customer != null)
         {
+            if (customer.regular != null) pick = modelsRoot.Find(customer.regular.model);   // regulars always look the same
             string[] names = ModelNames(customer.customerType);
             for (int tries = 0; tries < 6 && pick == null; tries++)
                 pick = modelsRoot.Find(names[Random.Range(0, names.Length)]);

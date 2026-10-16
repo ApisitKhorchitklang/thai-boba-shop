@@ -517,6 +517,58 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
     }
 
+    [UnityTest, Timeout(150000)]
+    public IEnumerator RegularVisitsAndBecomesAFriend()
+    {
+        yield return LoadScene();
+        Type rsT = T("RegularsSystem");
+        Component rs = (Component)rsT.GetProperty("Instance").GetValue(null);
+        Assert.IsNotNull(rs, "no RegularsSystem");
+        var list = (System.Collections.IList)rsT.GetField("regulars").GetValue(rs);
+        object mind = list[0];
+        Type regT = mind.GetType();
+        rsT.GetMethod("ForceDue").Invoke(rs, new object[] { 0 });
+
+        // she should come in, with her usual order and her own look
+        Type cc = T("CustomerController");
+        FieldInfo regF = cc.GetField("regular");
+        Component visitor = null;
+        Time.timeScale = 3f;
+        float t0 = Time.realtimeSinceStartup;
+        while (visitor == null && Time.realtimeSinceStartup - t0 < 90f)
+        {
+            foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None))
+                if (regF.GetValue(o) == mind) visitor = (Component)o;
+            yield return null;
+        }
+        Time.timeScale = 1f;
+        Assert.IsNotNull(visitor, "the regular never showed up");
+        yield return null;
+        object order = cc.GetField("order").GetValue(visitor);
+        Assert.AreEqual("ThaiTea", order.GetType().GetField("flavor").GetValue(order), "not her usual drink");
+        Assert.AreEqual(2, order.GetType().GetField("bobaCount").GetValue(order));
+        Transform student = visitor.transform.Find("Visual/NPC_Student");
+        Assert.IsTrue(student != null && student.gameObject.activeSelf, "regular does not look like herself");
+        string title = (string)cc.GetProperty("DisplayName").GetValue(visitor);
+
+        // five perfect drinks -> best friends, secret recipe, saved
+        object perfect = Enum.Parse(T("ServeQuality"), "Perfect");
+        for (int i = 0; i < 5; i++) rsT.GetMethod("OnServed").Invoke(rs, new object[] { mind, perfect });
+        int hearts = (int)regT.GetField("hearts").GetValue(mind);
+        bool secret = (bool)rsT.GetProperty("SecretUnlocked").GetValue(null);
+        Type dm = T("DrinkMenu");
+        var unlocked = (System.Collections.IList)dm.GetMethod("Unlocked").Invoke(null, new object[] { 1 });
+        bool hasSecret = false;
+        foreach (object d in unlocked) if ((string)d.GetType().GetField("id").GetValue(d) == "ButterflyPea") hasSecret = true;
+        int[] saved = (int[])rsT.GetMethod("HeartsArray").Invoke(rs, null);
+        float bonus = (float)rsT.GetProperty("SpawnBonus").GetValue(rs);
+        Debug.Log($"[TEST] regular: '{title}', hearts {hearts}, secret {secret}, menu has secret {hasSecret}, saved [{string.Join(",", saved)}], spawn bonus {bonus:0.00}");
+        Assert.AreEqual(5, hearts);
+        Assert.IsTrue(secret && hasSecret, "secret recipe not unlocked");
+        Assert.AreEqual(5, saved[0], "friendship not in save data");
+        Assert.Greater(bonus, 1f, "friends did not bring more customers");
+    }
+
     [UnityTest, Timeout(90000)]
     public IEnumerator PearlPotCooksThenGoesHard()
     {

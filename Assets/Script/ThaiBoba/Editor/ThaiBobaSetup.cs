@@ -114,7 +114,7 @@ public static partial class ThaiBobaSetup
     const string AnimDir = "Assets/Prefabs/ThaiBoba/Anim/";
     static readonly string[] CustomerModels =
         { "NPC_Student", "NPC_SchoolBoy", "NPC_UniStudent", "NPC_Office", "NPC_Tourist", "NPC_Auntie", "NPC_Vendor",
-          "NPC_Rider", "NPC_Influencer" };
+          "NPC_Rider", "NPC_Influencer", "NPC_Grandpa" };                 // Grandpa = regular "Uncle Chai"
     static readonly string[] PedestrianModels =
         { "NPC_Student", "NPC_SchoolBoy", "NPC_UniStudent", "NPC_Office", "NPC_Tourist", "NPC_Auntie", "NPC_Vendor",
           "NPC_Rider", "NPC_Worker", "NPC_Jogger", "NPC_Grandpa", "NPC_Uncle" };
@@ -508,6 +508,7 @@ public static partial class ThaiBobaSetup
         if (sys.GetComponent<DailyEventSystem>() == null) sys.AddComponent<DailyEventSystem>();
         if (sys.GetComponent<DailyGoals>() == null) sys.AddComponent<DailyGoals>();
         if (sys.GetComponent<WeatherSystem>() == null) sys.AddComponent<WeatherSystem>();
+        if (sys.GetComponent<RegularsSystem>() == null) sys.AddComponent<RegularsSystem>();
         if (sys.GetComponent<ComputerTerminal>() == null) sys.AddComponent<ComputerTerminal>();
         if (sys.GetComponent<ThaiBobaBootstrap>() == null) sys.AddComponent<ThaiBobaBootstrap>();
         UpgradeShop shop = sys.GetComponent<UpgradeShop>();

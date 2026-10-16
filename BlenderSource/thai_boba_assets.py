@@ -80,6 +80,7 @@ PAL = {
     "pink_milk":    ((0.98, 0.55, 0.70), 0.2, 0, 1, 0),
     "cocoa":        ((0.33, 0.18, 0.10), 0.2, 0, 1, 0),
     "red_lime":     ((0.85, 0.08, 0.15), 0.1, 0, 1, 0),
+    "butterfly":    ((0.33, 0.36, 0.92), 0.1, 0, 1, 0),
     "pearl":        ((0.04, 0.025, 0.02), 0.15, 0, 1, 0),
     "seal_film":    ((1.00, 0.85, 0.92), 0.3, 0, 0.6, 0),
     "straw":        ((0.95, 0.35, 0.55), 0.4, 0, 1, 0),
@@ -142,9 +143,9 @@ PAL = {
     "denim":        ((0.20, 0.30, 0.50), 0.8, 0, 1, 0),
     "tropical":     ((0.10, 0.60, 0.70), 0.7, 0, 1, 0),
 }
-DRINKS = ["ThaiTea", "Matcha", "MilkTea", "Taro", "PinkMilk", "Cocoa", "RedLime"]
+DRINKS = ["ThaiTea", "Matcha", "MilkTea", "Taro", "PinkMilk", "Cocoa", "RedLime", "ButterflyPea"]   # ButterflyPea = secret recipe
 DRINK_MAT = {"ThaiTea": "thai_tea", "Matcha": "matcha", "MilkTea": "milk_tea", "Taro": "taro",
-             "PinkMilk": "pink_milk", "Cocoa": "cocoa", "RedLime": "red_lime"}
+             "PinkMilk": "pink_milk", "Cocoa": "cocoa", "RedLime": "red_lime", "ButterflyPea": "butterfly"}
 
 _mats = {}
 
@@ -821,8 +822,8 @@ def build_back_counter():
     a.bmm(-L / 2, L / 2, Dd / 2 - 0.25, Dd / 2, H + 0.75, H + 0.78, "wood")
     for x in (-L / 2 + 0.2, L / 2 - 0.2):
         a.bmm(x - 0.015, x + 0.015, Dd / 2 - 0.2, Dd / 2, H + 0.6, H + 0.75, "steel_dark")
-    for i, d in enumerate(["ThaiTea", "Matcha", "Taro", "Cocoa", "MilkTea", "PinkMilk", "RedLime"]):
-        x = -L / 2 + 0.25 + i * 0.35
+    for i, d in enumerate(["ThaiTea", "Matcha", "Taro", "Cocoa", "MilkTea", "PinkMilk", "RedLime", "ButterflyPea"]):
+        x = -L / 2 + 0.27 + i * 0.295
         a.cyl(0.08, 0.2, (x, Dd / 2 - 0.12, H + 0.88), "white", seg=12, g="Tin_" + d)
         a.cyl(0.082, 0.05, (x, Dd / 2 - 0.12, H + 0.86), DRINK_MAT[d], seg=12, g="Tin_" + d)
     return a.build()
@@ -880,7 +881,7 @@ def build_drink_display():
     a = Asset("SM_DrinkDisplay")
     rnd = random.Random(8)
     a.bmm(-0.42, 0.42, -0.1, 0.1, 0, 0.02, "wood", bevel=0.005)
-    for i, d in enumerate(DRINKS):
+    for i, d in enumerate(DRINKS[:7]):                                  # showcase: the regular menu only
         x = -0.36 + i * 0.12
         a.cyl(0.033, 0.16, (x, 0, 0.1), "plastic_clear", r2=0.045, seg=14)
         a.cyl(0.031, 0.13, (x, 0, 0.088), DRINK_MAT[d], r2=0.0415, seg=14)

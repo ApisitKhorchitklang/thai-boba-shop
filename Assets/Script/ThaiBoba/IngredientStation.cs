@@ -28,7 +28,8 @@ public class IngredientStation : MonoBehaviour, IInteractable
                 return c != null ? Loc.T($"ปรับความหวาน (ตอนนี้ {c.sweetness}%)", $"Change sweetness (now {c.sweetness}%)") : Loc.T("ปรับความหวาน", "Change sweetness");
             default:
                 DrinkMenu.Drink d = DrinkMenu.Get(flavorId);
-                bool locked = d != null && ShopProgress.Instance != null && d.unlockLevel > ShopProgress.Instance.level;
+                bool locked = d != null && ShopProgress.Instance != null && !DrinkMenu.IsUnlocked(d, ShopProgress.Instance.level);
+                if (locked && DrinkMenu.IsSecret(d)) return Loc.T("สูตรลับ · ได้จากลูกค้าประจำที่สนิท 5/5", "Secret recipe · earned from a regular at friendship 5/5");
                 return locked ? Loc.T($"{d.Name} (ปลดล็อกที่เลเวล {d.unlockLevel})", $"{d.Name} (unlocks at level {d.unlockLevel})") : Loc.T("เทชา: ", "Pour: ") + (d != null ? d.Name : flavorId);
         }
     }
@@ -94,7 +95,7 @@ public class IngredientStation : MonoBehaviour, IInteractable
 
             case Kind.Flavor:
                 DrinkMenu.Drink d = DrinkMenu.Get(flavorId);
-                if (d != null && ShopProgress.Instance != null && d.unlockLevel > ShopProgress.Instance.level)
+                if (d != null && ShopProgress.Instance != null && !DrinkMenu.IsUnlocked(d, ShopProgress.Instance.level))
                 {
                     ShopHUD.ToastNow(Loc.T($"{d.Name} ยังไม่ปลดล็อก (เลเวล {d.unlockLevel})", $"{d.Name} is still locked (level {d.unlockLevel})"));
                     return;

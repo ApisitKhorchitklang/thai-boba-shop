@@ -168,7 +168,7 @@ public class ShopHUD : MonoBehaviour
 
         CustomerController c = CustomerController.Front;
         bool hasCustomer = c != null && c.Profile != null;
-        if (orderTitle != null) orderTitle.text = hasCustomer ? c.Profile.Label : Loc.T("ออเดอร์", "Order");
+        if (orderTitle != null) orderTitle.text = hasCustomer ? c.DisplayName : Loc.T("ออเดอร์", "Order");
         if (orderText != null)
             orderText.text = hasCustomer ? c.order.ToThaiString() : Loc.T("รอลูกค้า...", "Waiting for customers...");
         if (patienceFill != null)
@@ -237,6 +237,8 @@ public class ShopHUD : MonoBehaviour
         }
     }
 
+    static string Regulars() => RegularsSystem.Instance != null ? RegularsSystem.Instance.TodaySummary() : "";
+
     ShopProgress.DayStats lastStats;
     string lastStock;
 
@@ -265,7 +267,7 @@ public class ShopHUD : MonoBehaviour
                   $"Tips  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
                   $"Bonus  <color=#4E8A3C>+{s.bonus} ฿</color>\n" +
                   $"Expenses  <color=#C23A66>-{s.expenses} ฿</color>\n" +
-                  $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + lastStock
+                  $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + Regulars() + lastStock
                 : $"เสิร์ฟ  <b>{s.served}</b> แก้ว   (เป๊ะ {s.perfect} · พอใช้ {s.okay})\n" +
                   $"ลูกค้าเดินหนี  {s.angry}     แก้วโดนปฏิเสธ  {s.rejected}\n" +
                   $"คอมโบสูงสุด  x{s.bestCombo}\n\n" +
@@ -273,7 +275,7 @@ public class ShopHUD : MonoBehaviour
                   $"ทิป  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
                   $"โบนัส  <color=#4E8A3C>+{s.bonus} ฿</color>\n" +
                   $"ค่าใช้จ่าย  <color=#C23A66>-{s.expenses} ฿</color>\n" +
-                  $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + lastStock;
+                  $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + Regulars() + lastStock;
         }
         if (upgradesText != null && UpgradeShop.Instance != null)
             upgradesText.text = UpgradeShop.Instance.Describe();

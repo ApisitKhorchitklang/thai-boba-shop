@@ -6,6 +6,7 @@ using UnityEngine.AI;
 public class CustomerController : MonoBehaviour
 {
     public Order order;
+    [System.NonSerialized] public RegularsSystem.Regular regular;    // set when this is one of the soi's regulars
     public int payment = 10; // fallback flat payment when no ShopProgress exists
 
     [Header("Thai customer")]
@@ -71,6 +72,7 @@ public class CustomerController : MonoBehaviour
         float patienceMult = 1f;
         if (ShopProgress.Instance != null)
             patienceMult = ShopProgress.Instance.PatienceMultiplier;
+        if (regular != null && RegularsSystem.Instance != null) patienceMult *= RegularsSystem.Instance.PatienceMultiplier(regular);
         maxPatience = Profile.patience * patienceMult;
         Patience = maxPatience;
 
@@ -190,7 +192,7 @@ public class CustomerController : MonoBehaviour
             if (slot == 0 && !greeted)
             {
                 greeted = true;
-                Say(CustomerProfiles.Line(Profile.greet, order), 4f);
+                Say(regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.Greeting(regular, order) : CustomerProfiles.Line(Profile.greet, order), 4f);
             }
         }
 
@@ -205,8 +207,14 @@ public class CustomerController : MonoBehaviour
     // At the counter, ready to order (used by the tutorial)
     public bool AtCounter => Queue.IndexOf(this) == 0 && arrivedAtSlot;
 
+    // Order card title: a regular shows their name and friendship
+    public string DisplayName => regular != null && RegularsSystem.Instance != null
+        ? $"{regular.Name} <size=62%>({RegularsSystem.Instance.FriendshipLabel(regular)})</size>"
+        : Profile.Label;
+
     void LeaveAngry()
     {
+        if (regular != null && RegularsSystem.Instance != null) RegularsSystem.Instance.OnLeftAngry(regular);
         Say(CustomerProfiles.Line(Profile.angry, order), 3f);
         if (ShopProgress.Instance != null)
             ShopProgress.Instance.RegisterAngry(this);
@@ -370,7 +378,7 @@ public class CustomerController : MonoBehaviour
         {
             int pay = Mathf.RoundToInt(order.Price * Profile.payMultiplier);
             int tip = result.quality == ServeQuality.Perfect
-                ? Mathf.RoundToInt(Profile.tipBase * (0.5f + PatienceNormalized))
+                ? Mathf.RoundToInt(Profile.tipBase * (0.5f + PatienceNormalized) * (regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.TipMultiplier(regular) : 1f))
                 : 0;
             ShopProgress.Instance.RegisterServe(this, result, pay, tip);
         }
@@ -379,7 +387,13 @@ public class CustomerController : MonoBehaviour
             GameManager.Instance.AddMoney(payment);
         }
 
-        Say(CustomerProfiles.Line(result.quality == ServeQuality.Perfect ? Profile.thanks : Profile.okay, order), 3f);
+        if (regular != null && RegularsSystem.Instance != null)
+        {
+            RegularsSystem.Instance.OnServed(regular, result.quality);
+            Say(RegularsSystem.Instance.Thanks(regular, result.quality), 3f);
+        }
+        else
+            Say(CustomerProfiles.Line(result.quality == ServeQuality.Perfect ? Profile.thanks : Profile.okay, order), 3f);
         Debug.Log("Order completed: " + result.quality);
         GoToExitArea();
         return true;
