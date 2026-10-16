@@ -17,6 +17,7 @@ public static class SaveSystem
         public int boba;
         public int ice;
         public int baseSyrup;
+        public int foam = -1;       // -1 = save from before cheese foam existed
         public int money;
         public int day;
         // Thai boba shop progression
@@ -45,6 +46,7 @@ public static class SaveSystem
             data.boba = InventoryManager.Instance.boba;
             data.ice = InventoryManager.Instance.ice;
             data.baseSyrup = InventoryManager.Instance.baseSyrup;
+            data.foam = InventoryManager.Instance.foam;
         }
         if (GameManager.Instance != null)
             data.money = GameManager.Instance.money;
@@ -150,6 +152,7 @@ public static class SaveSystem
             InventoryManager.Instance.boba = data.boba;
             InventoryManager.Instance.ice = data.ice;
             InventoryManager.Instance.baseSyrup = data.baseSyrup;
+            InventoryManager.Instance.foam = data.foam >= 0 ? data.foam : 40;
         }
 
         GameManager gm = GameManager.Instance;
@@ -177,7 +180,7 @@ public static class SaveSystem
         DeleteAllSaves();
         SaveData fresh = new SaveData
         {
-            cups = 50, boba = 200, ice = 500, baseSyrup = 300, money = startingMoney, day = 1,
+            cups = 50, boba = 200, ice = 500, baseSyrup = 300, foam = 40, money = startingMoney, day = 1,
             reputation = 3f, xp = 0, level = 1, bestCombo = 0, upgrades = new string[0]
         };
         Apply(fresh);

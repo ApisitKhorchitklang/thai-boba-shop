@@ -132,7 +132,7 @@ public class Spawner : MonoBehaviour
             {
                 TutorialCustomerSpawned = true;
                 customerController.customerType = CustomerType.Student;
-                customerController.order = new Order(TutorialOrder.bobaCount, TutorialOrder.wantsIce, TutorialOrder.flavor, TutorialOrder.sweetness);
+                customerController.order = new Order(TutorialOrder.bobaCount, TutorialOrder.wantsIce, TutorialOrder.flavor, TutorialOrder.sweetness) { wantsFoam = TutorialOrder.wantsFoam };
             }
             customerController.AssignSpawnPoint(spawn);
             customerController.AssignEnterArea(enterArea);

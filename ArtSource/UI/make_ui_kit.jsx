@@ -268,6 +268,15 @@ b = icon("umbrella");
 poly(b, [[10, 64], [24, 34], [64, 14], [104, 34], [118, 64]], C.pink, C.brown, 6);
 poly(b, [[64, 64], [64, 108], [52, 116]], null, C.brown, 7, false);
 
+b = icon("foam");                                                 // cheese foam topping: cup with a creamy cap
+poly(b, [[30, 52], [98, 52], [90, 120], [38, 120]], C.white, C.brown, 6);
+poly(b, [[35, 74], [93, 74], [89, 115], [39, 115]], C.milk);
+ellipse(b, 22, 26, 84, 44, "#FDEDC4", C.brown, 6);
+ellipse(b, 44, 12, 40, 30, "#FDEDC4", C.brown, 5);
+opacity(ellipse(b, 38, 34, 22, 10, C.white), 80);
+ellipse(b, 74, 42, 8, 8, C.goldDark);
+ellipse(b, 52, 50, 6, 6, C.goldDark);
+
 // ---------------------------------------------------------------- logo cup for the main menu
 b = board("logo_cup", 512, 512);
 ellipse(b, 96, 440, 320, 50, C.brownDark);

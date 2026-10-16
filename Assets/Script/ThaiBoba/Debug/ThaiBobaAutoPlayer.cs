@@ -88,6 +88,7 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
             Use(aim, Station(IngredientStation.Kind.Ice)); return;
         }
         if (cup.sweetness != o.sweetness && cup.CanChangeSweetness) { Use(aim, Station(IngredientStation.Kind.Sweetness)); return; }
+        if (o.wantsFoam && !cup.hasFoam) { Use(aim, Station(IngredientStation.Kind.Foam)); return; }
         if (cup.CanSeal) { Use(aim, FindFirstObjectByType<SealerStation>()); return; }
         if (cup.State != CupController.CupState.LidClosed) return; // sealer still working
 

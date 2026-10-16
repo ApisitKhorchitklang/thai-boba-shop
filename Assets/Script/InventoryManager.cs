@@ -10,12 +10,14 @@ public class InventoryManager : MonoBehaviour
     public int boba = 200;
     public int ice = 500;
     public int baseSyrup = 300;
+    public int foam = 40;           // cheese foam portions (kept in the fridge)
 
     [Header("Supply prices (baht per unit)")]
     public int cupPrice = 2;
     public int bobaPrice = 1;
     public int icePrice = 1;
     public int syrupPrice = 1;
+    public int foamPrice = 3;
 
     void Awake()
     {
@@ -49,6 +51,7 @@ public class InventoryManager : MonoBehaviour
             case "boba": return boba;
             case "ice": return ice;
             case "syrup": return baseSyrup;
+            case "foam": return foam;
             default: return 0;
         }
     }
@@ -71,6 +74,7 @@ public class InventoryManager : MonoBehaviour
             case "boba": return bobaPrice;
             case "ice": return icePrice;
             case "syrup": return syrupPrice;
+            case "foam": return foamPrice;
             default: return 0;
         }
     }
@@ -83,6 +87,7 @@ public class InventoryManager : MonoBehaviour
             case "boba": boba += amount; break;
             case "ice": ice += amount; break;
             case "syrup": baseSyrup += amount; break;
+            case "foam": foam += amount; break;
             default: break;
         }
     }

@@ -24,7 +24,7 @@ public class TutorialSystem : MonoBehaviour
     public GameObject arrowPrefab;
     public float arrowHeight = 0.12f;
 
-    public enum Step { Look, WaitCustomer, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done }
+    public enum Step { Look, WaitCustomer, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam }   // Foam: only when the order asks for it
     public const int TotalSteps = 9;
 
     public bool Running { get; private set; }
@@ -191,6 +191,7 @@ public class TutorialSystem : MonoBehaviour
         if (cup.bobaCount < o.bobaCount) return Step.Boba;
         if (o.wantsIce && !cup.hasIce) return Step.Ice;
         if (cup.sweetness != o.sweetness) return Step.Sweet;
+        if (o.wantsFoam && !cup.hasFoam) return Step.Foam;
         if (cup.State != CupController.CupState.LidClosed) return Step.Seal;
         return Step.Serve;
     }
@@ -200,6 +201,7 @@ public class TutorialSystem : MonoBehaviour
         if (!string.IsNullOrEmpty(cup.flavor) && cup.flavor != o.flavor) return true;
         if (cup.bobaCount > o.bobaCount) return true;
         if (cup.hasIce && !o.wantsIce) return true;
+        if (cup.hasFoam && !o.wantsFoam) return true;
         if (cup.State == CupController.CupState.LidClosed && !cup.MatchesOrder(o)) return true;
         return false;
     }
@@ -263,6 +265,11 @@ public class TutorialSystem : MonoBehaviour
                 body = Loc.T($"{use}ที่<b>ขวดน้ำเชื่อม</b> ทุกครั้งที่กดจะเปลี่ยนระดับ · ตอนนี้: <b>{now}</b>",
                              $"At the <b>syrup bottles</b>, {use}; each press changes the level · now: <b>{now}</b>");
                 break;
+            case Step.Foam:
+                title = Loc.T("ท็อปชีสโฟม", "Add cheese foam");
+                body = Loc.T($"ออเดอร์นี้ขอท็อปชีสโฟม · ไปที่<b>ตู้เย็น</b> แล้ว{use} (ต้องเทชาก่อน)",
+                             $"This order wants cheese foam · go to the <b>fridge</b> and {use} (after pouring the tea)");
+                break;
             case Step.Seal:
                 title = Loc.T("ซีลฝาแก้ว", "Seal the cup");
                 body = Loc.T($"เดินไปที่<b>เครื่องซีล</b>บนเคาน์เตอร์ แล้ว{use} · ซีลแล้วจะใส่อะไรเพิ่มไม่ได้",
@@ -287,7 +294,7 @@ public class TutorialSystem : MonoBehaviour
         SetButtonLabel(skipButton, pc ? Loc.T("ข้าม", "Skip") + " <size=80%>[Tab]</size>" : Loc.T("ข้าม", "Skip"));
         SetButtonLabel(finishButton, pc ? Loc.T("เริ่มขายเลย!", "Let's sell!") + " <size=80%>[Enter]</size>" : Loc.T("เริ่มขายเลย!", "Let's sell!"));
         if (stepText != null)
-            stepText.text = Current == Step.Done ? Loc.T("เสร็จ!", "Done!") : Current == Step.WrongCup ? "!" : $"{(int)Current + 1}/{TotalSteps}";
+            stepText.text = Current == Step.Done ? Loc.T("เสร็จ!", "Done!") : Current == Step.WrongCup ? "!" : Current == Step.Foam ? "+" : $"{(int)Current + 1}/{TotalSteps}";
         if (titleText != null) titleText.text = title;
         if (bodyText != null) bodyText.text = body;
     }
@@ -335,6 +342,7 @@ public class TutorialSystem : MonoBehaviour
             case Step.Boba: return Station(IngredientStation.Kind.Boba, null);
             case Step.Ice: return Station(IngredientStation.Kind.Ice, null);
             case Step.Sweet: return Station(IngredientStation.Kind.Sweetness, null);
+            case Step.Foam: return Station(IngredientStation.Kind.Foam, null);
             case Step.Seal: return Find<SealerStation>();
             case Step.Serve: return Find<ServeStation>();
             case Step.WrongCup: return Find<TrashStation>();

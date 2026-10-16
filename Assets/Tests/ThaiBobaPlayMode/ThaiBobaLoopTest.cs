@@ -517,6 +517,77 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
     }
 
+    [UnityTest, Timeout(60000)]
+    public IEnumerator CheeseFoamFromTheFridge()
+    {
+        yield return LoadScene();
+        Component fridge = null;
+        foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(T("IngredientStation"), FindObjectsSortMode.None))
+            if (((Component)o).GetType().GetField("kind").GetValue(o).ToString() == "Foam") fridge = (Component)o;
+        Assert.IsNotNull(fridge, "the fridge is not a cheese foam station");
+
+        Component dispenser = Find("CupDispenser");
+        GameObject prefab = (GameObject)dispenser.GetType().GetField("cupPrefab").GetValue(dispenser);
+        GameObject cupGo = UnityEngine.Object.Instantiate(prefab, new Vector3(0, 30f, 0), Quaternion.identity);
+        cupGo.GetComponent<Rigidbody>().isKinematic = true;
+        Component cup = cupGo.GetComponent(T("CupController"));
+        Type ct = cup.GetType();
+        ct.GetMethod("Grab").Invoke(cup, null);
+        Assert.IsFalse((bool)ct.GetProperty("CanAddFoam").GetValue(cup), "foam allowed before the tea");
+        ct.GetMethod("Fill").Invoke(cup, new object[] { "ThaiTea" });
+        Assert.IsTrue((bool)ct.GetMethod("AddFoam").Invoke(cup, null), "could not add cheese foam");
+        yield return null;
+        Transform foam = null;
+        foreach (Transform t in cupGo.GetComponentsInChildren<Transform>(true)) if (t.name == "Cup_Foam") foam = t;
+        Assert.IsNotNull(foam, "cup model has no foam layer");
+        Assert.IsTrue(foam.gameObject.activeInHierarchy, "foam layer not shown");
+        ct.GetMethod("CloseLid").Invoke(cup, null);
+
+        Type orderT = T("Order");
+        object plain = Activator.CreateInstance(orderT, new object[] { 0, false, "ThaiTea", 100 });
+        object withFoam = Activator.CreateInstance(orderT, new object[] { 0, false, "ThaiTea", 100 });
+        orderT.GetField("wantsFoam").SetValue(withFoam, true);
+        MethodInfo eval = T("ServeResult").GetMethod("Evaluate");
+        object good = eval.Invoke(null, new object[] { withFoam, cup });
+        object bad = eval.Invoke(null, new object[] { plain, cup });
+        string q1 = good.GetType().GetField("quality").GetValue(good).ToString(), q2 = bad.GetType().GetField("quality").GetValue(bad).ToString();
+        Debug.Log($"[TEST] foam: order with foam -> {q1}, order without foam -> {q2}; price {orderT.GetProperty("Price").GetValue(withFoam)} vs {orderT.GetProperty("Price").GetValue(plain)}");
+        Assert.AreEqual("Perfect", q1);
+        Assert.AreEqual("Okay", q2, "unwanted foam was not noticed");
+        UnityEngine.Object.Destroy(cupGo);
+    }
+
+    // The bot makes a cheese-foam order end to end: walks to the fridge, aims at it, tops the cup, seals, serves
+    [UnityTest, Timeout(180000)]
+    public IEnumerator BotServesCheeseFoamOrder()
+    {
+        yield return LoadScene();
+        Type sp = T("Spawner"), orderT = T("Order");
+        object o = Activator.CreateInstance(orderT, new object[] { 1, true, "ThaiTea", 100 });
+        orderT.GetField("wantsFoam").SetValue(o, true);
+        sp.GetField("TutorialOrder").SetValue(null, o);                // reuse the tutorial's "one fixed customer" mode
+        sp.GetField("TutorialCustomerSpawned").SetValue(null, false);
+        sp.GetField("TutorialActive").SetValue(null, true);
+        try
+        {
+            Type bot = Type.GetType("ThaiBobaAutoPlayer, Assembly-CSharp");
+            bot.GetField("Passed").SetValue(null, null);
+            Component b = new GameObject("AutoPlayer").AddComponent(bot);
+            bot.GetField("customersToServe").SetValue(b, 1);
+            bot.GetField("endDayWhenDone").SetValue(b, false);
+            float t0 = Time.realtimeSinceStartup;
+            while (bot.GetField("Passed").GetValue(null) == null && Time.realtimeSinceStartup - t0 < 150f) yield return null;
+            string report = (string)bot.GetField("Report").GetValue(null);
+            Debug.Log("[TEST] foam bot: " + report);
+            Assert.AreEqual(true, bot.GetField("Passed").GetValue(null), "bot could not make the cheese foam order: " + report);
+            UnityEngine.Object.Destroy(b.gameObject);
+        }
+        finally
+        {
+            sp.GetField("TutorialActive").SetValue(null, false);
+        }
+    }
+
     [UnityTest, Timeout(90000)]
     public IEnumerator ComputerOrdersSupplies()
     {

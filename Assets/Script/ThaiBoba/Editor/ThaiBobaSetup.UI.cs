@@ -338,11 +338,11 @@ public static partial class ThaiBobaSetup
         hud.goalsText = Label(goals.transform, "Goals", "", 22, Brown, TextAlignmentOptions.TopLeft, TL, TL, new Vector2(28, -84), new Vector2(420, 136));
 
         // bottom: stock chips
-        string[] icons = { "icon_cup", "icon_boba", "icon_ice", "icon_tea" };
-        TMP_Text[] stock = new TMP_Text[4];
-        for (int i = 0; i < 4; i++)
-            stock[i] = Chip(game, "Stock" + i, "chip", icons[i], BC, BC, new Vector2(-270 + i * 180, 20), new Vector2(170, 70), 28, Brown, out r);
-        hud.cupsText = stock[0]; hud.bobaText = stock[1]; hud.iceText = stock[2]; hud.teaText = stock[3];
+        string[] icons = { "icon_cup", "icon_boba", "icon_ice", "icon_tea", "icon_foam" };
+        TMP_Text[] stock = new TMP_Text[5];
+        for (int i = 0; i < 5; i++)
+            stock[i] = Chip(game, "Stock" + i, "chip", icons[i], BC, BC, new Vector2(-360 + i * 180, 20), new Vector2(170, 70), 28, Brown, out r);
+        hud.cupsText = stock[0]; hud.bobaText = stock[1]; hud.iceText = stock[2]; hud.teaText = stock[3]; hud.foamText = stock[4];
 
         // centre: crosshair, prompt, held cup, toast
         Img(game, "Crosshair", "round_cream", MC, MC, Vector2.zero, new Vector2(18, 18));
@@ -371,18 +371,19 @@ public static partial class ThaiBobaSetup
         tut.gameObject.SetActive(false);
 
         // shop computer: order-supplies screen (opened from SM_OrderComputer)
-        Image op = Img(game, "OrderPanel", "panel", MC, MC, new Vector2(0, 10), new Vector2(980, 620), null, true);
+        Image op = Img(game, "OrderPanel", "panel", MC, MC, new Vector2(0, 10), new Vector2(980, 740), null, true);
         Image ob = Img(op.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), MC, new Vector2(0, -6), new Vector2(620, 100));
         FillLabel(ob.transform, "สั่งของ · คอมพิวเตอร์ร้าน", 36, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
         OrderPanel orderPc = hud.gameObject.AddComponent<OrderPanel>();
         orderPc.panel = op.gameObject;
         orderPc.stockText = Label(op.transform, "Stock", "", 26, Brown, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f),
                                 new Vector2(0, -120), new Vector2(900, 60));
-        string[] oIcons = { "icon_cup", "icon_boba", "icon_ice", "icon_tea" };
-        for (int i = 0; i < 4; i++)
+        string[] oIcons = { "icon_cup", "icon_boba", "icon_ice", "icon_tea", "icon_foam" };
+        for (int i = 0; i < 5; i++)
         {
-            Button b = Btn(op.transform, "Order" + i, "button_green", "", oIcons[i], new Vector2(0.5f, 1),
-                           new Vector2(-220 + (i % 2) * 440, -230 - (i / 2) * 130), new Vector2(420, 112), 32, Color.white);
+            Vector2 at = i < 4 ? new Vector2(-220 + (i % 2) * 440, -225 - (i / 2) * 124) : new Vector2(0, -473);   // 2 x 2 + cheese foam centred
+            Button b = Btn(op.transform, "Order" + i, i < 4 ? "button_green" : "button_orange", "", oIcons[i], new Vector2(0.5f, 1),
+                           at, new Vector2(420, 108), 32, Color.white);
             orderPc.orderButtons[i] = b;
             orderPc.orderLabels[i] = b.GetComponentInChildren<TMP_Text>();
         }

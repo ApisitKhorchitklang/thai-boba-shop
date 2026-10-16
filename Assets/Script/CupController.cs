@@ -11,6 +11,7 @@ public class CupController : MonoBehaviour
     public string flavor = "";
     public int sweetness = 100;
     public int maxBoba = 3;
+    public bool hasFoam = false;
 
     // Fired whenever the cup contents change (CupVisual listens to this)
     public event System.Action<CupController> OnChanged;
@@ -20,6 +21,8 @@ public class CupController : MonoBehaviour
     public bool CanAddBoba => Open && bobaCount < maxBoba;
     public bool CanAddIce => Open && !hasIce;
     public bool CanFill => Open && string.IsNullOrEmpty(flavor);
+    // cheese foam goes on top of the tea, before sealing
+    public bool CanAddFoam => Open && !hasFoam && !string.IsNullOrEmpty(flavor);
     public bool CanSeal => State == CupState.Filled;
     public bool CanChangeSweetness => State != CupState.Empty && State != CupState.LidClosed;
 
@@ -79,6 +82,14 @@ public class CupController : MonoBehaviour
         return false;
     }
 
+    public bool AddFoam()
+    {
+        if (!CanAddFoam) return false;
+        hasFoam = true;
+        Changed();
+        return true;
+    }
+
     // Sweetness can be adjusted any time before sealing
     public bool SetSweetness(int level)
     {
@@ -111,6 +122,7 @@ public class CupController : MonoBehaviour
         hasIce = false;
         flavor = "";
         sweetness = 100;
+        hasFoam = false;
         Changed();
     }
 
@@ -122,6 +134,6 @@ public class CupController : MonoBehaviour
 
     public bool MatchesOrder(Order order)
     {
-        return order != null && MatchesOrder(order.bobaCount, order.wantsIce, order.flavor) && sweetness == order.sweetness;
+        return order != null && MatchesOrder(order.bobaCount, order.wantsIce, order.flavor) && sweetness == order.sweetness && hasFoam == order.wantsFoam;
     }
 }

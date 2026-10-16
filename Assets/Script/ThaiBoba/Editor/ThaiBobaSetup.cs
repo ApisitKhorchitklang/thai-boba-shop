@@ -452,7 +452,7 @@ public static partial class ThaiBobaSetup
         Place("SM_POS", -0.75f, 1.35f, 1.0f, 0, shop, Col.None);
         Place("SM_DrinkDisplay", -0.1f, 1.3f, 1.0f, 0, shop, Col.None);
         Place("SM_Shaker", 0.15f, 6.4f, 0.9f, 0, shop, Col.None);
-        Place("SM_DrinkFridge", -1.85f, 4.6f, 0, 90, shop, Col.Box);
+        Place("SM_DrinkFridge", -1.85f, 4.6f, 0, 90, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Foam;   // cheese foam topping
         // the shop computer for ordering supplies: left wall beside the counter, screen facing into the shop
         Place("SM_OrderComputer", -1.8f, 2.75f, 0, 90, shop, Col.Box).AddComponent<SupplyComputer>();
         r.fan = Place("SM_StandingFan", 1.7f, 3.0f, 0, 200, shop, Col.None);

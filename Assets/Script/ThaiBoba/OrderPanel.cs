@@ -11,13 +11,13 @@ public class OrderPanel : MonoBehaviour
 
     public GameObject panel;
     public TMP_Text stockText;
-    public Button[] orderButtons = new Button[4];     // cups, boba, ice, tea
-    public TMP_Text[] orderLabels = new TMP_Text[4];
+    public Button[] orderButtons = new Button[5];     // cups, boba, ice, tea, cheese foam
+    public TMP_Text[] orderLabels = new TMP_Text[5];
     public Button closeButton;
     public TMP_Text closeLabel;
 
-    static readonly string[] Resources = { "cups", "boba", "ice", "syrup" };
-    static readonly int[] Amounts = { 10, 50, 50, 50 };
+    static readonly string[] Resources = { "cups", "boba", "ice", "syrup", "foam" };
+    static readonly int[] Amounts = { 10, 50, 50, 50, 10 };
     int openedFrame;
 
     void Awake()
@@ -73,12 +73,12 @@ public class OrderPanel : MonoBehaviour
     void Refresh()
     {
         InventoryManager inv = InventoryManager.Instance;
-        string[] names = { Loc.T("แก้ว", "Cups"), Loc.T("ไข่มุก", "Pearls"), Loc.T("น้ำแข็ง", "Ice"), Loc.T("ชา", "Tea") };
+        string[] names = { Loc.T("แก้ว", "Cups"), Loc.T("ไข่มุก", "Pearls"), Loc.T("น้ำแข็ง", "Ice"), Loc.T("ชา", "Tea"), Loc.T("ชีสโฟม", "Cheese foam") };
         if (stockText != null && inv != null)
         {
             int money = GameManager.Instance != null ? GameManager.Instance.money : 0;
             stockText.text = Loc.T("เงิน", "Money") + $" <b>{money:N0} ฿</b>     " + Loc.T("คงเหลือ", "In stock") + ":  " +
-                             $"{names[0]} <b>{inv.cups}</b> · {names[1]} <b>{inv.boba}</b> · {names[2]} <b>{inv.ice}</b> · {names[3]} <b>{inv.baseSyrup}</b>";
+                             $"{names[0]} <b>{inv.cups}</b> · {names[1]} <b>{inv.boba}</b> · {names[2]} <b>{inv.ice}</b> · {names[3]} <b>{inv.baseSyrup}</b> · {names[4]} <b>{inv.foam}</b>";
         }
         for (int i = 0; i < orderLabels.Length; i++)
         {

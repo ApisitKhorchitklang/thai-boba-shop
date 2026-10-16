@@ -18,7 +18,7 @@ public class ShopHUD : MonoBehaviour
 
     [Header("Inventory chips")]
     public TMP_Text inventoryText;           // legacy single line
-    public TMP_Text cupsText, bobaText, iceText, teaText;
+    public TMP_Text cupsText, bobaText, iceText, teaText, foamText;
 
     [Header("Event / goals / order")]
     public TMP_Text eventText;
@@ -161,6 +161,7 @@ public class ShopHUD : MonoBehaviour
             if (bobaText != null) bobaText.text = inv.boba.ToString();
             if (iceText != null) iceText.text = inv.ice.ToString();
             if (teaText != null) teaText.text = inv.baseSyrup.ToString();
+            if (foamText != null) foamText.text = inv.foam.ToString();
         }
         if (goalsText != null && DailyGoals.Instance != null)
             goalsText.text = DailyGoals.Instance.Describe().Replace(Loc.T("ภารกิจวันนี้\n", "Today's goals\n"), "");
@@ -218,6 +219,7 @@ public class ShopHUD : MonoBehaviour
         string tea = d != null ? d.Name : Loc.T("ยังไม่เทชา", "no tea yet");
         string seal = cup.State == CupController.CupState.LidClosed ? Loc.T("ซีลแล้ว", "sealed") : Loc.T("ยังไม่ซีล", "not sealed");
         string ice = cup.hasIce ? Loc.T("มีน้ำแข็ง", "ice") : Loc.T("ไม่มีน้ำแข็ง", "no ice");
+        if (cup.hasFoam) ice += Loc.T(" · ชีสโฟม", " · cheese foam");
         return Loc.T($"ในมือ: {tea} · ไข่มุก {cup.bobaCount} · {ice} · {DrinkMenu.SweetTH(cup.sweetness)} · {seal}",
                      $"Holding: {tea} · pearls {cup.bobaCount} · {ice} · {DrinkMenu.SweetTH(cup.sweetness)} · {seal}");
     }
@@ -244,8 +246,8 @@ public class ShopHUD : MonoBehaviour
         InventoryManager inv = InventoryManager.Instance;
         if (inv == null) return "";
         string Item(string label, int n, int low) => n < low ? $"{label} <color=#C23A66><b>{n}</b></color>" : $"{label} <b>{n}</b>";
-        return $"\n\n<b>{Loc.T("ของคงเหลือ", "Stock left")}</b>\n{Item(Loc.T("แก้ว", "Cups"), inv.cups, 15)}   {Item(Loc.T("ไข่มุก", "Pearls"), inv.boba, 60)}   {Item(Loc.T("น้ำแข็ง", "Ice"), inv.ice, 120)}   {Item(Loc.T("ชา", "Tea"), inv.baseSyrup, 80)}" +
-               (inv.cups < 15 || inv.boba < 60 || inv.ice < 120 || inv.baseSyrup < 80 ? Loc.T("\n<size=80%><color=#C23A66>ตัวสีแดงใกล้หมด สั่งเพิ่มก่อนเปิดร้านพรุ่งนี้</color></size>", "\n<size=80%><color=#C23A66>Red items are running low, restock before opening tomorrow</color></size>") : "");
+        return $"\n\n<b>{Loc.T("ของคงเหลือ", "Stock left")}</b>\n{Item(Loc.T("แก้ว", "Cups"), inv.cups, 15)}   {Item(Loc.T("ไข่มุก", "Pearls"), inv.boba, 60)}   {Item(Loc.T("น้ำแข็ง", "Ice"), inv.ice, 120)}   {Item(Loc.T("ชา", "Tea"), inv.baseSyrup, 80)}   {Item(Loc.T("ชีสโฟม", "Foam"), inv.foam, 10)}" +
+               (inv.cups < 15 || inv.boba < 60 || inv.ice < 120 || inv.baseSyrup < 80 || inv.foam < 10 ? Loc.T("\n<size=80%><color=#C23A66>ตัวสีแดงใกล้หมด สั่งเพิ่มก่อนเปิดร้านพรุ่งนี้</color></size>", "\n<size=80%><color=#C23A66>Red items are running low, restock before opening tomorrow</color></size>") : "");
     }
 
     void ShowSummary(ShopProgress.DayStats s)

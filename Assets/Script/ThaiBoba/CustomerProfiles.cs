@@ -157,7 +157,12 @@ public static class CustomerProfiles
         int boba = Random.value < p.bobaChance ? Random.Range(1, 4) : 0;
         bool ice = forceIce || Random.value < iceChance;
         int sweet = p.sweetness[Random.Range(0, p.sweetness.Length)];
-        return new Order(boba, ice, flavor, sweet);
+        // cheese foam topping: popular with reviewers and tourists, rarely with aunties; not on the soda
+        float foamChance = p.type == CustomerType.Influencer ? 0.6f : p.type == CustomerType.Tourist ? 0.4f :
+                           p.type == CustomerType.Student ? 0.3f : p.type == CustomerType.OfficeWorker ? 0.25f :
+                           p.type == CustomerType.Rider ? 0.15f : 0.08f;
+        bool foam = flavor != "RedLime" && Random.value < foamChance;
+        return new Order(boba, ice, flavor, sweet) { wantsFoam = foam };
     }
 
     public static string Line(string[] lines, Order order)

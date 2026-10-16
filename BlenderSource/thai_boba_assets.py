@@ -68,6 +68,7 @@ PAL = {
     "neon_cyan":    ((0.20, 0.95, 1.00), 0.3, 0, 1, 8),
     "tutorial_glow":((1.00, 0.80, 0.20), 0.3, 0, 1, 3),
     "cardboard":    ((0.72, 0.53, 0.32), 0.9, 0, 1, 0),
+    "cheese_foam":  ((0.99, 0.93, 0.76), 0.55, 0, 1, 0),
     "tutorial_rim": ((1.00, 0.97, 0.88), 0.3, 0, 1, 2),
     "screen":       ((0.20, 0.70, 0.95), 0.2, 0, 1, 2),
     # drinks
@@ -866,6 +867,8 @@ def build_cup_modular():
         ang = i / 7 * 6.28
         a.box((0.018, 0.018, 0.018), (math.cos(ang) * 0.02, math.sin(ang) * 0.02, 0.105 + (i % 2) * 0.02),
               "ice", rot=(rnd.uniform(0, 90), rnd.uniform(0, 90), 0), g="Cup_Ice")
+    a.cyl(0.0412, 0.026, (0, 0, 0.141), "cheese_foam", r2=0.0438, seg=20, g="Cup_Foam")      # cheese foam topping
+    a.sphere(0.03, (0, 0, 0.152), "cheese_foam", scale=(1.35, 1.35, 0.32), seg=16, rings=6, g="Cup_Foam")
     a.cyl(0.046, 0.003, (0, 0, 0.1615), "seal_film", seg=20, g="Cup_SealFilm")
     a.tube((0.008, 0.004, 0.02), (0.022, 0.012, 0.25), 0.0055, "straw", seg=8, g="Cup_Straw")
     return a.build()
@@ -986,7 +989,7 @@ def build_pos():
     a.box((0.3, 0.02, 0.21), (0, -0.04, 0.3), "black", rot=(15, 0, 0), bevel=0.005)
     a.box((0.27, 0.005, 0.18), (0, -0.027, 0.302), "screen", rot=(15, 0, 0))
     # QR standee
-    qx = 0.32
+    qx = -0.32                                                      # left of the till (the drink showcase is on the right)
     a.box((0.16, 0.12, 0.015), (qx, -0.05, 0.0075), "black")
     a.box((0.15, 0.01, 0.22), (qx, -0.05, 0.12), "sign_blue", rot=(-8, 0, 0))
     a.box((0.11, 0.006, 0.11), (qx, -0.058, 0.13), "white", rot=(-8, 0, 0))
@@ -1028,10 +1031,15 @@ def build_fridge():
     a.bmm(-0.35, 0.35, -0.3, 0.3, 0, 1.9, "white", bevel=0.01)
     a.bmm(-0.31, 0.31, -0.32, -0.3, 0.12, 1.65, "glass")
     a.bmm(-0.35, 0.35, -0.31, -0.29, 1.68, 1.88, "neon_cyan")
-    a.text("เย็นฉ่ำ", 0.11, (0, -0.315, 1.78), "white", extrude=0.003)
+    a.text("ชีสโฟม", 0.11, (0, -0.315, 1.78), "white", extrude=0.003)
     for sh in range(4):
         z = 0.2 + sh * 0.37
         a.bmm(-0.3, 0.3, -0.25, 0.25, z, z + 0.015, "steel")
+        if sh >= 2:                                                   # top shelves: tubs of cheese foam
+            for k in range(4):
+                a.cyl(0.06, 0.12, (-0.2 + k * 0.135, -0.1, z + 0.075), "cheese_foam", seg=14)
+                a.cyl(0.062, 0.012, (-0.2 + k * 0.135, -0.1, z + 0.14), "sign_yellow", seg=14)
+            continue
         for k in range(5):
             c = ["red_drink", "thai_tea", "pink_milk", "matcha", "white"][(k + sh) % 5]
             a.cyl(0.035, 0.22, (-0.24 + k * 0.12, -0.12, z + 0.125), c, seg=10)

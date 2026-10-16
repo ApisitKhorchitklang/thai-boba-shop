@@ -461,6 +461,7 @@ MonoBehaviour:
     wantsIce: 0
     flavor: 
     sweetness: 100
+    wantsFoam: 0
   payment: 10
   customerType: 0
   maxPatience: 60

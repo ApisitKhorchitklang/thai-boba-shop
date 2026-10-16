@@ -7,7 +7,7 @@ using UnityEngine;
 public class CupVisual : MonoBehaviour
 {
     private CupController cup;
-    private GameObject ice, seal, straw;
+    private GameObject ice, seal, straw, foam;
     private readonly GameObject[] pearls = new GameObject[3];     // Cup_Pearls, Cup_Pearls2, Cup_Pearls3: one per scoop
     private readonly Dictionary<string, GameObject> liquids = new Dictionary<string, GameObject>();
 
@@ -22,6 +22,7 @@ public class CupVisual : MonoBehaviour
             else if (n == "Cup_Pearls2") pearls[1] = t.gameObject;
             else if (n == "Cup_Pearls3") pearls[2] = t.gameObject;
             else if (n == "Cup_Ice") ice = t.gameObject;
+            else if (n == "Cup_Foam") foam = t.gameObject;
             else if (n == "Cup_SealFilm") seal = t.gameObject;
             else if (n == "Cup_Straw") straw = t.gameObject;
         }
@@ -39,6 +40,7 @@ public class CupVisual : MonoBehaviour
         for (int i = 0; i < pearls.Length; i++)
             if (pearls[i] != null) pearls[i].SetActive(c.bobaCount > i);
         if (ice != null) ice.SetActive(c.hasIce);
+        if (foam != null) foam.SetActive(c.hasFoam);
 
         bool filled = c.State == CupController.CupState.Filled || c.State == CupController.CupState.LidClosed;
         foreach (KeyValuePair<string, GameObject> kv in liquids)
