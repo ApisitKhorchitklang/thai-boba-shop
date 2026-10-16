@@ -79,6 +79,8 @@ public static partial class ThaiBobaSetup
         ["เอฟเฟกต์"] = "Effects",
         ["ความไวเมาส์"] = "Mouse sensitivity",
         ["กลับ"] = "Back",
+        ["สั่งของ · คอมพิวเตอร์ร้าน"] = "Order supplies · Shop PC",
+        ["สินค้าส่งถึงร้านในไม่กี่วินาที · เงินหักทันทีที่สั่ง"] = "Deliveries arrive in a few seconds · paid when you order",
         ["ยังไม่มีเซฟ · เกมจะบันทึกอัตโนมัติตอนจบแต่ละวัน"] = "No saves yet · the game saves automatically at the end of each day",
     };
 
@@ -367,6 +369,28 @@ public static partial class ThaiBobaSetup
         Unlocalize(tutorial.skipButton.GetComponentInChildren<TMP_Text>());
         Unlocalize(tutorial.finishButton.GetComponentInChildren<TMP_Text>());
         tut.gameObject.SetActive(false);
+
+        // shop computer: order-supplies screen (opened from SM_OrderComputer)
+        Image op = Img(game, "OrderPanel", "panel", MC, MC, new Vector2(0, 10), new Vector2(980, 620), null, true);
+        Image ob = Img(op.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), MC, new Vector2(0, -6), new Vector2(620, 100));
+        FillLabel(ob.transform, "สั่งของ · คอมพิวเตอร์ร้าน", 36, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
+        OrderPanel orderPc = hud.gameObject.AddComponent<OrderPanel>();
+        orderPc.panel = op.gameObject;
+        orderPc.stockText = Label(op.transform, "Stock", "", 26, Brown, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f),
+                                new Vector2(0, -120), new Vector2(900, 60));
+        string[] oIcons = { "icon_cup", "icon_boba", "icon_ice", "icon_tea" };
+        for (int i = 0; i < 4; i++)
+        {
+            Button b = Btn(op.transform, "Order" + i, "button_green", "", oIcons[i], new Vector2(0.5f, 1),
+                           new Vector2(-220 + (i % 2) * 440, -230 - (i / 2) * 130), new Vector2(420, 112), 32, Color.white);
+            orderPc.orderButtons[i] = b;
+            orderPc.orderLabels[i] = b.GetComponentInChildren<TMP_Text>();
+        }
+        Label(op.transform, "Note", "สินค้าส่งถึงร้านในไม่กี่วินาที · เงินหักทันทีที่สั่ง", 22, new Color(0.45f, 0.3f, 0.2f), TextAlignmentOptions.Midline,
+              new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(900, 40));
+        orderPc.closeButton = Btn(op.transform, "Close", "button_pink", "ปิด", null, new Vector2(0.5f, 0), new Vector2(0, 74), new Vector2(300, 92), 32, Color.white);
+        orderPc.closeLabel = orderPc.closeButton.GetComponentInChildren<TMP_Text>();
+        op.gameObject.SetActive(false);
 
         // PC key hints
         Image hints = Img(game, "PCHints", "panel_dark", BR, BR, new Vector2(-20, 20), new Vector2(560, 120));

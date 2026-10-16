@@ -453,6 +453,8 @@ public static partial class ThaiBobaSetup
         Place("SM_DrinkDisplay", -0.1f, 1.3f, 1.0f, 0, shop, Col.None);
         Place("SM_Shaker", 0.15f, 6.4f, 0.9f, 0, shop, Col.None);
         Place("SM_DrinkFridge", -1.85f, 4.6f, 0, 90, shop, Col.Box);
+        // the shop computer for ordering supplies: left wall beside the counter, screen facing into the shop
+        Place("SM_OrderComputer", -1.8f, 2.75f, 0, 90, shop, Col.Box).AddComponent<SupplyComputer>();
         r.fan = Place("SM_StandingFan", 1.7f, 3.0f, 0, 200, shop, Col.None);
         Transform blades = Child(r.fan, "Fan_Blades");
         if (blades != null) blades.gameObject.AddComponent<Spinner>().axis = Vector3.forward;
@@ -711,6 +713,7 @@ public static partial class ThaiBobaSetup
             ("unity_junction", new Vector3(-33f, 6.5f, 6.7f), new Vector3(-45.5f, 1.5f, -14f)),
             ("unity_tunnel", new Vector3(-45.5f, 4.5f, 3f), new Vector3(-45.5f, 2f, -18f)),
             ("unity_tunnel_south", new Vector3(-45.5f, 4.5f, 12f), new Vector3(-45.5f, 2f, 30f)),
+            ("unity_computer", new Vector3(-0.3f, 1.65f, -3.9f), new Vector3(1.75f, 0.95f, -2.75f)),
         };
         foreach (var s in shots)
         {

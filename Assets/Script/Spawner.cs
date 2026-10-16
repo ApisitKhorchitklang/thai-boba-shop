@@ -38,7 +38,19 @@ public class Spawner : MonoBehaviour
 
         started = true;
         StartCoroutine(SpawnLoop());
+        if (timeCyc != null) timeCyc.OnNewDay += NewDay;
+        ShopProgress.OnDaySummary += ClosingTime;
     }
+
+    void OnDestroy()
+    {
+        if (timeCyc != null) timeCyc.OnNewDay -= NewDay;
+        ShopProgress.OnDaySummary -= ClosingTime;
+    }
+
+    // Shop closes: the line goes home. Next morning: nobody from yesterday is left standing around.
+    void ClosingTime(ShopProgress.DayStats stats) { CustomerController.SendAllHome(false); }
+    void NewDay(int day) { CustomerController.SendAllHome(true); }
 
     // Coroutines die when the object is disabled or scripts are reloaded mid-play (editing code while playing):
     // start the loop again so customers keep coming.

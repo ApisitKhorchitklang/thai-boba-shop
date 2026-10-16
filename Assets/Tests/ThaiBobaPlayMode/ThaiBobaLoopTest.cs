@@ -517,6 +517,62 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
     }
 
+    [UnityTest, Timeout(90000)]
+    public IEnumerator ComputerOrdersSupplies()
+    {
+        yield return LoadScene();
+        Component pc = Find("SupplyComputer");
+        Assert.IsNotNull(pc, "no shop computer in the scene");
+        Component aim = Find("RaycastAim");
+        pc.GetType().GetMethod("Interact").Invoke(pc, new object[] { aim });
+        yield return null;
+        Type panelType = T("OrderPanel");
+        Assert.IsTrue((bool)panelType.GetProperty("IsOpen").GetValue(null), "order screen did not open");
+        Assert.IsTrue((bool)Static("GameMenus", "IsOpen"), "cursor/menus not freed while ordering");
+
+        Component gm = Find("GameManager");
+        Component inv = Find("InventoryManager");
+        FieldInfo moneyF = gm.GetType().GetField("money"), cupsF = inv.GetType().GetField("cups");
+        int money0 = (int)moneyF.GetValue(gm), cups0 = (int)cupsF.GetValue(inv);
+        Component panel = (Component)panelType.GetProperty("Instance").GetValue(null);
+        var buttons = (UnityEngine.UI.Button[])panelType.GetField("orderButtons").GetValue(panel);
+        buttons[0].onClick.Invoke();                                  // cups +10
+        int money1 = (int)moneyF.GetValue(gm);
+        float t0 = Time.time;
+        while ((int)cupsF.GetValue(inv) == cups0 && Time.time - t0 < 15f) yield return null;
+        int cups1 = (int)cupsF.GetValue(inv);
+        Debug.Log($"[TEST] computer order: money {money0} -> {money1}, cups {cups0} -> {cups1}");
+        Assert.Less(money1, money0, "ordering did not cost money");
+        Assert.AreEqual(cups0 + 10, cups1, "ordered cups never arrived");
+
+        panelType.GetMethod("Close").Invoke(panel, null);
+        yield return null;
+        Assert.IsFalse((bool)panelType.GetProperty("IsOpen").GetValue(null), "order screen did not close");
+    }
+
+    [UnityTest, Timeout(150000)]
+    public IEnumerator NewDayStartsWithoutYesterdaysCustomers()
+    {
+        yield return LoadScene();
+        Type cc = T("CustomerController");
+        var queue = (System.Collections.IList)cc.GetField("Queue").GetValue(null);
+        Time.timeScale = 3f;
+        float t0 = Time.realtimeSinceStartup;
+        while (queue.Count < 1 && Time.realtimeSinceStartup - t0 < 90f) yield return null;
+        Time.timeScale = 1f;
+        Assert.Greater(queue.Count, 0, "no customer showed up to test with");
+        int before = UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None).Length;
+
+        Component gm = Find("GameManager");
+        gm.GetType().GetMethod("EndDay").Invoke(gm, null);
+        yield return null;
+        yield return null;
+        int after = UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None).Length;
+        Debug.Log($"[TEST] customers before new day {before}, after {after}, queue {queue.Count}");
+        Assert.AreEqual(0, queue.Count, "yesterday's queue is still there");
+        Assert.AreEqual(0, after, "yesterday's customers are still in the shop");
+    }
+
     [UnityTest, Timeout(60000)]
     public IEnumerator DrinkSloshesAndSettles()
     {

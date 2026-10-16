@@ -67,6 +67,7 @@ PAL = {
     "neon_pink":    ((1.00, 0.25, 0.65), 0.3, 0, 1, 8),
     "neon_cyan":    ((0.20, 0.95, 1.00), 0.3, 0, 1, 8),
     "tutorial_glow":((1.00, 0.80, 0.20), 0.3, 0, 1, 3),
+    "cardboard":    ((0.72, 0.53, 0.32), 0.9, 0, 1, 0),
     "tutorial_rim": ((1.00, 0.97, 0.88), 0.3, 0, 1, 2),
     "screen":       ((0.20, 0.70, 0.95), 0.2, 0, 1, 2),
     # drinks
@@ -747,6 +748,34 @@ def build_ground():
 
 
 # ---------------------------------------------------------------- shop furniture
+def build_order_computer():
+    """Shop PC on a small desk for ordering supplies. Front (screen) faces -Y. Origin on the floor."""
+    a = Asset("SM_OrderComputer")
+    a.bmm(-0.45, 0.45, -0.28, 0.28, 0.72, 0.76, "wood", bevel=0.01)                     # desk top
+    for x in (-0.41, 0.41):
+        for y in (-0.24, 0.24):
+            a.cyl(0.022, 0.72, (x, y, 0.36), "steel_dark", seg=8)
+    a.bmm(-0.41, 0.41, 0.2, 0.24, 0.2, 0.6, "wood")                                  # back panel
+    # monitor
+    a.cyl(0.07, 0.015, (0, 0.1, 0.768), "steel_dark", seg=16)
+    a.box((0.04, 0.03, 0.14), (0, 0.1, 0.84), "steel_dark")
+    a.box((0.56, 0.045, 0.36), (0, 0.08, 1.05), "black", bevel=0.01)
+    a.bmm(-0.255, 0.255, 0.055, 0.058, 0.89, 1.21, "screen")
+    a.text("สั่งของ", 0.095, (0, 0.052, 1.09), "black", extrude=0.002)
+    a.text("ORDER SUPPLIES", 0.034, (0, 0.052, 0.99), "sign_pink", extrude=0.002)
+    for i, c in enumerate(["white", "sign_yellow", "white", "sign_yellow"]):                         # little item tiles on screen
+        a.bmm(-0.2 + i * 0.105, -0.12 + i * 0.105, 0.051, 0.054, 0.915, 0.955, c)
+    # keyboard + mouse
+    a.box((0.38, 0.13, 0.022), (-0.03, -0.13, 0.771), "black", bevel=0.004)
+    for r in range(3):
+        a.bmm(-0.2, 0.14, -0.18 + r * 0.035, -0.155 + r * 0.035, 0.782, 0.788, "steel_dark")
+    a.box((0.045, 0.07, 0.025), (0.27, -0.13, 0.772), "white", bevel=0.01)
+    # a box of supplies under the desk
+    a.box((0.34, 0.3, 0.24), (0.18, 0.02, 0.12), "cardboard", bevel=0.005)
+    a.bmm(0.01, 0.35, -0.135, -0.13, 0.08, 0.16, "sign_pink")
+    return a.build()
+
+
 def build_tutorial_arrow():
     """Glowing downward arrow that hovers over the next station in the tutorial. Origin = tip."""
     a = Asset("SM_TutorialArrow")
@@ -1637,7 +1666,7 @@ BUILDERS = [
     build_tunnel_portal, build_retaining_wall,
     lambda: build_cloud("SM_Cloud_A", 3, 34.0), lambda: build_cloud("SM_Cloud_B", 7, 24.0), lambda: build_cloud("SM_Cloud_C", 11, 46.0),
     lambda: build_puddle("SM_Puddle_A", 5), lambda: build_puddle("SM_Puddle_B", 9), build_hand_umbrella,
-    build_tutorial_arrow,
+    build_tutorial_arrow, build_order_computer,
     build_counter, build_back_counter, build_cup_modular, build_drink_display, build_cup_stack,
     build_cup_sealer, build_tea_urns, build_boba_pot, build_ice_cooler, build_syrups, build_shaker,
     build_pos, build_menu_board, build_fridge, build_standing_fan,

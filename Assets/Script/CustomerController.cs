@@ -295,6 +295,25 @@ public class CustomerController : MonoBehaviour
         arrivedAtSlot = false;
     }
 
+    // Closing time / new day: everyone still waiting leaves without hurting the shop's reputation.
+    // instant = true removes them on the spot (a new morning must start with an empty shop).
+    public static void SendAllHome(bool instant)
+    {
+        foreach (CustomerController c in FindObjectsByType<CustomerController>(FindObjectsSortMode.None))
+        {
+            if (instant) Destroy(c.gameObject);
+            else c.LeaveForTheDay();
+        }
+        Queue.Clear();
+    }
+
+    void LeaveForTheDay()
+    {
+        if (state == CustomerState.GoingToExit || state == CustomerState.Finished) return;
+        Say(Loc.T("ร้านปิดแล้วเหรอ ไว้มาใหม่นะ", "Closed already? See you tomorrow!"), 3f);
+        GoToExitArea();
+    }
+
     public void GoToExitArea()
     {
         Queue.Remove(this);

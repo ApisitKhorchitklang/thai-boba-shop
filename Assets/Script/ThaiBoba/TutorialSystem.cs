@@ -280,8 +280,8 @@ public class TutorialSystem : MonoBehaviour
                 break;
             default:
                 title = Loc.T("เยี่ยมมาก! พร้อมเปิดร้านแล้ว", "Great job! You're ready to open");
-                body = Loc.T("ลูกค้าจะทยอยมาเรื่อยๆ · ทำ<b>ภารกิจรายวัน</b>ทางซ้ายเพื่อรับโบนัส · ทำถูกติดๆ กันได้<b>คอมโบ</b> · ของใกล้หมดสั่งเพิ่มได้ตอนปิดร้าน",
-                             "Customers will keep coming · finish the <b>daily goals</b> on the left for bonuses · perfect drinks in a row build a <b>combo</b> · restock at closing time");
+                body = Loc.T("ลูกค้าจะทยอยมาเรื่อยๆ · ทำ<b>ภารกิจรายวัน</b>ทางซ้ายเพื่อรับโบนัส · ทำถูกติดๆ กันได้<b>คอมโบ</b> · ของใกล้หมดสั่งได้ที่<b>คอมพิวเตอร์</b>ข้างเคาน์เตอร์",
+                             "Customers will keep coming · finish the <b>daily goals</b> on the left for bonuses · perfect drinks in a row build a <b>combo</b> · restock at the <b>computer</b> next to the counter");
                 break;
         }
         SetButtonLabel(skipButton, pc ? Loc.T("ข้าม", "Skip") + " <size=80%>[Tab]</size>" : Loc.T("ข้าม", "Skip"));

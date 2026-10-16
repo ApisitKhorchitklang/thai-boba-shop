@@ -10,7 +10,7 @@ public class GameMenus : MonoBehaviour
     public static GameMenus Instance { get; private set; }
     // False while the main menu is up: customers don't come and the clock doesn't run
     public static bool GameRunning { get; private set; } = true;
-    public static bool IsOpen => Instance != null && Instance.AnyOpen || ShopHUD.SummaryOpen;
+    public static bool IsOpen => Instance != null && Instance.AnyOpen || ShopHUD.SummaryOpen || OrderPanel.IsOpen;
 
     [Header("Panels")]
     public GameObject mainMenu;
@@ -75,6 +75,7 @@ public class GameMenus : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            if (OrderPanel.IsOpen) { OrderPanel.Instance.Close(); return; }
             if (settingsPanel.activeSelf || loadPanel.activeSelf) Back();
             else if (GameRunning && !ShopHUD.SummaryOpen) TogglePause();
         }
