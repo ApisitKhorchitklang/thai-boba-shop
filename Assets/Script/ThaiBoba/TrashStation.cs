@@ -14,6 +14,6 @@ public class TrashStation : MonoBehaviour, IInteractable
         if (cup == null) return;
         Destroy(cup.gameObject);
         GameAudio.Play(Sfx.Trash);
-        ShopHUD.Toast(Loc.T("ทิ้งแก้วแล้ว เริ่มใหม่ได้เลย", "Cup thrown away, start again"));
+        ShopHUD.ToastNow(Loc.T("ทิ้งแก้วแล้ว เริ่มใหม่ได้เลย", "Cup thrown away, start again"));
     }
 }

@@ -143,7 +143,7 @@ public class ShopProgress : MonoBehaviour
         if (tip > 0) msg += Loc.T($"  ทิป +{tip} ฿", $"  tip +{tip} ฿");
         if (combo >= 2) msg += Loc.T($"  คอมโบ x{combo}!", $"  combo x{combo}!");
         if (!perfect) msg += "  (" + result.Summary + ")";
-        ShopHUD.Toast(msg);
+        ShopHUD.ToastNow(msg, 2f);                          // pay + tip shows right away; extras queue behind it
         if (lucky > 0) ShopHUD.Toast(Loc.T($"เจ้าที่ช่วย! ลูกค้าใจดีให้พิเศษ +{lucky} ฿", $"Spirit house luck! A generous customer gave +{lucky} ฿"));
         if (vip) ShopHUD.Toast(perfect ? Loc.T("รีวิว 5 ดาว! ร้านดังขึ้นทันที", "5-star review! The shop just got famous") : Loc.T("รีวิวกลางๆ ...", "A so-so review..."));
 
@@ -155,7 +155,7 @@ public class ShopProgress : MonoBehaviour
     {
         combo = 0;
         today.rejected++;
-        ShopHUD.Toast(Loc.T("ลูกค้าไม่รับแก้วนี้ ทิ้งแล้วทำใหม่ได้ที่ถังขยะ", "The customer refused this drink. Throw it in the bin and make a new one"));
+        ShopHUD.ToastNow(Loc.T("ลูกค้าไม่รับแก้วนี้ ทิ้งแล้วทำใหม่ได้ที่ถังขยะ", "The customer refused this drink. Throw it in the bin and make a new one"));
         OnChanged?.Invoke();
     }
 

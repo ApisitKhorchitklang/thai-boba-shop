@@ -14,10 +14,10 @@ public class CupDispenser : MonoBehaviour, IInteractable
     public void Interact(RaycastAim player)
     {
         if (cupPrefab == null || player.handPos == null) return;
-        if (!player.isEmpty) { ShopHUD.Toast(Loc.T("วางของในมือก่อน", "Put down what you're holding first")); return; }
+        if (!player.isEmpty) { ShopHUD.ToastNow(Loc.T("วางของในมือก่อน", "Put down what you're holding first")); return; }
         if (InventoryManager.Instance != null && !InventoryManager.Instance.TryUse("cups", 1))
         {
-            ShopHUD.Toast(Loc.T("แก้วหมด! สั่งเพิ่มที่คอมพิวเตอร์", "Out of cups! Order more at the computer"));
+            ShopHUD.ToastNow(Loc.T("แก้วหมด! สั่งเพิ่มที่คอมพิวเตอร์", "Out of cups! Order more at the computer"));
             return;
         }
 
@@ -25,6 +25,7 @@ public class CupDispenser : MonoBehaviour, IInteractable
         CupController cup = go.GetComponent<CupController>();
         if (cup != null) cup.Grab();
         GameAudio.Play(Sfx.Cup);
+        ShopHUD.ToastNow(Loc.T("หยิบแก้วใหม่แล้ว", "Took a new cup"));
         player.HoldItem(go.transform);
     }
 }

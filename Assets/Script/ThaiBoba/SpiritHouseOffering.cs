@@ -63,12 +63,12 @@ public class SpiritHouseOffering : MonoBehaviour, IInteractable
     {
         if (BlessedToday)
         {
-            ShopHUD.Toast(Loc.T("วันนี้ไหว้แล้ว พรุ่งนี้มาใหม่นะ", "You already made an offering today, come back tomorrow"));
+            ShopHUD.ToastNow(Loc.T("วันนี้ไหว้แล้ว พรุ่งนี้มาใหม่นะ", "You already made an offering today, come back tomorrow"));
             return;
         }
         if (GameManager.Instance != null && !GameManager.Instance.TrySpend(offeringCost))
         {
-            ShopHUD.Toast(Loc.T("เงินไม่พอซื้อน้ำแดงกับพวงมาลัย", "Not enough money for the red soda and garland"));
+            ShopHUD.ToastNow(Loc.T("เงินไม่พอซื้อน้ำแดงกับพวงมาลัย", "Not enough money for the red soda and garland"));
             return;
         }
         if (ShopProgress.Instance != null)
@@ -78,7 +78,7 @@ public class SpiritHouseOffering : MonoBehaviour, IInteractable
         GameAudio.Play(Sfx.Bless);
         SetVisual(true);
         if (blessSfx != null) AudioSource.PlayClipAtPoint(blessSfx, transform.position);
-        ShopHUD.Toast(Loc.T($"สาธุ! เจ้าที่อวยพร ทิป +{Mathf.RoundToInt(tipBonus * 100)}% และมีลุ้นลูกค้าใจดีทั้งวัน", $"Sathu! The spirits bless you: tips +{Mathf.RoundToInt(tipBonus * 100)}% and generous customers all day"));
+        ShopHUD.ToastNow(Loc.T($"สาธุ! เจ้าที่อวยพร ทิป +{Mathf.RoundToInt(tipBonus * 100)}% และมีลุ้นลูกค้าใจดีทั้งวัน", $"Sathu! The spirits bless you: tips +{Mathf.RoundToInt(tipBonus * 100)}% and generous customers all day"));
     }
 
     void SetVisual(bool on)

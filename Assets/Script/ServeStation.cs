@@ -45,13 +45,13 @@ public class ServeStation : MonoBehaviour, IInteractable
         CustomerController customer = CurrentCustomer;
         if (customer == null)
         {
-            ShopHUD.Toast(Loc.T("ยังไม่มีลูกค้าที่เคาน์เตอร์", "No customer at the counter yet"));
+            ShopHUD.ToastNow(Loc.T("ยังไม่มีลูกค้าที่เคาน์เตอร์", "No customer at the counter yet"));
             return false;
         }
 
         if (cup == null)
         {
-            ShopHUD.Toast(Loc.T("ถือแก้วที่ทำเสร็จแล้วก่อนนะ", "Hold a finished drink first"));
+            ShopHUD.ToastNow(Loc.T("ถือแก้วที่ทำเสร็จแล้วก่อนนะ", "Hold a finished drink first"));
             return false;
         }
 

@@ -18,7 +18,7 @@ public class ComputerTerminal : MonoBehaviour
         {
             if (!GameManager.Instance.TrySpend(cost))
             {
-                ShopHUD.Toast(Loc.T($"เงินไม่พอ! ต้องใช้ {cost} ฿", $"Not enough money! Need {cost} ฿"));
+                ShopHUD.ToastNow(Loc.T($"เงินไม่พอ! ต้องใช้ {cost} ฿", $"Not enough money! Need {cost} ฿"));
                 return;
             }
             if (ShopProgress.Instance != null)
@@ -26,7 +26,7 @@ public class ComputerTerminal : MonoBehaviour
         }
 
         InventoryManager.Instance.OrderResource(resource, amount, defaultDeliveryDelay);
-        ShopHUD.Toast(Loc.T($"สั่ง {resource} x{amount} แล้ว (-{cost} ฿) รอส่ง {defaultDeliveryDelay:0} วิ", $"Ordered {resource} x{amount} (-{cost} ฿), arriving in {defaultDeliveryDelay:0}s"));
+        ShopHUD.ToastNow(Loc.T($"สั่ง {resource} x{amount} แล้ว (-{cost} ฿) รอส่ง {defaultDeliveryDelay:0} วิ", $"Ordered {resource} x{amount} (-{cost} ฿), arriving in {defaultDeliveryDelay:0}s"));
     }
 
     // UnityEvent-friendly helpers (Button.onClick only supports one argument)

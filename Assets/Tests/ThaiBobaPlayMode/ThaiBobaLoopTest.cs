@@ -518,6 +518,26 @@ public class ThaiBobaLoopTest
     }
 
     [UnityTest, Timeout(60000)]
+    public IEnumerator ButtonPopupsReplaceEachOtherImmediately()
+    {
+        yield return LoadScene();
+        Type hudT = T("ShopHUD");
+        Component hud = Find("ShopHUD");
+        var toastText = (TMPro.TMP_Text)hudT.GetField("toastText").GetValue(hud);
+        hudT.GetMethod("Toast").Invoke(null, new object[] { "queued message" });
+        yield return null;
+        Assert.IsNotEmpty(toastText.text, "no popup showing to replace");      // the day's event (or the queued one) is up
+        // pressing E (sweetness, ice...) must not wait for whatever popup is showing to close
+        hudT.GetMethod("ToastNow").Invoke(null, new object[] { "sweetness 25%", 1.6f });
+        yield return null;
+        Assert.AreEqual("sweetness 25%", toastText.text, "popup waited instead of replacing");
+        hudT.GetMethod("ToastNow").Invoke(null, new object[] { "sweetness 50%", 1.6f });
+        yield return null;
+        Debug.Log("[TEST] popup now shows: " + toastText.text);
+        Assert.AreEqual("sweetness 50%", toastText.text, "second press did not update the popup right away");
+    }
+
+    [UnityTest, Timeout(60000)]
     public IEnumerator CheeseFoamFromTheFridge()
     {
         yield return LoadScene();
@@ -678,11 +698,19 @@ public class ThaiBobaLoopTest
             Assert.AreEqual(2, groups, "pearls in the cup do not match the scoops");
 
             yield return null;
-            // jerk the cup sideways (like the player stopping suddenly)
-            float peak = 0f;
-            for (int i = 0; i < 20; i++)
+            // walk with the cup at 3 m/s for 0.4 s, then stop dead (time based, so frame rate does not matter)
+            float peak = 0f, tm = 0f;
+            while (tm < 0.4f)
             {
-                cup.transform.position += new Vector3(i < 10 ? 0.06f : -0.06f, 0, 0);
+                cup.transform.position += new Vector3(3f * Time.deltaTime, 0, 0);
+                tm += Time.deltaTime;
+                yield return null;
+                peak = Mathf.Max(peak, ((Vector2)slope.GetValue(slosh)).magnitude);
+            }
+            tm = 0f;
+            while (tm < 0.6f)
+            {
+                tm += Time.deltaTime;
                 yield return null;
                 peak = Mathf.Max(peak, ((Vector2)slope.GetValue(slosh)).magnitude);
             }

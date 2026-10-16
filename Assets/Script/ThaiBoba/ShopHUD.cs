@@ -66,7 +66,7 @@ public class ShopHUD : MonoBehaviour
     }
 
     // Shows right away, replacing whatever toast is up (for rapid feedback like scooping pearls)
-    public static void ToastNow(string message, float seconds = 1.2f)
+    public static void ToastNow(string message, float seconds = 1.6f)
     {
         ToastNowRequested?.Invoke(message, seconds);
     }

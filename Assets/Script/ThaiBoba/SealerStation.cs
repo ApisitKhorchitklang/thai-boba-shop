@@ -22,8 +22,8 @@ public class SealerStation : MonoBehaviour, IInteractable
     {
         if (busy) return;
         CupController cup = player.HeldCup;
-        if (cup == null) { ShopHUD.Toast(Loc.T("ถือแก้วก่อนนะ", "Hold a cup first")); return; }
-        if (!cup.CanSeal) { ShopHUD.Toast(Loc.T("ต้องเทชาก่อนซีล", "Pour the tea before sealing")); return; }
+        if (cup == null) { ShopHUD.ToastNow(Loc.T("ถือแก้วก่อนนะ", "Hold a cup first")); return; }
+        if (!cup.CanSeal) { ShopHUD.ToastNow(Loc.T("ต้องเทชาก่อนซีล", "Pour the tea before sealing")); return; }
         StartCoroutine(Seal(cup));
     }
 
@@ -46,7 +46,7 @@ public class SealerStation : MonoBehaviour, IInteractable
 
         if (cup != null && cup.CloseLid())
         {
-            ShopHUD.Toast(Loc.T("ซีลเรียบร้อย พร้อมเสิร์ฟ!", "Sealed, ready to serve!"));
+            ShopHUD.ToastNow(Loc.T("ซีลเรียบร้อย พร้อมเสิร์ฟ!", "Sealed, ready to serve!"));
             GameAudio.Play(Sfx.SealDone);
         }
         busy = false;
