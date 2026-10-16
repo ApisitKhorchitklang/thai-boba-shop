@@ -65,3 +65,4 @@ __pycache__/
 
 # Android build temp (IL2CPP/CMake)
 /.utmp/
+/Assets/Resources/PerformanceTestRun*
