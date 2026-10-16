@@ -1,0 +1,64 @@
+# ---------------- Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+*_BurstDebugInformation_DoNotShip/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+/Assets/InitTestScene*.unity*
+/Assets/AssetStoreTools*
+.vs/
+.vscode/
+.idea/
+.gradle/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.unitypackage
+*.zip
+*.zip.meta
+
+# ---------------- third-party Asset Store packs (licence: no redistribution) — see README to install
+/Assets/Joystick Pack/
+/Assets/Joystick Pack.meta
+# unused packs from the original template project (large, not referenced by the game)
+/Assets/ALP_Assets/
+/Assets/ALP_Assets.meta
+/Assets/Floor materials pack/
+/Assets/Floor materials pack.meta
+
+# ---------------- local working folders
+/Backups/
+/AudioSource/
+/BlenderSource/renders/
+/A4_BurstDebugInformation_DoNotShip/
+/TestingProjectV2_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# ---------------- OS / tools
+.DS_Store
+Thumbs.db
+*.blend1
+__pycache__/
+/Assets/_Recovery/
+/Assets/_Recovery.meta

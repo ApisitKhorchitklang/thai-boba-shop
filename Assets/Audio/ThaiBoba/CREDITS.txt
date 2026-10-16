@@ -1,0 +1,27 @@
+Thai Boba Shop - audio credits (all CC0 1.0 / public domain, free for commercial use, no attribution required)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+ui_*.ogg, sfx_boba/ice/sweet/cup/combo/angry/reject/bless.ogg
+    Kenney - Interface Sounds            https://kenney.nl/assets/interface-sounds
+sfx_coins, sfx_seal_start, sfx_seal_done, sfx_trash, sfx_step0-4.ogg
+    Kenney - RPG Audio                   https://kenney.nl/assets/rpg-audio
+sfx_tip.ogg
+    Kenney - Casino Audio                https://kenney.nl/assets/casino-audio
+jingle_*.ogg
+    Kenney - Music Jingles               https://kenney.nl/assets/music-jingles
+music_shop.ogg  ("Urban Shop", 92 bpm, loopable)
+    OpenGameArt                          https://opengameart.org/node/179170
+amb_rain.ogg    ("Rain (loopable)" by Ylmir)
+    OpenGameArt                          https://opengameart.org/content/rain-loopable
+sfx_pour.ogg, amb_boiling.ogg  ("30 CC0 SFX loops" by rubberduck)
+    OpenGameArt                          https://opengameart.org/content/30-cc0-sfx-loops
+amb_traffic.ogg ("Highway" S0122)
+    BigSoundBank (CC0)                   https://bigsoundbank.com/highway-s0122.html
+
+Original downloads are kept in /AudioSource (outside Assets).
+sfx_thunder.ogg ("100 CC0 SFX #2" by rubberduck)
+    OpenGameArt                          https://opengameart.org/content/100-cc0-sfx-2
+sfx_moto_pass.wav ("Scooter Passage" #0533), sfx_moto_pass2.wav ("2 motorcycle passing 90km/h" #0906),
+sfx_car_pass.wav ("Car on a Road" #1286), sfx_horn_car.wav ("Recent Car Horn #2" #0258), sfx_horn_short.wav ("Car horn #4" #0260),
+amb_birds.wav ("Campaign Morning" #0912), amb_night.wav ("Campaign at Night #4" #1880), amb_market.wav ("Outdoor market 1" #2728)
+    BigSoundBank (CC0)                   https://bigsoundbank.com  (cut / looped in Blender; originals in /AudioSource/bsb_ambience)
