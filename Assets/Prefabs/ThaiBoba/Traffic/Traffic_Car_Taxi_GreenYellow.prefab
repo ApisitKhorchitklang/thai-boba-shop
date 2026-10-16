@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3229233588780030187}
   - component: {fileID: 3475955288802287532}
+  - component: {fileID: 2761940220570716147}
   - component: {fileID: 1818890374669387725}
   m_Layer: 0
   m_Name: Traffic_Car_Taxi_GreenYellow
@@ -52,6 +53,18 @@ MonoBehaviour:
   acceleration: 4
   brakeDistance: 7
   length: 4.5
+--- !u!114 &2761940220570716147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7342500866223921553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 828a678f3c1e74440a10e0836af2b47f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WheelSpin
 --- !u!114 &1818890374669387725
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149,7 +162,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5575436963027997465, guid: 265586b4df8b1334fa377996b49f21d2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.35999998
+      value: 0.39711288
       objectReference: {fileID: 0}
     - target: {fileID: 5575436963027997465, guid: 265586b4df8b1334fa377996b49f21d2, type: 3}
       propertyPath: m_LocalPosition.y
@@ -157,7 +170,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5575436963027997465, guid: 265586b4df8b1334fa377996b49f21d2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.325
+      value: -2.3
       objectReference: {fileID: 0}
     - target: {fileID: 5575436963027997465, guid: 265586b4df8b1334fa377996b49f21d2, type: 3}
       propertyPath: m_LocalRotation.w

@@ -83,12 +83,16 @@
 - `TrafficSpawner` + `TrafficCar`: แท็กซี่ชมพู, แท็กซี่เขียวเหลือง, ตุ๊กตุ๊กมีคนขับ, วินมอไซค์, กระบะ, สองแถว, รถเมล์ สุ่มตามน้ำหนัก
 - 2 เลน ชิดซ้ายแบบไทย รถชะลอ/หยุดเมื่อมีคันหน้า หายไปเมื่อสุดถนน (ถนนยาว ±30 ม.)
 - Prefab รถอยู่ที่ `Assets/Prefabs/ThaiBoba/Traffic/`
+- โมเดลรถ: `BlenderSource/thai_vehicles.py` (ถูกเรียกจาก `thai_boba_assets.py`) ตัวถังสร้างจากโปรไฟล์จริง (ฝากระโปรง กระจกเอียง ซุ้มล้อ ไฟหน้า-ท้ายโค้งรับมุม ป้ายทะเบียน)
+  ล้อแยกชิ้น `Wheel_*` หมุนตามความเร็ว (`WheelSpin`) · จุด `Seat_*` ให้ใส่คนนั่ง (วิน, ตุ๊กตุ๊ก, ผู้โดยสารสองแถว)
 
 ## NPC
 - 13 แบบ: นักเรียนหญิง, นักเรียนชาย, นักศึกษา, พนักงานออฟฟิศ, นักท่องเที่ยว, ป้าข้างบ้าน, แม่ค้า, ไรเดอร์, รีวิวเวอร์, คนงานก่อสร้าง, คนวิ่ง, ตาถือไม้เท้า, ลุงเสื้อโปโล
-- โมเดลคนสไตล์ realistic ยุค PS2: `BlenderSource/thai_npc_ps2.py` → `Assets/Models/ThaiBobaShop/Characters/NPC_*.fbx`
-  สัดส่วนคนจริง ~3,000 tris, texture 512px ต่อตัว (ลายผ้า + หน้าวาดแล้ว bake), มีกระดูก + อนิเมชัน `Walk` / `Idle`
-  รันใหม่: `"D:\Bderlender.exe" -b --factory-startup -P BlenderSource/thai_npc_ps2.py`
+- โมเดลคนสัดส่วนจริง: `BlenderSource/thai_npc.py` → `Assets/Models/ThaiBobaShop/Characters/NPC_*.fbx`
+  ~8–9k tris, texture 1024px ต่อตัว (ผ้า/หน้า/ผม bake รวม + AO), มีกระดูก + อนิเมชัน `Walk` (สะโพกโยก ส้น-ปลายเท้า แขนแกว่งสวน) / `Idle`
+  เสื้อผ้าเป็นชิ้นจริง (ชายเสื้อ แขนเสื้อ ปลายขากางเกง คอปก กระโปรงจีบ ผ้าถุง) · มือมีนิ้ว · รองเท้า/รองเท้าแตะ · ตา หู ผม (ม้า/บ็อบ/ยาว/หางม้า/มวย)
+  ท่านั่งสำหรับรถ (`SEAT_*.fbx`): วินมอไซค์, คนขับตุ๊กตุ๊ก, ผู้โดยสารสองแถว 3 คน
+  รันใหม่: `"D:\Bder\blender.exe" -b --factory-startup -P BlenderSource/thai_npc.py` (ใส่ `-- NPC_Office noexport` เพื่อดูตัวอย่างเร็วๆ)
 - Animator Controller อยู่ที่ `Assets/Prefabs/ThaiBoba/Anim/` (พารามิเตอร์ `Speed`), `NPCAnimDriver` ส่งความเร็วจาก NavMeshAgent ให้อัตโนมัติ
 - ลูกค้า (`Customer_ThaiBoba.prefab`) เปลี่ยนโมเดลตามประเภทลูกค้าอัตโนมัติ ส่วนคนเดินผ่าน (`Pedestrian_ThaiBoba.prefab`) สุ่มโมเดลแล้วเดินตามทางเท้า
 - ร้านเปิด 07:00 (`Spawner.openHour`, `TimeCyc.startHour`) ลูกค้าคนแรกมาภายในไม่กี่วินาที

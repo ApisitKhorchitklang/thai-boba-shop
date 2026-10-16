@@ -35,7 +35,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle
       internalID: 3343693295393638438
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -64,7 +64,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.001
       internalID: 3941558562598308741
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -93,7 +93,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.002
       internalID: -9044068602193338079
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -122,7 +122,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.003
       internalID: -5786598976295583763
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -151,7 +151,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.004
       internalID: 4345054487403259454
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -180,7 +180,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.005
       internalID: -8850340332805959117
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -209,7 +209,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.006
       internalID: -1729493038768602888
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -238,7 +238,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.007
       internalID: -5768290403711839382
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -267,7 +267,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.008
       internalID: -2751749233949489589
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -296,7 +296,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.009
       internalID: -1414608633022812496
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -325,7 +325,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.010
       internalID: 7528795049385494329
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -354,7 +354,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.011
       internalID: 3494346034490268669
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -383,7 +383,7 @@ ModelImporter:
       takeName: NPC_Jogger_Rig|Idle.012
       internalID: -5038291006133362374
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

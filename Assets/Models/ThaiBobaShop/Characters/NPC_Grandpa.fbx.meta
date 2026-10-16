@@ -35,7 +35,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle
       internalID: -2908339489313054927
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -64,7 +64,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.001
       internalID: 5296725441255616966
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -93,7 +93,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.002
       internalID: -2405651961407464161
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -122,7 +122,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.003
       internalID: 2060028161600956113
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -151,7 +151,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.004
       internalID: -4022169350103759092
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -180,7 +180,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.005
       internalID: 5544649591055737651
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -209,7 +209,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.006
       internalID: -3028168004734028819
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -238,7 +238,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.007
       internalID: 2690691587829908156
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -267,7 +267,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.008
       internalID: 5657376170778187116
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -296,7 +296,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.009
       internalID: 4219513482254570692
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -325,7 +325,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.010
       internalID: 2620337268514017945
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -354,7 +354,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.011
       internalID: -8041086967203952124
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -383,7 +383,7 @@ ModelImporter:
       takeName: NPC_Grandpa_Rig|Idle.012
       internalID: -3355454295454745756
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

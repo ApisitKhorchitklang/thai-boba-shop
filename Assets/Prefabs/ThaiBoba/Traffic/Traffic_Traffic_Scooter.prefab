@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7396122628274130654}
   - component: {fileID: 3364185738796674563}
+  - component: {fileID: 6315393310141505409}
   - component: {fileID: 2710401204721451963}
   m_Layer: 0
   m_Name: Traffic_Traffic_Scooter
@@ -52,6 +53,18 @@ MonoBehaviour:
   acceleration: 4
   brakeDistance: 7
   length: 4.5
+--- !u!114 &6315393310141505409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7559995196932307229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 828a678f3c1e74440a10e0836af2b47f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WheelSpin
 --- !u!114 &2710401204721451963
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -87,7 +100,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5575436963027997465, guid: 265586b4df8b1334fa377996b49f21d2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.128
+      value: 0.17400001
       objectReference: {fileID: 0}
     - target: {fileID: 5575436963027997465, guid: 265586b4df8b1334fa377996b49f21d2, type: 3}
       propertyPath: m_LocalPosition.y
@@ -189,11 +202,81 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1297452632244508966, guid: d941adc7b34f2c342a893d8b6b16d2db, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2970612183976044275}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d941adc7b34f2c342a893d8b6b16d2db, type: 3}
 --- !u!4 &3231135459152268413 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d941adc7b34f2c342a893d8b6b16d2db, type: 3}
   m_PrefabInstance: {fileID: 3124924101052722070}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4133336486795391664 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1297452632244508966, guid: d941adc7b34f2c342a893d8b6b16d2db, type: 3}
+  m_PrefabInstance: {fileID: 3124924101052722070}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &3365039358085923096
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4133336486795391664}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+      propertyPath: m_Name
+      value: SEAT_Rider
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+--- !u!4 &2970612183976044275 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 48144988a71cce64998a6a80dcdf703a, type: 3}
+  m_PrefabInstance: {fileID: 3365039358085923096}
   m_PrefabAsset: {fileID: 0}

@@ -35,7 +35,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle
       internalID: 2643431471407912111
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -64,7 +64,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.001
       internalID: -9191046106193191066
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -93,7 +93,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.002
       internalID: 3073386214179380315
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -122,7 +122,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.003
       internalID: -43969701250923955
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -151,7 +151,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.004
       internalID: 1894418755641901044
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -180,7 +180,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.005
       internalID: -6203164379045762978
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -209,7 +209,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.006
       internalID: -3604517434501406920
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -238,7 +238,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.007
       internalID: 1060377808139658268
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -267,7 +267,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.008
       internalID: 327041212608600487
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -296,7 +296,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.009
       internalID: -4266535690058544468
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -325,7 +325,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.010
       internalID: -3177390038610715715
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -354,7 +354,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.011
       internalID: 9156518697166785371
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -383,7 +383,7 @@ ModelImporter:
       takeName: NPC_UniStudent_Rig|Idle.012
       internalID: -7462128247838276935
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

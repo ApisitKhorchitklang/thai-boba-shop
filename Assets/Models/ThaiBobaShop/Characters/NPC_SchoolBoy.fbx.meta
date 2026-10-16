@@ -35,7 +35,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle
       internalID: -7527626915242746662
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -64,7 +64,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.001
       internalID: 8828999422112973087
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -93,7 +93,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.002
       internalID: -743465908682144367
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -122,7 +122,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.003
       internalID: 2755829091432584813
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -151,7 +151,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.004
       internalID: 3336112670357361248
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -180,7 +180,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.005
       internalID: 3893284950128819974
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -209,7 +209,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.006
       internalID: -3169660322486470826
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -238,7 +238,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.007
       internalID: 5592491153842008988
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -267,7 +267,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.008
       internalID: -8973076025907620843
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -296,7 +296,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.009
       internalID: 2222170120625859887
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -325,7 +325,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.010
       internalID: -8205459823149310579
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -354,7 +354,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.011
       internalID: 4406293741517823940
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -383,7 +383,7 @@ ModelImporter:
       takeName: NPC_SchoolBoy_Rig|Idle.012
       internalID: 308949987990483960
       firstFrame: 0
-      lastFrame: 48
+      lastFrame: 96
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

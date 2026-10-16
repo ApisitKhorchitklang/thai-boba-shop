@@ -1111,6 +1111,53 @@ public class ThaiBobaLoopTest
         Assert.IsFalse(summary.isTextOverflowing, "day summary runs out of its box");
     }
 
+    [UnityTest, Timeout(90000)]
+    public IEnumerator VehiclesRollAndCarryPeople()
+    {
+        yield return LoadScene();
+        Component spawner = Find("TrafficSpawner");
+        var prefabs = (GameObject[])spawner.GetType().GetField("vehiclePrefabs").GetValue(spawner);
+        var problems = new System.Collections.Generic.List<string>();
+        GameObject taxiPrefab = null;
+        foreach (GameObject p in prefabs)
+        {
+            int wheels = 0, riders = 0;
+            foreach (Transform t in p.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name.StartsWith("Wheel_")) wheels++;
+                if (t.name.StartsWith("SEAT_")) riders++;
+            }
+            if (p.GetComponent(T("WheelSpin")) == null || wheels < 2) problems.Add($"{p.name}: {wheels} wheels");
+            int need = p.name.Contains("Songthaew") ? 3 : p.name.Contains("Scooter") || p.name.Contains("TukTuk") ? 1 : 0;
+            if (riders < need) problems.Add($"{p.name}: {riders}/{need} riders");
+            if (p.name.Contains("Taxi")) taxiPrefab = p;
+        }
+        Assert.IsNotNull(taxiPrefab, "no taxi in the traffic");
+
+        // roll a taxi forward by hand: the top of each wheel must move ahead of its hub
+        GameObject taxi = UnityEngine.Object.Instantiate(taxiPrefab, new Vector3(0, -40, 0), Quaternion.identity);
+        UnityEngine.Object.Destroy(taxi.GetComponent(T("VehicleSound")));          // depends on TrafficCar: goes first
+        yield return null;
+        UnityEngine.Object.Destroy(taxi.GetComponent(T("TrafficCar")));
+        yield return null;
+        Transform wheel = null;
+        foreach (Transform t in taxi.GetComponentsInChildren<Transform>(true)) if (t.name.StartsWith("Wheel_")) { wheel = t; break; }
+        Renderer wr = wheel.GetComponent<Renderer>();
+        Vector3 hub = wr.bounds.center;
+        Vector3 topLocal = wheel.InverseTransformPoint(hub + Vector3.up * wr.bounds.extents.y);
+        for (int i = 0; i < 6; i++)
+        {
+            taxi.transform.position += taxi.transform.forward * 0.04f;
+            yield return null;
+        }
+        Vector3 topNow = wheel.TransformPoint(topLocal) - wr.bounds.center;
+        float ahead = Vector3.Dot(topNow, taxi.transform.forward);
+        Debug.Log($"[TEST] vehicles: {prefabs.Length} prefabs, problems [{string.Join(", ", problems)}], wheel top moved {ahead:0.000} m ahead");
+        UnityEngine.Object.Destroy(taxi);
+        Assert.IsEmpty(problems);
+        Assert.Greater(ahead, 0.01f, "wheels roll backwards (or not at all)");
+    }
+
     [UnityTest, Timeout(60000)]
     public IEnumerator DrinkSloshesAndSettles()
     {

@@ -113,7 +113,7 @@ public static partial class ThaiBobaSetup
         return prefab;
     }
 
-    // PS2-style rigged characters from BlenderSource/thai_npc_ps2.py
+    // Rigged characters from BlenderSource/thai_npc.py (SEAT_* are their seated, static variants)
     const string CharDir = "Assets/Models/ThaiBobaShop/Characters/";
     const string AnimDir = "Assets/Prefabs/ThaiBoba/Anim/";
     static readonly string[] CustomerModels =
@@ -132,14 +132,43 @@ public static partial class ThaiBobaSetup
 
     static FxSet currentFx;
 
+    // seated characters (SEAT_*.fbx from thai_npc.py) for the vehicles' Seat_* markers
+    static readonly Dictionary<string, string[]> SeatedRiders = new Dictionary<string, string[]>
+    {
+        { "SM_Traffic_Scooter", new[] { "SEAT_Rider" } },
+        { "SM_Traffic_TukTuk", new[] { "SEAT_TukDriver" } },
+        { "SM_Car_Songthaew", new[] { "SEAT_PassengerA", "SEAT_PassengerB", "SEAT_PassengerC" } },
+    };
+
+    // Puts the seated characters on a vehicle model: Seat_Driver gets the first, Seat_Passenger<k> the k+1-th
+    static void SeatRiders(GameObject vehicle, string model)
+    {
+        if (!SeatedRiders.TryGetValue(model, out string[] who)) return;
+        foreach (Transform t in vehicle.GetComponentsInChildren<Transform>(true))
+        {
+            string nm = t.name.Split('.')[0];                              // Blender adds .001 when names repeat across assets
+            int k = nm == "Seat_Driver" ? 0 : nm.StartsWith("Seat_Passenger") && int.TryParse(nm.Substring(14), out int n) ? n : -1;
+            if (k < 0 || k >= who.Length) continue;
+            GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(CharDir + who[k] + ".fbx");
+            if (asset == null) { Debug.LogWarning("Missing seated model " + who[k]); continue; }
+            GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(asset, t);
+            inst.transform.localPosition = Vector3.zero;
+            inst.transform.localRotation = Quaternion.identity;
+            Animator anim = inst.GetComponent<Animator>();
+            if (anim != null) Object.DestroyImmediate(anim);
+        }
+    }
+
     static GameObject VehiclePrefab(string model)
     {
         Directory.CreateDirectory(PrefabDir + "Traffic/");
         GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(ModelDir + model + ".fbx");
         if (asset == null) return null;
         GameObject root = new GameObject("Traffic_" + model.Replace("SM_", ""));
-        PrefabUtility.InstantiatePrefab(asset, root.transform);
+        GameObject body = (GameObject)PrefabUtility.InstantiatePrefab(asset, root.transform);
+        SeatRiders(body, model);
         root.AddComponent<TrafficCar>();
+        root.AddComponent<WheelSpin>();                                    // wheels roll with the speed
         // pass-by + horn: two-wheelers and tuk-tuks get the motorbike recordings, the rest the car one
         VehicleSound vs = root.AddComponent<VehicleSound>();
         bool twoStroke = model.Contains("Scooter") || model.Contains("TukTuk");

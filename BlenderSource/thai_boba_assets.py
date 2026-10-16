@@ -298,13 +298,15 @@ class Asset:
         self._paint(g, a + b, m, False)
 
     def text(self, body, size, loc, m, rot=(90, 0, 0), extrude=0.01, fnt=FONT_TH_BOLD,
-             align='CENTER', g=None):
+             align='CENTER', g=None, res=None):
         g, bm = self._g(g)
         cu = bpy.data.curves.new("tmp_txt", 'FONT')
         cu.body = body
         cu.font = font(fnt)
         cu.size = size
         cu.extrude = extrude
+        if res:
+            cu.resolution_u = res                    # fewer curve steps: plates and small lettering stay cheap
         cu.align_x = align
         cu.align_y = 'CENTER'
         ob = bpy.data.objects.new("tmp_txt", cu)
@@ -1886,6 +1888,9 @@ SHOP_STYLES = {
                                             awning=("green_plastic", "white"), extras={"tables", "lights", "laundry", "tank"})),
     "SM_Shop_ClosedPlain": ("facade_cream", dict(floors=3, front="closed", extras={"laundry", "tank", "plants"})),
 }
+# realistic vehicles (replace the primitive ones above): taxi, pickup, songthaew, bus, tuk-tuk, scooter
+exec(compile(open(os.path.join(SRC_DIR, "thai_vehicles.py"), encoding="utf-8").read(), "thai_vehicles.py", "exec"))
+
 BUILDERS = [
     lambda: build_shophouse("SM_Shophouse_BobaShop", "facade_mint", True),
     lambda: build_shophouse("SM_Shophouse_Closed", "facade_peach", False),
@@ -1904,8 +1909,8 @@ BUILDERS = [
     build_pos, build_menu_board, build_fridge, build_standing_fan,
     build_spirit_house, build_tuktuk, build_scooter,
     lambda: build_tuktuk("SM_Traffic_TukTuk", driver=True), lambda: build_scooter("SM_Traffic_Scooter", rider=True),
-    lambda: build_taxi("SM_Car_Taxi_Pink", "taxi_pink", "taxi_pink"),
-    lambda: build_taxi("SM_Car_Taxi_GreenYellow", "yellow", "taxi_green"),
+    lambda: build_taxi("SM_Car_Taxi_Pink", "pink"),
+    lambda: build_taxi("SM_Car_Taxi_GreenYellow", "greenyellow"),
     build_pickup, build_songthaew, build_bus, build_plastic_stool, build_steel_table,
     build_street_cart, build_market_umbrella, build_power_pole, build_soi_sign, build_trash_bin,
     build_potted_plant, build_palm_tree, build_dragon_jar, build_aframe_sign, build_coin,
