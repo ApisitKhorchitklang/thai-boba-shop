@@ -480,8 +480,11 @@ public static partial class ThaiBobaSetup
         hud.summaryTitle.margin = new Vector4(0, 0, 0, 10);
 
         Img(panel.transform, "CoinIcon", "icon_coin", new Vector2(0, 1), new Vector2(0, 1), new Vector2(60, -90), new Vector2(80, 80));
-        hud.summaryText = Label(panel.transform, "Summary", "", 30, Brown, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1),
-                                new Vector2(60, -180), new Vector2(640, 560));
+        hud.summaryText = Label(panel.transform, "Summary", "", 28, Brown, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1),
+                                new Vector2(60, -180), new Vector2(660, 560));
+        hud.summaryText.enableAutoSizing = true;                          // long days (regulars, stock, insights) shrink instead of running under the button
+        hud.summaryText.fontSizeMin = 16;
+        hud.summaryText.fontSizeMax = 28;
 
         // supply orders
         Label(panel.transform, "SupplyTitle", "สั่งของสำหรับพรุ่งนี้", 30, Pink, TextAlignmentOptions.MidlineLeft, new Vector2(1, 1), new Vector2(1, 1),
@@ -517,8 +520,8 @@ public static partial class ThaiBobaSetup
         hud.upgradesText = null;
         Btn(panel.transform, "NextDay", "button_pink", "เปิดร้านวันถัดไป", "icon_play", new Vector2(0, 0), new Vector2(360, 80),
             new Vector2(580, 112), 38, Color.white, hud.NextDayButton);
-        Label(panel.transform, "AutoSaveNote", "เกมจะบันทึกอัตโนมัติทุกวัน", 22, new Color(0.45f, 0.3f, 0.2f), TextAlignmentOptions.MidlineLeft,
-              new Vector2(0, 0), new Vector2(0, 0), new Vector2(60, 150), new Vector2(600, 40));
+        Label(panel.transform, "AutoSaveNote", "เกมจะบันทึกอัตโนมัติทุกวัน", 22, new Color(0.45f, 0.3f, 0.2f), TextAlignmentOptions.MidlineRight,
+              new Vector2(1, 0), new Vector2(1, 0), new Vector2(-60, 40), new Vector2(600, 40));
         dim.gameObject.SetActive(false);
     }
 

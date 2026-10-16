@@ -1045,6 +1045,72 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(0, after, "yesterday's customers are still in the shop");
     }
 
+    [UnityTest, Timeout(90000)]
+    public IEnumerator UpgradesShowAndCartStationsAreReachable()
+    {
+        yield return LoadScene();
+        Transform player = Find("MovementWithJoy").transform;
+
+        // aiming at the blender / marshmallow jar hits that station, not the cart body around it
+        int carts = 0;
+        foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(T("IngredientStation"), FindObjectsSortMode.None))
+        {
+            Component st = (Component)o;
+            string k = st.GetType().GetField("kind").GetValue(st).ToString();
+            if (k != "Blend" && k != "Marshmallow") continue;
+            carts++;
+            Bounds b = st.GetComponent<Renderer>().bounds;
+            Vector3 from = new Vector3(0f, b.center.y + 0.4f, b.center.z);
+            RaycastHit[] hits = Physics.RaycastAll(from, (b.center - from).normalized, 5f);
+            Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+            Collider first = null;
+            foreach (RaycastHit h in hits) if (!h.collider.transform.IsChildOf(player)) { first = h.collider; break; }   // not the player's own capsule
+            Assert.IsNotNull(first, k + ": nothing hit");
+            Component got = first.GetComponentInParent(T("IngredientStation"));
+            Assert.IsTrue(got == st, $"{k}: aiming at it hits {first.name} instead");
+        }
+        Assert.AreEqual(2, carts, "seasonal cart stations missing");
+
+        // buy every upgrade: each one shows up somewhere
+        Component gm = Find("GameManager");
+        gm.GetType().GetField("money").SetValue(gm, 99999);
+        Component shop = Find("UpgradeShop");
+        var ups = (System.Collections.IList)shop.GetType().GetField("upgrades").GetValue(shop);
+        Transform potBody = null;
+        foreach (Transform t in Find("BobaPot").GetComponentsInChildren<Transform>(true)) if (t.name == "Pot_Body") potBody = t;
+        float pot0 = potBody.lossyScale.x;
+        foreach (object u in ups)
+            Assert.IsTrue((bool)shop.GetType().GetMethod("Buy").Invoke(shop, new object[] { (string)u.GetType().GetField("id").GetValue(u) }));
+        yield return null;
+        var missing = new System.Collections.Generic.List<string>();
+        foreach (object u in ups)
+        {
+            string id = (string)u.GetType().GetField("id").GetValue(u);
+            var show = (GameObject[])u.GetType().GetField("enableWhenOwned").GetValue(u);
+            if (id == "bigger_pot") continue;                                 // the pot grows instead
+            if (show == null || show.Length == 0) { missing.Add(id + " (nothing)"); continue; }
+            foreach (GameObject g in show) if (g == null || !g.activeInHierarchy) missing.Add(id);
+        }
+        float pot1 = potBody.lossyScale.x;
+
+        // the day summary shows them as owned
+        Component progress = Find("ShopProgress");
+        progress.GetType().GetMethod("FinalizeDay").Invoke(progress, null);
+        yield return null;
+        GameObject panel = (GameObject)Find("ShopHUD").GetType().GetField("summaryPanel").GetValue(Find("ShopHUD"));
+        Transform neonBtn = panel.transform.Find("Card/Upgrade_neon");
+        string label = neonBtn.GetComponentInChildren<TMPro.TMP_Text>(true).text;
+        bool clickable = neonBtn.GetComponent<UnityEngine.UI.Button>().interactable;
+        TMPro.TMP_Text summary = (TMPro.TMP_Text)Find("ShopHUD").GetType().GetField("summaryText").GetValue(Find("ShopHUD"));
+        summary.ForceMeshUpdate();
+        Debug.Log($"[TEST] upgrades missing [{string.Join(", ", missing)}], pot {pot0:0.00} -> {pot1:0.00}, neon button '{label}' clickable {clickable}, summary fits {summary.preferredHeight:0}/{summary.rectTransform.rect.height:0} at {summary.fontSize:0}pt");
+        Assert.IsEmpty(missing, "bought upgrades not visible");
+        Assert.Greater(pot1, pot0 * 1.2f, "big pot did not grow");
+        Assert.IsTrue(label.Contains("มีแล้ว"), "owned upgrade still shows a price: " + label);
+        Assert.IsFalse(clickable, "owned upgrade can be bought again");
+        Assert.IsFalse(summary.isTextOverflowing, "day summary runs out of its box");
+    }
+
     [UnityTest, Timeout(60000)]
     public IEnumerator DrinkSloshesAndSettles()
     {

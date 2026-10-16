@@ -111,9 +111,26 @@ public class UpgradeShop : MonoBehaviour
 
         u.owned = true;
         ApplyVisuals();
-        ShopHUD.Toast(Loc.T($"ซื้อ {u.Name} แล้ว! ", $"Bought {u.Name}! ") + u.Description);
+        string where = Where(u.id);
+        ShopHUD.Toast(Loc.T($"ซื้อ {u.Name} แล้ว! ", $"Bought {u.Name}! ") + u.Description + (where.Length > 0 ? "\n<size=80%>" + where + "</size>" : ""));
         OnChanged?.Invoke();
         return true;
+    }
+
+    // where to look for it after buying
+    static string Where(string id)
+    {
+        switch (id)
+        {
+            case "speaker": return Loc.T("ลำโพงแขวนอยู่มุมหน้าร้านทั้งสองข้าง", "Speakers hang in both front corners");
+            case "fan": return Loc.T("พัดลมตั้งอยู่ในร้านด้านขวา", "The fan stands inside on the right");
+            case "seating": return Loc.T("โต๊ะกับเก้าอี้แดงตั้งอยู่บนทางเท้า ด้านขวาของร้าน", "The table and stools are out on the footpath, right of the shop");
+            case "bigger_pot": return Loc.T("หม้อไข่มุกบนเคาน์เตอร์หลังใหญ่ขึ้นแล้ว", "The pearl pot on the back counter got bigger");
+            case "fast_sealer": return Loc.T("เครื่องซีลติดชุดแต่ง TURBO แล้ว", "The sealer now wears its TURBO kit");
+            case "neon": return Loc.T("ป้ายนีออนอยู่หน้าตึกกับผนังซ้ายในร้าน", "Neon on the shopfront and on the left wall inside");
+            case "delivery": return Loc.T("มอเตอร์ไซค์ส่งของจอดอยู่หน้าร้าน", "The delivery scooter is parked out front");
+            default: return "";
+        }
     }
 
     public string[] OwnedIds()

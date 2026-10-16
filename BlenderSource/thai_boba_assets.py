@@ -869,6 +869,83 @@ def build_season_cart():
     return a.build()
 
 
+# ---------------------------------------------------------------- shop upgrades you can see
+def build_speaker():
+    """Luk thung PA speaker hung from the ceiling (ลำโพง). Faces -Y, origin at the ceiling mount (top)."""
+    a = Asset("SM_Speaker")
+    a.cyl(0.05, 0.02, (0, 0, -0.01), "steel_dark", seg=10)                             # ceiling plate
+    a.tube((0, 0, 0), (0, 0, -0.45), 0.015, "steel_dark")
+    a.bmm(-0.17, 0.17, -0.06, 0.06, -0.48, -0.44, "steel_dark")                      # yoke
+    for sx in (-1, 1):
+        a.bmm(sx * 0.17 - 0.012, sx * 0.17 + 0.012, -0.03, 0.03, -0.75, -0.44, "steel_dark")
+    a.bmm(-0.15, 0.15, -0.13, 0.13, -0.98, -0.5, "black", bevel=0.015)               # cabinet
+    a.bmm(-0.135, 0.135, -0.135, -0.13, -0.96, -0.52, "rubber")                      # grille
+    a.cyl(0.095, 0.02, (0, -0.14, -0.82), "steel_dark", rot=(90, 0, 0), seg=20)      # woofer
+    a.cyl(0.04, 0.025, (0, -0.145, -0.82), "black", rot=(90, 0, 0), seg=14)
+    a.cyl(0.035, 0.02, (0, -0.14, -0.6), "chrome", rot=(90, 0, 0), seg=14)           # tweeter
+    a.bmm(-0.1, 0.1, -0.14, -0.135, -0.69, -0.66, "sign_yellow")                     # brand strip
+    return a.build()
+
+
+def build_neon_blade():
+    """Double-sided neon blade sign sticking out from the shopfront pillar (ป้ายไฟนีออน).
+    Board in the YZ plane, sticks out towards -Y from the wall (origin at the wall, bottom of the board)."""
+    a = Asset("SM_NeonSign")
+    for z in (0.15, 1.45):
+        a.tube((0, 0, z), (0, -0.2, z), 0.02, "steel_dark")                          # brackets
+    a.bmm(-0.04, 0.04, -1.0, -0.2, 0, 1.6, "black", bevel=0.01)
+    for sx in (-1, 1):
+        x = sx * 0.05
+        a.polyline([(x, -0.26, 0.06), (x, -0.94, 0.06), (x, -0.94, 1.54), (x, -0.26, 1.54), (x, -0.26, 0.06)],
+                   0.012, "neon_pink", seg=6)
+        rz = 90 if sx > 0 else -90
+        for i, ch in enumerate("BOBA"):
+            a.text(ch, 0.26, (x, -0.6, 1.3 - i * 0.28), "neon_cyan", rot=(90, 0, rz), extrude=0.006)
+        a.text("ชานม", 0.11, (x, -0.6, 0.16), "neon_pink", rot=(90, 0, rz), extrude=0.004)
+    return a.build()
+
+
+def build_neon_wall():
+    """Neon wall sign for inside the shop: 'ชานมไข่มุก' with a cup outline. Faces -Y, origin at the bottom middle."""
+    a = Asset("SM_NeonWall")
+    a.bmm(-0.75, 0.75, 0, 0.02, 0, 0.62, "black", bevel=0.005)                        # acrylic backing
+    a.text("ชานมไข่มุก", 0.2, (0.18, -0.012, 0.36), "neon_pink", extrude=0.006)
+    a.text("BUBBLE TEA", 0.08, (0.18, -0.012, 0.13), "neon_cyan", extrude=0.004)
+    cx = -0.55
+    a.polyline([(cx - 0.11, -0.015, 0.5), (cx - 0.08, -0.015, 0.1), (cx + 0.08, -0.015, 0.1), (cx + 0.11, -0.015, 0.5),
+                (cx - 0.11, -0.015, 0.5)], 0.01, "neon_cyan", seg=6)                  # cup
+    a.tube((cx + 0.03, -0.015, 0.5), (cx + 0.08, -0.015, 0.58), 0.008, "neon_pink", seg=6)   # straw
+    for k in range(3):
+        a.sphere(0.018, (cx - 0.05 + k * 0.05, -0.015, 0.15), "neon_pink", seg=8, rings=5)
+    return a.build()
+
+
+def build_delivery_box():
+    """Insulated delivery box for the rear rack of the scooter. Origin at the bottom middle, faces -Y."""
+    a = Asset("SM_DeliveryBox")
+    a.bmm(-0.21, 0.21, -0.2, 0.2, 0, 0.4, "sign_pink", bevel=0.02)
+    a.bmm(-0.215, 0.215, -0.205, 0.205, 0.37, 0.4, "white")
+    for sx in (-1, 1):
+        rz = 90 if sx > 0 else -90
+        a.text("BOBA", 0.09, (sx * 0.213, 0, 0.25), "white", rot=(90, 0, rz), extrude=0.003)
+        a.text("DELIVERY", 0.045, (sx * 0.213, 0, 0.15), "sign_yellow", rot=(90, 0, rz), extrude=0.002)
+    a.text("ส่งถึงบ้าน", 0.06, (0, -0.203, 0.2), "white", extrude=0.002)
+    return a.build()
+
+
+def build_turbo_kit():
+    """Bolt-on decals for the turbo sealer: TURBO strip, flames on the sides. Same frame as SM_CupSealer."""
+    a = Asset("SM_TurboKit")
+    a.bmm(-0.16, 0.16, -0.188, -0.178, 0.47, 0.515, "sign_yellow")
+    a.text("TURBO", 0.035, (0, -0.19, 0.485), "red_plastic", extrude=0.002)
+    for sx in (-1, 1):
+        x = sx * 0.162
+        for k, (c, h) in enumerate([("red_plastic", 0.2), ("sign_yellow", 0.14), ("neon_cyan", 0.08)]):
+            a.box((0.004, 0.26 - k * 0.06, h * 0.25), (x, 0.03 * k, 0.12 + k * 0.05), c)
+        a.tube((x, -0.15, 0.36), (x, 0.15, 0.36), 0.006, "neon_cyan", seg=6)
+    return a.build()
+
+
 def build_sky_lantern():
     """Khom loy paper sky lantern for Loy Krathong night (used as a particle mesh). ~0.5 m tall."""
     a = Asset("SM_SkyLantern")
@@ -1821,7 +1898,7 @@ BUILDERS = [
     lambda: build_cloud("SM_Cloud_A", 3, 34.0), lambda: build_cloud("SM_Cloud_B", 7, 24.0), lambda: build_cloud("SM_Cloud_C", 11, 46.0),
     lambda: build_puddle("SM_Puddle_A", 5), lambda: build_puddle("SM_Puddle_B", 9), build_hand_umbrella,
     build_tutorial_arrow, build_order_computer, build_lucky_cat, build_bunting, build_mural, build_front_bench, build_fairy_lights,
-    build_season_cart, build_sky_lantern,
+    build_season_cart, build_sky_lantern, build_speaker, build_neon_blade, build_neon_wall, build_delivery_box, build_turbo_kit,
     build_counter, build_back_counter, build_cup_modular, build_drink_display, build_cup_stack,
     build_cup_sealer, build_tea_urns, build_boba_pot, build_ice_cooler, build_syrups, build_shaker,
     build_pos, build_menu_board, build_fridge, build_standing_fan,

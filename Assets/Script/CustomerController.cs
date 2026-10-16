@@ -143,6 +143,7 @@ public class CustomerController : MonoBehaviour
 
         if (state == CustomerState.GoingToExit && exitArea != null)
         {
+            if (StuckWalking()) { agent.Warp(exitArea.position); GoToWaypoints(); return; }
             if (!agent.pathPending && agent.remainingDistance < 0.5f)
             {
                 if (Vector3.Distance(transform.position, exitArea.position) < 0.5f)
@@ -155,6 +156,7 @@ public class CustomerController : MonoBehaviour
 
         if (state == CustomerState.GoingToWaypoints)
         {
+            if (StuckWalking()) { Destroy(gameObject); return; }
             if (!agent.pathPending && agent.remainingDistance < 0.5f)
             {
                 if (waypointIndex < waypoints.Length)
@@ -193,15 +195,23 @@ public class CustomerController : MonoBehaviour
             agent.SetDestination(SlotPosition(slot));
         }
 
+        // pushed around by the people behind or blocked by a prop: close enough counts, otherwise hop to the spot
+        if (!arrivedAtSlot)
+        {
+            stuckTimer = agent.velocity.sqrMagnitude < 0.01f && !agent.pathPending ? stuckTimer + Time.deltaTime : 0f;
+            if (stuckTimer > 3f)
+            {
+                stuckTimer = 0f;
+                if (Vector3.Distance(transform.position, SlotPosition(slot)) > 1.2f) agent.Warp(SlotPosition(slot));
+                arrivedAtSlot = slot >= 0;
+                if (arrivedAtSlot) OnArrivedAtSlot(slot);
+            }
+        }
+
         if (!arrivedAtSlot && !agent.pathPending && agent.remainingDistance < 0.5f)
         {
             arrivedAtSlot = true;
-            if (slot == 0 && !greeted)
-            {
-                greeted = true;
-                Say(regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.Greeting(regular, order) : CustomerProfiles.Line(Profile.greet, order), 4f);
-                if (regular != null) Emote(CustomerEmote.Kind.Happy);       // a familiar face is happy to be back
-            }
+            OnArrivedAtSlot(slot);
         }
 
         // Only the customer being served (at the counter) loses patience; people further back in line just wait
@@ -215,6 +225,25 @@ public class CustomerController : MonoBehaviour
 
         if (Patience <= 0f)
             LeaveAngry();
+    }
+
+    void OnArrivedAtSlot(int slot)
+    {
+        if (slot == 0 && !greeted)
+        {
+            greeted = true;
+            Say(regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.Greeting(regular, order) : CustomerProfiles.Line(Profile.greet, order), 4f);
+            if (regular != null) Emote(CustomerEmote.Kind.Happy);       // a familiar face is happy to be back
+        }
+    }
+
+    // walking away but not getting anywhere (blocked path): skip to where they were heading
+    bool StuckWalking()
+    {
+        stuckTimer = agent.velocity.sqrMagnitude < 0.01f && !agent.pathPending ? stuckTimer + Time.deltaTime : 0f;
+        if (stuckTimer < 4f) return false;
+        stuckTimer = 0f;
+        return true;
     }
 
     // At the counter, ready to order (used by the tutorial)

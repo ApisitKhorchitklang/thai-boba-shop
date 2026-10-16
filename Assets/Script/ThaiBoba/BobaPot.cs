@@ -118,8 +118,26 @@ public class BobaPot : MonoBehaviour
         Refresh();
     }
 
+    // the big pot upgrade: the pot itself grows (the label stays the same size)
+    bool? shownBig;
+    readonly System.Collections.Generic.Dictionary<Transform, Vector3> baseScale = new System.Collections.Generic.Dictionary<Transform, Vector3>();
+
+    void UpdatePotSize()
+    {
+        bool big = BatchSize > batch;
+        if (shownBig == big) return;
+        shownBig = big;
+        foreach (Transform t in GetComponentsInChildren<Transform>(true))
+        {
+            if (t.name != "Pot_Body" && t.name != "Pot_Pearls" && t.name != "Pot_Water") continue;
+            if (!baseScale.TryGetValue(t, out Vector3 s0)) baseScale[t] = s0 = t.localScale;
+            t.localScale = big ? new Vector3(s0.x * 1.3f, s0.y * 1.2f, s0.z * 1.3f) : s0;
+        }
+    }
+
     void Update()
     {
+        UpdatePotSize();
         if (Current == State.Cooking)
         {
             CookProgress += Time.deltaTime / Mathf.Max(0.1f, cookSeconds);

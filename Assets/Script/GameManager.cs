@@ -46,6 +46,7 @@ public class GameManager : MonoBehaviour
         TimeCyc tc = FindFirstObjectByType<TimeCyc>();
         if (tc != null)
             tc.AdvanceToNextDay();
+        CustomerController.SendAllHome(true);       // a new morning starts with an empty shop, whatever happened last night
 
         // Save after advancing so loading resumes on the new morning
         SaveSystem.SaveGame();

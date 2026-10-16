@@ -86,6 +86,7 @@ public class ShopHUD : MonoBehaviour
         Loc.Changed += LanguageChanged;
         ShopProgress.OnDaySummary += ShowSummary;
         DailyEventSystem.OnEventStarted += ShowEvent;
+        UpgradeShop.OnChanged += RefreshUpgradeButtons;
         if (summaryPanel != null) summaryPanel.SetActive(false);
         SummaryOpen = false;
     }
@@ -97,6 +98,27 @@ public class ShopHUD : MonoBehaviour
         Loc.Changed -= LanguageChanged;
         ShopProgress.OnDaySummary -= ShowSummary;
         DailyEventSystem.OnEventStarted -= ShowEvent;
+        UpgradeShop.OnChanged -= RefreshUpgradeButtons;
+    }
+
+    // bought upgrades say so (and can't be bought twice) instead of still showing a price
+    void RefreshUpgradeButtons()
+    {
+        UpgradeShop shop = UpgradeShop.Instance;
+        if (summaryPanel == null || shop == null) return;
+        foreach (UpgradeShop.Upgrade u in shop.upgrades)
+        {
+            Transform t = summaryPanel.transform.Find("Card/Upgrade_" + u.id);
+            if (t == null) continue;
+            Button b = t.GetComponent<Button>();
+            if (b != null) b.interactable = !u.owned;
+            TMP_Text label = t.GetComponentInChildren<TMP_Text>(true);
+            LocalizedText lt = label != null ? label.GetComponent<LocalizedText>() : null;
+            if (lt == null) continue;
+            lt.th = u.owned ? $"{u.nameTH}  · มีแล้ว" : $"{u.nameTH}  {u.price}฿";
+            lt.en = u.owned ? $"{u.nameEN ?? u.nameTH}  · owned" : $"{u.nameEN ?? u.nameTH}  {u.price}฿";
+            lt.Apply();
+        }
     }
 
     void Start()
@@ -310,6 +332,7 @@ public class ShopHUD : MonoBehaviour
             return;
         }
         lastStock = StockLine();
+        RefreshUpgradeButtons();
         if (summaryTitle != null) summaryTitle.text = Loc.T($"ปิดร้าน · สรุปยอดวันที่ {s.day}", $"Closing time · Day {s.day} summary");
         if (summaryText != null)
         {
@@ -317,18 +340,14 @@ public class ShopHUD : MonoBehaviour
                 ? $"Served  <b>{s.served}</b> drinks   (perfect {s.perfect} · okay {s.okay})\n" +
                   $"Customers who left  {s.angry}     Drinks refused  {s.rejected}\n" +
                   $"Best combo  x{s.bestCombo}\n\n" +
-                  $"Sales  <color=#4E8A3C>+{s.revenue} ฿</color>\n" +
-                  $"Tips  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
-                  $"Bonus  <color=#4E8A3C>+{s.bonus} ฿</color>\n" +
-                  $"Expenses  <color=#C23A66>-{s.expenses} ฿</color>\n" +
+                  $"Sales  <color=#4E8A3C>+{s.revenue} ฿</color>     Tips  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
+                  $"Bonus  <color=#4E8A3C>+{s.bonus} ฿</color>     Expenses  <color=#C23A66>-{s.expenses} ฿</color>\n" +
                   $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + Insights(s) + Regulars() + lastStock
                 : $"เสิร์ฟ  <b>{s.served}</b> แก้ว   (เป๊ะ {s.perfect} · พอใช้ {s.okay})\n" +
                   $"ลูกค้าเดินหนี  {s.angry}     แก้วโดนปฏิเสธ  {s.rejected}\n" +
                   $"คอมโบสูงสุด  x{s.bestCombo}\n\n" +
-                  $"ยอดขาย  <color=#4E8A3C>+{s.revenue} ฿</color>\n" +
-                  $"ทิป  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
-                  $"โบนัส  <color=#4E8A3C>+{s.bonus} ฿</color>\n" +
-                  $"ค่าใช้จ่าย  <color=#C23A66>-{s.expenses} ฿</color>\n" +
+                  $"ยอดขาย  <color=#4E8A3C>+{s.revenue} ฿</color>     ทิป  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
+                  $"โบนัส  <color=#4E8A3C>+{s.bonus} ฿</color>     ค่าใช้จ่าย  <color=#C23A66>-{s.expenses} ฿</color>\n" +
                   $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + Insights(s) + Regulars() + lastStock;
         }
         if (upgradesText != null && UpgradeShop.Instance != null)

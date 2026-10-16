@@ -389,6 +389,14 @@ public static partial class ThaiBobaSetup
         public List<GameObject> seating = new List<GameObject>();
         public GameObject neighbourLeft;                                   // replaced by the expansion when bought
         public Dictionary<string, GameObject> decor = new Dictionary<string, GameObject>();
+        public Dictionary<string, List<GameObject>> upgradeShow = new Dictionary<string, List<GameObject>>();   // shown once that upgrade is bought
+
+        public void Upgrade(string id, GameObject go)
+        {
+            if (go == null) return;
+            if (!upgradeShow.TryGetValue(id, out List<GameObject> list)) upgradeShow[id] = list = new List<GameObject>();
+            list.Add(go);
+        }
     }
 
     [MenuItem("Tools/Thai Boba Shop/2. Build Street Set In Current Scene")]
@@ -454,7 +462,8 @@ public static partial class ThaiBobaSetup
         potGo.AddComponent<BobaPot>().font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/Thai/Kanit-Medium SDF.asset");   // pearls must be cooked
         Place("SM_SyrupBottles", 1.0f, 6.5f, 0.9f, 0, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Sweetness;
         Place("SM_IceCooler", 1.7f, 5.2f, 0, 0, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Ice;
-        Place("SM_CupSealer", 0.75f, 1.5f, 1.0f, 180, shop, Col.Box).AddComponent<SealerStation>();
+        GameObject sealer = Place("SM_CupSealer", 0.75f, 1.5f, 1.0f, 180, shop, Col.Box);
+        sealer.AddComponent<SealerStation>();
         Place("SM_CupStack", 0.35f, 1.55f, 1.0f, 0, shop, Col.Box).AddComponent<CupDispenser>().cupPrefab = cup;
         Place("SM_TrashBin", -1.6f, 5.9f, 0, 0, shop, Col.Box).AddComponent<TrashStation>();
         Place("SM_MenuBoard", 0, 6.79f, 2.15f, 0, shop, Col.None);
@@ -467,6 +476,18 @@ public static partial class ThaiBobaSetup
         {
             if (t.name == "Cart_Blender") t.gameObject.AddComponent<IngredientStation>().kind = IngredientStation.Kind.Blend;
             else if (t.name == "Cart_Marshmallow") t.gameObject.AddComponent<IngredientStation>().kind = IngredientStation.Kind.Marshmallow;
+            else if (t.name == "Cart_Body")
+            {
+                // the body's box would wrap the blender and the jar standing on it (and swallow the E press): cart only up to the top
+                BoxCollider bc = t.GetComponent<BoxCollider>();
+                MeshFilter mf = t.GetComponent<MeshFilter>();
+                if (bc != null && mf != null && mf.sharedMesh != null)
+                {
+                    Bounds b = mf.sharedMesh.bounds;
+                    bc.size = new Vector3(b.size.x, 0.82f, b.size.z);
+                    bc.center = new Vector3(b.center.x, b.min.y + 0.41f, b.center.z);
+                }
+            }
         }
         BuildDecor(r, shop, env);                                          // decorations / helper / expansion (hidden until bought)
         // the shop computer for ordering supplies: left wall beside the counter, screen facing into the shop
@@ -474,6 +495,20 @@ public static partial class ThaiBobaSetup
         r.fan = Place("SM_StandingFan", 1.7f, 3.0f, 0, 200, shop, Col.None);
         Transform blades = Child(r.fan, "Fan_Blades");
         if (blades != null) blades.gameObject.AddComponent<Spinner>().axis = Vector3.forward;
+
+        // upgrades you can see (hidden until bought): speakers, neon, the turbo kit, the delivery scooter
+        r.Upgrade("speaker", Place("SM_Speaker", -1.9f, 0.9f, 3.4f, 150, shop, Col.None));
+        r.Upgrade("speaker", Place("SM_Speaker", 1.9f, 0.9f, 3.4f, -150, shop, Col.None));
+        r.Upgrade("neon", Place("SM_NeonSign", 2.15f, 0, 4.4f, 0, env, Col.None));
+        r.Upgrade("neon", Place("SM_NeonWall", -2.09f, 3.3f, 2.15f, 90, shop, Col.None));
+        if (sealer != null) r.Upgrade("fast_sealer", Place("SM_TurboKit", 0, 0, 0, 0, sealer.transform, Col.None));
+        GameObject scooter = Place("SM_Scooter", -1.75f, -2.45f, 0, 90, props, Col.None);
+        if (scooter != null)
+        {
+            scooter.name = "DeliveryScooter";
+            Place("SM_DeliveryBox", 0, 0.75f, 0.86f, 0, scooter.transform, Col.None);
+            r.Upgrade("delivery", scooter);
+        }
 
         // street life
         Place("SM_PottedPlant", -1.8f, -0.4f, 0, 0, props, Col.None);
@@ -541,6 +576,12 @@ public static partial class ThaiBobaSetup
             shop.Find("seating").enableWhenOwned = refs.seating.ToArray();
             if (refs.fan != null) refs.fan.SetActive(false);
             foreach (GameObject g in refs.seating) if (g != null) g.SetActive(false);
+            foreach (var kv in refs.upgradeShow)
+            {
+                UpgradeShop.Upgrade u = shop.Find(kv.Key);
+                if (u != null) u.enableWhenOwned = kv.Value.ToArray();
+                foreach (GameObject g in kv.Value) if (g != null) g.SetActive(false);
+            }
         }
         return sys;
     }
@@ -828,6 +869,32 @@ public static partial class ThaiBobaSetup
                 File.WriteAllBytes(Path.Combine(dir, label + ".png"), tex.EncodeToPNG());
             }
             foreach (DecorShop.Item it in decorPreview.items) { if (it.show != null) it.show.SetActive(false); if (it.hide != null) it.hide.SetActive(true); }
+        }
+
+        // Every upgrade bought: speakers, turbo sealer, neon (front + wall), seating, delivery scooter
+        UpgradeShop upgradePreview = Object.FindFirstObjectByType<UpgradeShop>();
+        if (upgradePreview != null)
+        {
+            var shown = new List<GameObject>();
+            foreach (UpgradeShop.Upgrade u in upgradePreview.upgrades)
+                if (u.enableWhenOwned != null) foreach (GameObject g in u.enableWhenOwned) if (g != null && !g.activeSelf) { g.SetActive(true); shown.Add(g); }
+            foreach (var (label, pos, look) in new[]
+            {
+                ("unity_upgrades_street", new Vector3(0.3f, 2.4f, 7.0f), new Vector3(-0.3f, 2.6f, 0f)),
+                ("unity_upgrades_inside", new Vector3(0.4f, 1.75f, -4.6f), new Vector3(0f, 1.9f, 0f)),
+                ("unity_upgrades_wall", new Vector3(-0.6f, 1.7f, -2.2f), new Vector3(2.1f, 2.1f, -3.6f)),
+            })
+            {
+                cam.transform.position = pos;
+                cam.transform.rotation = Quaternion.LookRotation(look - pos);
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                tex.ReadPixels(new Rect(0, 0, 1600, 900), 0, 0);
+                tex.Apply();
+                File.WriteAllBytes(Path.Combine(dir, label + ".png"), tex.EncodeToPNG());
+            }
+            foreach (GameObject g in shown) g.SetActive(false);
         }
 
         // Day / sunset / night from the same viewpoint, driven by DayNightCycle exactly like in play mode
