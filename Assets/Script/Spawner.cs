@@ -112,7 +112,7 @@ public class Spawner : MonoBehaviour
         GameObject prefab = npcPrefab;
 
         // 60% chance to spawn a customer prefab if available (and the queue isn't full)
-        bool queueFull = CustomerController.Queue.Count >= maxQueue;
+        bool queueFull = CustomerController.Queue.Count >= maxQueue + (DecorShop.Instance != null ? DecorShop.Instance.ExtraQueue : 0);
         bool tutorialCustomer = false;
         RegularsSystem.Regular regular = null;
         if (!TutorialActive && customerPrefab != null && !queueFull && RegularsSystem.Instance != null)

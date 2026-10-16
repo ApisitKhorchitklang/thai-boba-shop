@@ -28,6 +28,7 @@ public static class SaveSystem
         public string[] upgrades = new string[0];
         public int[] regularHearts = new int[0];
         public bool secretDrink;
+        public string[] decor = new string[0];
         public string savedAt = "";
     }
 
@@ -71,6 +72,8 @@ public static class SaveSystem
             data.regularHearts = RegularsSystem.Instance.HeartsArray();
             data.secretDrink = RegularsSystem.SecretUnlocked;
         }
+        if (DecorShop.Instance != null)
+            data.decor = DecorShop.Instance.OwnedIds();
         data.savedAt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         return data;
     }
@@ -177,6 +180,8 @@ public static class SaveSystem
             UpgradeShop.Instance.LoadOwned(data.upgrades);
         if (RegularsSystem.Instance != null)
             RegularsSystem.Instance.Load(data.regularHearts, data.secretDrink);
+        if (DecorShop.Instance != null)
+            DecorShop.Instance.LoadOwned(data.decor);
 
         TimeCyc tc = Object.FindFirstObjectByType<TimeCyc>();
         if (tc != null && data.day > 0)

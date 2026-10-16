@@ -517,6 +517,66 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
     }
 
+    [UnityTest, Timeout(120000)]
+    public IEnumerator DecorateHireAndExpand()
+    {
+        yield return LoadScene();
+        Type dsT = T("DecorShop");
+        Component ds = (Component)dsT.GetProperty("Instance").GetValue(null);
+        Assert.IsNotNull(ds, "no DecorShop");
+        Component gm = Find("GameManager");
+        FieldInfo moneyF = gm.GetType().GetField("money");
+        moneyF.SetValue(gm, 20000);
+
+        // the computer has a decorate tab with every item listed
+        Type panelT = T("OrderPanel");
+        Component panel = (Component)panelT.GetProperty("Instance").GetValue(null);
+        panelT.GetMethod("Open").Invoke(panel, null);
+        panelT.GetMethod("ShowDecorTab").Invoke(panel, null);
+        yield return null;
+        Assert.IsTrue(((GameObject)panelT.GetField("decorGroup").GetValue(panel)).activeInHierarchy, "decorate tab not shown");
+        var labels = (TMPro.TMP_Text[])panelT.GetField("decorLabels").GetValue(panel);
+        Assert.IsNotEmpty(labels[7].text, "expansion not listed");
+        panelT.GetMethod("Close").Invoke(panel, null);
+
+        var items = (System.Collections.IList)dsT.GetField("items").GetValue(ds);
+        GameObject pharmacy = null;
+        foreach (object it in items) if ((string)it.GetType().GetField("id").GetValue(it) == "expand") pharmacy = (GameObject)it.GetType().GetField("hide").GetValue(it);
+        Assert.IsNotNull(pharmacy, "expansion does not know which neighbour to replace");
+        int spentFrom = (int)moneyF.GetValue(gm);
+        foreach (object it in items)
+        {
+            string id = (string)it.GetType().GetField("id").GetValue(it);
+            Assert.IsTrue((bool)dsT.GetMethod("Buy").Invoke(ds, new object[] { id }), "could not buy " + id);
+            GameObject shown = (GameObject)it.GetType().GetField("show").GetValue(it);
+            Assert.IsTrue(shown != null && shown.activeInHierarchy, id + " did not appear");
+        }
+        int spent = spentFrom - (int)moneyF.GetValue(gm);
+        Assert.IsFalse(pharmacy.activeSelf, "the pharmacy is still there after expanding");
+        int beauty = (int)dsT.GetProperty("Beauty").GetValue(ds);
+        float spawn = (float)dsT.GetProperty("SpawnMultiplier").GetValue(ds);
+
+        // the helper puts pearls on by himself
+        Component pot = (Component)T("BobaPot").GetProperty("Instance").GetValue(null);
+        Time.timeScale = 3f;
+        float t0 = Time.realtimeSinceStartup;
+        while (pot.GetType().GetProperty("Current").GetValue(pot).ToString() == "Empty" && Time.realtimeSinceStartup - t0 < 20f) yield return null;
+        Time.timeScale = 1f;
+        string potState = pot.GetType().GetProperty("Current").GetValue(pot).ToString();
+
+        // wage at closing, and everything is saved
+        int before = (int)moneyF.GetValue(gm);
+        Component sp = Find("ShopProgress");
+        sp.GetType().GetMethod("FinalizeDay").Invoke(sp, null);
+        int after = (int)moneyF.GetValue(gm);
+        string[] owned = (string[])dsT.GetMethod("OwnedIds").Invoke(ds, null);
+        Debug.Log($"[TEST] decor: spent {spent}, beauty {beauty}, customers x{spawn:0.00}, helper pot {potState}, wage {before - after}, owned {owned.Length}");
+        Assert.AreNotEqual("Empty", potState, "helper did not cook pearls");
+        Assert.AreEqual(120, before - after, "helper wage not paid at closing");
+        Assert.AreEqual(items.Count, owned.Length, "purchases not in save data");
+        Assert.Greater(spawn, 1.3f, "decor/expansion did not bring more customers");
+    }
+
     [UnityTest, Timeout(150000)]
     public IEnumerator RegularVisitsAndBecomesAFriend()
     {

@@ -45,6 +45,7 @@ public class ShopProgress : MonoBehaviour
             float m = 0.5f + reputation * 0.2f;
             if (DailyEventSystem.Instance != null) m *= DailyEventSystem.Instance.Current.spawnMultiplier;
             if (UpgradeShop.Instance != null) m *= UpgradeShop.Instance.SpawnMultiplier;
+            if (DecorShop.Instance != null) m *= DecorShop.Instance.SpawnMultiplier;
             return m;
         }
     }
@@ -56,6 +57,7 @@ public class ShopProgress : MonoBehaviour
             float m = 1f;
             if (DailyEventSystem.Instance != null) m *= DailyEventSystem.Instance.Current.patienceMultiplier;
             if (UpgradeShop.Instance != null) m *= UpgradeShop.Instance.PatienceMultiplier;
+            if (DecorShop.Instance != null) m *= DecorShop.Instance.PatienceMultiplier;
             return m;
         }
     }
@@ -68,6 +70,7 @@ public class ShopProgress : MonoBehaviour
             if (DailyEventSystem.Instance != null) m *= DailyEventSystem.Instance.Current.tipMultiplier;
             if (UpgradeShop.Instance != null) m *= UpgradeShop.Instance.TipMultiplier;
             if (SpiritHouseOffering.Instance != null) m *= SpiritHouseOffering.Instance.TipMultiplier;
+            if (DecorShop.Instance != null) m *= DecorShop.Instance.TipMultiplier;
             return m;
         }
     }
@@ -217,6 +220,8 @@ public class ShopProgress : MonoBehaviour
 
         if (DailyGoals.Instance != null)
             DailyGoals.Instance.EvaluateEndOfDay(today);
+        if (DecorShop.Instance != null)
+            DecorShop.Instance.PayWages();                      // the helper's daily wage
 
         OnDaySummary?.Invoke(today);
     }

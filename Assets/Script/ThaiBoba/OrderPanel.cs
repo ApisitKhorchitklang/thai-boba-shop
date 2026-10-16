@@ -16,9 +16,25 @@ public class OrderPanel : MonoBehaviour
     public Button closeButton;
     public TMP_Text closeLabel;
 
+    [Header("Tabs: supplies / decorate & expand")]
+    public GameObject supplyGroup, decorGroup;
+    public Button supplyTab, decorTab;
+    public Button[] decorButtons = new Button[8];
+    public TMP_Text[] decorLabels = new TMP_Text[8];
+    public TMP_Text beautyText;
+    bool decorMode;
+
     static readonly string[] Resources = { "cups", "boba", "ice", "syrup", "foam" };
     static readonly int[] Amounts = { 10, 50, 50, 50, 10 };
     int openedFrame;
+
+    static void SetTabLook(Button b, bool active, string label)
+    {
+        if (b == null) return;
+        b.image.color = active ? Color.white : new Color(1f, 1f, 1f, 0.55f);
+        TMP_Text t = b.GetComponentInChildren<TMP_Text>();
+        if (t != null && t.text != label) t.text = label;
+    }
 
     void Awake()
     {
@@ -30,6 +46,13 @@ public class OrderPanel : MonoBehaviour
             if (orderButtons[i] != null) orderButtons[i].onClick.AddListener(() => Order(k));
         }
         if (closeButton != null) closeButton.onClick.AddListener(Close);
+        if (supplyTab != null) supplyTab.onClick.AddListener(() => { decorMode = false; GameAudio.Play(Sfx.Click); Refresh(); });
+        if (decorTab != null) decorTab.onClick.AddListener(() => { decorMode = true; GameAudio.Play(Sfx.Click); Refresh(); });
+        for (int i = 0; i < decorButtons.Length; i++)
+        {
+            int k = i;
+            if (decorButtons[i] != null) decorButtons[i].onClick.AddListener(() => BuyDecor(k));
+        }
     }
 
     void OnDestroy()
@@ -53,6 +76,16 @@ public class OrderPanel : MonoBehaviour
         GameAudio.Play(Sfx.Close);
     }
 
+    void BuyDecor(int i)
+    {
+        DecorShop shop = DecorShop.Instance;
+        if (shop == null || i >= shop.items.Count) return;
+        shop.Buy(shop.items[i].id);
+        Refresh();
+    }
+
+    public void ShowDecorTab() { decorMode = true; Refresh(); }      // tests / tutorial
+
     void Order(int i)
     {
         ComputerTerminal terminal = FindFirstObjectByType<ComputerTerminal>();
@@ -72,6 +105,29 @@ public class OrderPanel : MonoBehaviour
 
     void Refresh()
     {
+        if (supplyGroup != null) supplyGroup.SetActive(!decorMode);
+        if (decorGroup != null) decorGroup.SetActive(decorMode);
+        SetTabLook(supplyTab, !decorMode, Loc.T("สั่งของ", "Supplies"));
+        SetTabLook(decorTab, decorMode, Loc.T("ตกแต่ง & ขยายร้าน", "Decorate & expand"));
+        DecorShop shop = DecorShop.Instance;
+        if (decorMode && shop != null)
+        {
+            int money = GameManager.Instance != null ? GameManager.Instance.money : 0;
+            if (beautyText != null)
+                beautyText.text = Loc.T("เงิน", "Money") + $" <b>{money:N0} ฿</b>     " + Loc.T("ความสวยร้าน", "Shop beauty") + $" <b>{shop.Beauty}</b>   " +
+                                  Loc.T($"(ลูกค้า +{(shop.SpawnMultiplier - 1f) * 100f:0}%)", $"(customers +{(shop.SpawnMultiplier - 1f) * 100f:0}%)");
+            for (int i = 0; i < decorLabels.Length && i < shop.items.Count; i++)
+            {
+                DecorShop.Item it = shop.items[i];
+                if (decorLabels[i] != null)
+                {
+                    string t = it.owned ? $"<b>{it.Name}</b>  <size=80%>{Loc.T("มีแล้ว", "owned")}</size>" : $"<b>{it.Name}</b>  <size=80%>{it.price:N0} ฿</size>";
+                    t += $"\n<size=62%>{it.Desc}</size>";
+                    if (decorLabels[i].text != t) decorLabels[i].text = t;
+                }
+                if (decorButtons[i] != null) decorButtons[i].interactable = !it.owned;
+            }
+        }
         InventoryManager inv = InventoryManager.Instance;
         string[] names = { Loc.T("แก้ว", "Cups"), Loc.T("ไข่มุก", "Pearls"), Loc.T("น้ำแข็ง", "Ice"), Loc.T("ชา", "Tea"), Loc.T("ชีสโฟม", "Cheese foam") };
         if (stockText != null && inv != null)

@@ -370,26 +370,48 @@ public static partial class ThaiBobaSetup
         Unlocalize(tutorial.finishButton.GetComponentInChildren<TMP_Text>());
         tut.gameObject.SetActive(false);
 
-        // shop computer: order-supplies screen (opened from SM_OrderComputer)
-        Image op = Img(game, "OrderPanel", "panel", MC, MC, new Vector2(0, 10), new Vector2(980, 740), null, true);
+        // shop computer: order supplies / decorate & expand (opened from SM_OrderComputer)
+        Image op = Img(game, "OrderPanel", "panel", MC, MC, new Vector2(0, 0), new Vector2(1000, 840), null, true);
         Image ob = Img(op.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), MC, new Vector2(0, -6), new Vector2(620, 100));
         FillLabel(ob.transform, "สั่งของ · คอมพิวเตอร์ร้าน", 36, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
         OrderPanel orderPc = hud.gameObject.AddComponent<OrderPanel>();
         orderPc.panel = op.gameObject;
-        orderPc.stockText = Label(op.transform, "Stock", "", 26, Brown, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f),
-                                new Vector2(0, -120), new Vector2(900, 60));
+        orderPc.supplyTab = Btn(op.transform, "TabSupply", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(-165, -112), new Vector2(310, 62), 26, Brown);
+        orderPc.decorTab = Btn(op.transform, "TabDecor", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(165, -112), new Vector2(310, 62), 26, Brown);
+
+        RectTransform sg = Stretch(op.transform, "SupplyGroup");
+        orderPc.supplyGroup = sg.gameObject;
+        orderPc.stockText = Label(sg, "Stock", "", 25, Brown, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f),
+                                  new Vector2(0, -180), new Vector2(940, 56));
         string[] oIcons = { "icon_cup", "icon_boba", "icon_ice", "icon_tea", "icon_foam" };
         for (int i = 0; i < 5; i++)
         {
-            Vector2 at = i < 4 ? new Vector2(-220 + (i % 2) * 440, -225 - (i / 2) * 124) : new Vector2(0, -473);   // 2 x 2 + cheese foam centred
-            Button b = Btn(op.transform, "Order" + i, i < 4 ? "button_green" : "button_orange", "", oIcons[i], new Vector2(0.5f, 1),
-                           at, new Vector2(420, 108), 32, Color.white);
+            Vector2 at = i < 4 ? new Vector2(-225 + (i % 2) * 450, -280 - (i / 2) * 122) : new Vector2(0, -524);   // 2 x 2 + cheese foam centred
+            Button b = Btn(sg, "Order" + i, i < 4 ? "button_green" : "button_orange", "", oIcons[i], new Vector2(0.5f, 1),
+                           at, new Vector2(430, 106), 32, Color.white);
             orderPc.orderButtons[i] = b;
             orderPc.orderLabels[i] = b.GetComponentInChildren<TMP_Text>();
         }
-        Label(op.transform, "Note", "สินค้าส่งถึงร้านในไม่กี่วินาที · เงินหักทันทีที่สั่ง", 22, new Color(0.45f, 0.3f, 0.2f), TextAlignmentOptions.Midline,
-              new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(900, 40));
-        orderPc.closeButton = Btn(op.transform, "Close", "button_pink", "ปิด", null, new Vector2(0.5f, 0), new Vector2(0, 74), new Vector2(300, 92), 32, Color.white);
+        Label(sg, "Note", "สินค้าส่งถึงร้านในไม่กี่วินาที · เงินหักทันทีที่สั่ง", 22, new Color(0.45f, 0.3f, 0.2f), TextAlignmentOptions.Midline,
+              new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 160), new Vector2(900, 40));
+
+        RectTransform dg = Stretch(op.transform, "DecorGroup");
+        orderPc.decorGroup = dg.gameObject;
+        orderPc.beautyText = Label(dg, "Beauty", "", 25, Brown, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f),
+                                   new Vector2(0, -180), new Vector2(940, 56));
+        for (int i = 0; i < 8; i++)
+        {
+            bool big = i >= 6;                                                     // helper + expansion
+            Button b = Btn(dg, "Decor" + i, big ? "button_orange" : "button_green", "", null, new Vector2(0.5f, 1),
+                           new Vector2(-232 + (i % 2) * 464, -262 - (i / 2) * 104), new Vector2(448, 96), 25, Color.white);
+            TMP_Text t = b.GetComponentInChildren<TMP_Text>();
+            t.lineSpacing = -18;
+            orderPc.decorButtons[i] = b;
+            orderPc.decorLabels[i] = t;
+        }
+        dg.gameObject.SetActive(false);
+
+        orderPc.closeButton = Btn(op.transform, "Close", "button_pink", "ปิด", null, new Vector2(0.5f, 0), new Vector2(0, 70), new Vector2(300, 88), 32, Color.white);
         orderPc.closeLabel = orderPc.closeButton.GetComponentInChildren<TMP_Text>();
         op.gameObject.SetActive(false);
 

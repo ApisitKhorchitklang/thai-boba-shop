@@ -317,7 +317,8 @@ public static partial class ThaiBobaSetup
         for (int k = 1; k <= 8; k++)
         {
             Place(NearRow[(k - 1) % NearRow.Length], k * 4.6f, 0, 0, 0, env, Col.Mesh);
-            Place(NearRowLeft[(k - 1) % NearRowLeft.Length], -k * 4.6f, 0, 0, 0, env, Col.Mesh);
+            GameObject left = Place(NearRowLeft[(k - 1) % NearRowLeft.Length], -k * 4.6f, 0, 0, 0, env, Col.Mesh);
+            if (k == 1) r.neighbourLeft = left;
         }
         for (int k = -8; k <= 8; k++)                     // opposite row faces the shop (+Y in Blender)
             Place(FarRow[(k + 8) % FarRow.Length], k * 4.6f, -13.4f, 0, 180, far, Col.Mesh);
@@ -382,6 +383,8 @@ public static partial class ThaiBobaSetup
         public Transform[] spawnPoints, exitWaypoints;
         public GameObject fan;
         public List<GameObject> seating = new List<GameObject>();
+        public GameObject neighbourLeft;                                   // replaced by the expansion when bought
+        public Dictionary<string, GameObject> decor = new Dictionary<string, GameObject>();
     }
 
     [MenuItem("Tools/Thai Boba Shop/2. Build Street Set In Current Scene")]
@@ -455,6 +458,7 @@ public static partial class ThaiBobaSetup
         Place("SM_DrinkDisplay", -0.1f, 1.3f, 1.0f, 0, shop, Col.None);
         Place("SM_Shaker", 0.15f, 6.4f, 0.9f, 0, shop, Col.None);
         Place("SM_DrinkFridge", -1.85f, 4.6f, 0, 90, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Foam;   // cheese foam topping
+        BuildDecor(r, shop, env);                                          // decorations / helper / expansion (hidden until bought)
         // the shop computer for ordering supplies: left wall beside the counter, screen facing into the shop
         Place("SM_OrderComputer", -1.8f, 2.75f, 0, 90, shop, Col.Box).AddComponent<SupplyComputer>();
         r.fan = Place("SM_StandingFan", 1.7f, 3.0f, 0, 200, shop, Col.None);
@@ -509,6 +513,12 @@ public static partial class ThaiBobaSetup
         if (sys.GetComponent<DailyGoals>() == null) sys.AddComponent<DailyGoals>();
         if (sys.GetComponent<WeatherSystem>() == null) sys.AddComponent<WeatherSystem>();
         if (sys.GetComponent<RegularsSystem>() == null) sys.AddComponent<RegularsSystem>();
+        DecorShop decorShop = sys.GetComponent<DecorShop>();
+        if (decorShop == null) decorShop = sys.AddComponent<DecorShop>();
+        decorShop.items = DecorShop.Defaults();
+        foreach (DecorShop.Item it in decorShop.items)
+            if (refs != null && refs.decor.TryGetValue(it.id, out GameObject shown)) it.show = shown;
+        if (refs != null) decorShop.Get("expand").hide = refs.neighbourLeft;
         if (sys.GetComponent<ComputerTerminal>() == null) sys.AddComponent<ComputerTerminal>();
         if (sys.GetComponent<ThaiBobaBootstrap>() == null) sys.AddComponent<ThaiBobaBootstrap>();
         UpgradeShop shop = sys.GetComponent<UpgradeShop>();
@@ -784,6 +794,29 @@ public static partial class ThaiBobaSetup
             cam.fieldOfView = fov;
             foreach (GameObject c in cups) Object.DestroyImmediate(c);
             foreach (Material m in mats) Object.DestroyImmediate(m);
+        }
+
+        // Everything from the decorate tab switched on: plants, bunting, lights, cat, bench, helper, expansion next door
+        DecorShop decorPreview = Object.FindFirstObjectByType<DecorShop>();
+        if (decorPreview != null)
+        {
+            foreach (DecorShop.Item it in decorPreview.items) { if (it.show != null) it.show.SetActive(true); if (it.hide != null) it.hide.SetActive(false); }
+            foreach (var (label, pos, look) in new[]
+            {
+                ("unity_decor", new Vector3(2.3f, 2.3f, 9.2f), new Vector3(2.3f, 1.7f, 0.5f)),
+                ("unity_decor_inside", new Vector3(0.7f, 1.7f, -2.2f), new Vector3(-2.1f, 1.45f, -4.1f)),   // mural on the right wall (Unity x = -Blender x)
+            })
+            {
+                cam.transform.position = pos;
+                cam.transform.rotation = Quaternion.LookRotation(look - pos);
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                tex.ReadPixels(new Rect(0, 0, 1600, 900), 0, 0);
+                tex.Apply();
+                File.WriteAllBytes(Path.Combine(dir, label + ".png"), tex.EncodeToPNG());
+            }
+            foreach (DecorShop.Item it in decorPreview.items) { if (it.show != null) it.show.SetActive(false); if (it.hide != null) it.hide.SetActive(true); }
         }
 
         // Day / sunset / night from the same viewpoint, driven by DayNightCycle exactly like in play mode

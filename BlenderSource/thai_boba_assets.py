@@ -751,6 +751,91 @@ def build_ground():
 
 
 # ---------------------------------------------------------------- shop furniture
+def build_lucky_cat():
+    """Maneki-neko (แมวกวัก) for the counter: waving paw, red collar, gold bell and coin. ~0.2 m tall, faces -Y."""
+    a = Asset("SM_LuckyCat")
+    a.cyl(0.07, 0.02, (0, 0, 0.01), "red_plastic", seg=20)                            # cushion
+    a.sphere(0.065, (0, 0, 0.085), "white", scale=(1, 0.85, 1.05), seg=16, rings=10)   # body
+    a.sphere(0.055, (0, -0.005, 0.175), "white", scale=(1.15, 1, 0.95), seg=16, rings=10)   # head
+    for sx in (-1, 1):
+        a.cyl(0.022, 0.035, (sx * 0.035, 0, 0.22), "white", r2=0.002, seg=8)          # ears
+        a.cyl(0.012, 0.022, (sx * 0.035, -0.008, 0.217), "pink_milk", r2=0.001, seg=8)
+        a.sphere(0.007, (sx * 0.02, -0.058, 0.18), "black", seg=8, rings=5)           # eyes
+    a.sphere(0.006, (0, -0.062, 0.168), "pink_milk", seg=8, rings=5)                  # nose
+    a.cyl(0.06, 0.012, (0, -0.002, 0.128), "red_plastic", seg=20)                     # collar
+    a.sphere(0.012, (0, -0.06, 0.12), "gold", seg=10, rings=6)                         # bell
+    a.sphere(0.022, (0.05, -0.03, 0.2), "white", scale=(1, 1, 1.3), seg=10, rings=6)   # raised paw
+    a.tube((0.05, -0.03, 0.12), (0.05, -0.03, 0.19), 0.02, "white", seg=10)
+    a.cyl(0.032, 0.006, (-0.02, -0.06, 0.07), "gold", rot=(90, 0, 0), seg=16)         # koban coin
+    a.text("福", 0.03, (-0.02, -0.064, 0.062), "red_plastic", extrude=0.001)
+    return a.build()
+
+
+def build_bunting():
+    """Colourful triangle flags on a string across a 4.2 m shopfront (ธงราว). Origin at the middle of the string."""
+    a = Asset("SM_Bunting")
+    n = 15
+    cols = ["sign_pink", "sign_yellow", "neon_cyan", "matcha", "taro", "white"]
+    pts = []
+    for i in range(n + 1):
+        t = i / n
+        pts.append((-2.1 + t * 4.2, 0, -0.18 * 4 * t * (1 - t)))
+    a.polyline(pts, 0.006, "black", seg=5)
+    for i in range(n):
+        t = (i + 0.5) / n
+        x = -2.1 + t * 4.2
+        z = -0.18 * 4 * t * (1 - t)
+        a.prism([(x - 0.12, z), (x + 0.12, z), (x, z - 0.24)], -0.004, 0.004, cols[i % len(cols)])
+    return a.build()
+
+
+def build_fairy_lights():
+    """Ping-pong ball fairy lights draped along a 4.2 m shopfront (ไฟปิงปอง). Origin at the middle of the wire."""
+    a = Asset("SM_FairyLights")
+    pts = []
+    for i in range(25):
+        t = i / 24
+        pts.append((-2.1 + t * 4.2, 0, -0.12 * abs(math.sin(t * math.pi * 3))))
+    a.polyline(pts, 0.005, "black", seg=5)
+    cols = ["sign_yellow", "neon_pink", "white", "neon_cyan"]
+    for i in range(1, 24):
+        t = i / 24
+        x = -2.1 + t * 4.2
+        z = -0.12 * abs(math.sin(t * math.pi * 3))
+        a.sphere(0.03, (x, 0, z - 0.04), cols[i % 4], seg=10, rings=6)
+    return a.build()
+
+
+def build_mural():
+    """Hand-painted bubble tea wall mural for the shop's side wall. 1.6 x 1.0 m, faces -Y."""
+    a = Asset("SM_Mural")
+    a.bmm(-0.84, 0.84, 0, 0.03, 0.9, 1.98, "wood_dark", bevel=0.01)                   # frame
+    a.bmm(-0.8, 0.8, -0.005, 0.0, 0.94, 1.94, "sign_yellow")                           # painted wall
+    for i, (c, x) in enumerate([("thai_tea", -0.48), ("taro", 0.0), ("matcha", 0.48)]):
+        a.bmm(x - 0.13, x + 0.13, -0.012, -0.006, 1.06, 1.5, "white")                 # cups
+        a.bmm(x - 0.115, x + 0.115, -0.016, -0.012, 1.08, 1.4, c)
+        a.bmm(x - 0.15, x + 0.15, -0.016, -0.012, 1.5, 1.55, "sign_pink")             # lids
+        a.tube((x + 0.04, -0.018, 1.55), (x + 0.1, -0.018, 1.72), 0.012, "red_plastic")   # straws
+        for k in range(5):
+            a.sphere(0.022, (x - 0.08 + k * 0.04, -0.02, 1.11), "pearl", scale=(1, 0.3, 1), seg=8, rings=5)
+    a.text("ชานมไข่มุก", 0.13, (0, -0.02, 1.76), "sign_pink", extrude=0.004)
+    a.text("BUBBLE TEA  ·  SINCE TODAY", 0.045, (0, -0.02, 0.98), "wood_dark", extrude=0.003)
+    return a.build()
+
+
+def build_front_bench():
+    """Wooden bench for waiting customers. 1.2 m, faces -Y (street)."""
+    a = Asset("SM_FrontBench")
+    a.bmm(-0.6, 0.6, -0.2, 0.2, 0.42, 0.47, "wood", bevel=0.01)                        # seat
+    a.bmm(-0.6, 0.6, 0.16, 0.2, 0.5, 0.85, "wood", bevel=0.01)                         # back
+    for x in (-0.52, 0.52):
+        for y in (-0.15, 0.15):
+            a.bmm(x - 0.03, x + 0.03, y - 0.03, y + 0.03, 0, 0.42, "wood_dark")
+    a.bmm(-0.4, 0.4, 0.155, 0.16, 0.62, 0.74, "sign_pink")
+    a.text("นั่งรอได้นะ", 0.07, (0, 0.153, 0.68), "white", extrude=0.002)
+    return a.build()
+
+
 def build_order_computer():
     """Shop PC on a small desk for ordering supplies. Front (screen) faces -Y. Origin on the floor."""
     a = Asset("SM_OrderComputer")
@@ -1686,7 +1771,7 @@ BUILDERS = [
     build_tunnel_portal, build_retaining_wall,
     lambda: build_cloud("SM_Cloud_A", 3, 34.0), lambda: build_cloud("SM_Cloud_B", 7, 24.0), lambda: build_cloud("SM_Cloud_C", 11, 46.0),
     lambda: build_puddle("SM_Puddle_A", 5), lambda: build_puddle("SM_Puddle_B", 9), build_hand_umbrella,
-    build_tutorial_arrow, build_order_computer,
+    build_tutorial_arrow, build_order_computer, build_lucky_cat, build_bunting, build_mural, build_front_bench, build_fairy_lights,
     build_counter, build_back_counter, build_cup_modular, build_drink_display, build_cup_stack,
     build_cup_sealer, build_tea_urns, build_boba_pot, build_ice_cooler, build_syrups, build_shaker,
     build_pos, build_menu_board, build_fridge, build_standing_fan,
