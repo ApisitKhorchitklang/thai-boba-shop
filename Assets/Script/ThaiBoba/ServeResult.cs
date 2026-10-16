@@ -31,6 +31,7 @@ public class ServeResult
         if (cup.bobaCount != order.bobaCount) r.mistakes.Add(Loc.T("ไข่มุกไม่ตรง", "wrong pearls"));
         if (cup.hasIce != order.wantsIce) r.mistakes.Add(order.wantsIce ? Loc.T("ลืมใส่น้ำแข็ง", "forgot the ice") : Loc.T("ไม่เอาน้ำแข็ง", "didn't want ice"));
         if (cup.sweetness != order.sweetness) r.mistakes.Add(Loc.T("ความหวานไม่ตรง", "wrong sweetness"));
+        if (cup.stalePearls && cup.bobaCount > 0) r.mistakes.Add(Loc.T("ไข่มุกแข็ง", "hard pearls"));
         if (cup.hasFoam != order.wantsFoam) r.mistakes.Add(order.wantsFoam ? Loc.T("ลืมท็อปชีสโฟม", "forgot the cheese foam") : Loc.T("ไม่ได้สั่งชีสโฟม", "didn't order cheese foam"));
 
         r.quality = r.mistakes.Count == 0 ? ServeQuality.Perfect : ServeQuality.Okay;

@@ -442,7 +442,9 @@ public static partial class ThaiBobaSetup
                 s.flavorId = t.name.Substring(4);
             }
 
-        Place("SM_BobaPot", 0.5f, 6.5f, 0.9f, 0, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Boba;
+        GameObject potGo = Place("SM_BobaPot", 0.5f, 6.5f, 0.9f, 0, shop, Col.Box);
+        potGo.AddComponent<IngredientStation>().kind = IngredientStation.Kind.Boba;
+        potGo.AddComponent<BobaPot>().font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/Thai/Kanit-Medium SDF.asset");   // pearls must be cooked
         Place("SM_SyrupBottles", 1.0f, 6.5f, 0.9f, 0, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Sweetness;
         Place("SM_IceCooler", 1.7f, 5.2f, 0, 0, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Ice;
         Place("SM_CupSealer", 0.75f, 1.5f, 1.0f, 180, shop, Col.Box).AddComponent<SealerStation>();

@@ -14,7 +14,13 @@ public class IngredientStation : MonoBehaviour, IInteractable
     {
         switch (kind)
         {
-            case Kind.Boba: return Loc.T("ตักไข่มุก (+1 ช้อน)", "Scoop pearls (+1 scoop)");
+            case Kind.Boba:
+                BobaPot pot = GetComponent<BobaPot>();
+                if (pot != null && !pot.Ready)
+                    return pot.IsCooking ? Loc.T($"กำลังต้มไข่มุก {pot.CookProgress * 100f:0}%", $"Cooking pearls {pot.CookProgress * 100f:0}%")
+                                         : Loc.T($"ต้มไข่มุก (ใช้ไข่มุกดิบ {Mathf.Min(pot.batch, InventoryManager.Instance != null ? InventoryManager.Instance.boba : pot.batch)})", "Cook pearls");
+                if (pot != null && pot.Current == BobaPot.State.Stale) return Loc.T("ไข่มุกแข็งแล้ว · กดเพื่อทิ้ง", "Pearls went hard · press to throw out");
+                return Loc.T("ตักไข่มุก (+1 ช้อน)", "Scoop pearls (+1 scoop)");
             case Kind.Ice: return Loc.T("ใส่น้ำแข็ง", "Add ice");
             case Kind.Foam: return Loc.T("ตู้เย็น: ท็อปชีสโฟม", "Fridge: add cheese foam");
             case Kind.Sweetness:
@@ -29,6 +35,16 @@ public class IngredientStation : MonoBehaviour, IInteractable
 
     public void Interact(RaycastAim player)
     {
+        if (kind == Kind.Boba)
+        {
+            BobaPot pot = GetComponent<BobaPot>();
+            if (pot != null)
+            {
+                if (pot.Current == BobaPot.State.Empty) { pot.StartCooking(); return; }
+                if (pot.IsCooking) { ShopHUD.ToastNow(Loc.T($"ไข่มุกยังไม่สุก ({pot.CookProgress * 100f:0}%) · เตรียมอย่างอื่นรอได้", $"Pearls not ready yet ({pot.CookProgress * 100f:0}%) · prep something else meanwhile")); return; }
+                if (pot.Current == BobaPot.State.Stale && (player.HeldCup == null || !player.HeldCup.CanAddBoba)) { pot.Discard(); return; }
+            }
+        }
         CupController cup = player.HeldCup;
         if (cup == null)
         {
@@ -41,8 +57,15 @@ public class IngredientStation : MonoBehaviour, IInteractable
         {
             case Kind.Boba:
                 if (!cup.CanAddBoba) { ShopHUD.ToastNow(cup.State == CupController.CupState.LidClosed ? Loc.T("ซีลแล้ว ใส่เพิ่มไม่ได้", "Already sealed, can't add more") : Loc.T("ไข่มุกเต็มแล้ว (สูงสุด 3 ช้อน)", "Pearls are full (max 3 scoops)")); return; }
-                if (inv != null && !inv.TryUse("boba", 1)) { ShopHUD.ToastNow(Loc.T("ไข่มุกหมด! สั่งเพิ่มที่คอมพิวเตอร์", "Out of pearls! Order more at the computer")); return; }
+                BobaPot bp = GetComponent<BobaPot>();
+                bool stale = false;
+                if (bp != null)
+                {
+                    if (!bp.TryScoop(out stale)) { ShopHUD.ToastNow(Loc.T("หม้อว่าง · ต้มไข่มุกก่อน", "The pot is empty · cook pearls first")); return; }
+                }
+                else if (inv != null && !inv.TryUse("boba", 1)) { ShopHUD.ToastNow(Loc.T("ไข่มุกหมด! สั่งเพิ่มที่คอมพิวเตอร์", "Out of pearls! Order more at the computer")); return; }
                 cup.AddBoba(1);
+                if (stale) cup.stalePearls = true;
                 GameAudio.Play(Sfx.Boba);
                 ShopHUD.ToastNow(Loc.T($"ตักไข่มุก <size=130%><b>{cup.bobaCount}</b></size> ช้อน  <size=80%>(สูงสุด {cup.maxBoba})</size>", $"Pearls: <size=130%><b>{cup.bobaCount}</b></size> scoop{(cup.bobaCount > 1 ? "s" : "")}  <size=80%>(max {cup.maxBoba})</size>"));
                 break;

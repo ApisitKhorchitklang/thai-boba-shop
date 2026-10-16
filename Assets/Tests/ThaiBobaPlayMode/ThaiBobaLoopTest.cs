@@ -463,7 +463,7 @@ public class ThaiBobaLoopTest
         {
             string st = tutType.GetProperty("Current").GetValue(tut).ToString();
             if (!seen.Contains(st)) seen.Add(st);
-            if (st == "TakeCup") break;
+            if (st == "Cook" || st == "TakeCup") break;          // the bot takes over from the first hands-on step
             yield return null;
         }
         Type bot = Type.GetType("ThaiBobaAutoPlayer, Assembly-CSharp");
@@ -484,7 +484,7 @@ public class ThaiBobaLoopTest
         var queue = (System.Collections.IList)T("CustomerController").GetField("Queue").GetValue(null);
         Debug.Log($"[TEST] tutorial steps: {string.Join(" > ", seen)} | clock {t0:0.00} -> {t1:0.00} | queue {queue.Count}");
         Assert.AreEqual("Done", step, "tutorial never reached the end");
-        foreach (string must in new[] { "TakeCup", "Pour", "Seal", "Serve" })
+        foreach (string must in new[] { "Cook", "TakeCup", "Pour", "Seal", "Serve" })
             Assert.Contains(must, seen, "tutorial skipped step " + must);
         Assert.AreEqual(t0, t1, 0.01f, "clock kept running during the tutorial");
 
@@ -515,6 +515,64 @@ public class ThaiBobaLoopTest
         float f1 = (float)patience.GetValue(front), s1 = (float)patience.GetValue(second);
         Debug.Log($"[TEST] front patience {f0:0.0} -> {f1:0.0}, second in line {s0:0.0} -> {s1:0.0}");
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
+    }
+
+    [UnityTest, Timeout(90000)]
+    public IEnumerator PearlPotCooksThenGoesHard()
+    {
+        yield return LoadScene();
+        Type potT = T("BobaPot");
+        Component pot = (Component)potT.GetProperty("Instance").GetValue(null);
+        Assert.IsNotNull(pot, "no pearl pot");
+        PropertyInfo state = potT.GetProperty("Current");
+        Assert.AreEqual("Empty", state.GetValue(pot).ToString(), "a new day should start with an empty pot");
+
+        Component inv = Find("InventoryManager");
+        int raw0 = (int)inv.GetType().GetField("boba").GetValue(inv);
+        Component station = pot.GetComponent(T("IngredientStation"));
+        station.GetType().GetMethod("Interact").Invoke(station, new object[] { Find("RaycastAim") });     // press E on the pot
+        Assert.AreEqual("Cooking", state.GetValue(pot).ToString(), "pressing the pot did not start cooking");
+        int raw1 = (int)inv.GetType().GetField("boba").GetValue(inv);
+        Assert.Less(raw1, raw0, "cooking did not use raw pearls");
+
+        Time.timeScale = 5f;
+        float t0 = Time.realtimeSinceStartup;
+        while (state.GetValue(pot).ToString() == "Cooking" && Time.realtimeSinceStartup - t0 < 20f) yield return null;
+        Time.timeScale = 1f;
+        Assert.AreEqual("Fresh", state.GetValue(pot).ToString(), "pearls never finished cooking");
+        int portions = (int)potT.GetProperty("Portions").GetValue(pot);
+
+        object[] args = { false };
+        Assert.IsTrue((bool)potT.GetMethod("TryScoop").Invoke(pot, args));
+        Assert.IsFalse((bool)args[0], "fresh pearls reported as hard");
+        potT.GetMethod("ForceState").Invoke(pot, new object[] { Enum.Parse(potT.GetNestedType("State"), "Stale"), 10 });
+        args = new object[] { false };
+        potT.GetMethod("TryScoop").Invoke(pot, args);
+        Assert.IsTrue((bool)args[0], "hard pearls not flagged");
+
+        // a cup with hard pearls is noticed when served
+        Component dispenser = Find("CupDispenser");
+        GameObject cupGo = UnityEngine.Object.Instantiate((GameObject)dispenser.GetType().GetField("cupPrefab").GetValue(dispenser), new Vector3(0, 30, 0), Quaternion.identity);
+        cupGo.GetComponent<Rigidbody>().isKinematic = true;
+        Component cup = cupGo.GetComponent(T("CupController"));
+        Type ct = cup.GetType();
+        ct.GetMethod("Grab").Invoke(cup, null);
+        ct.GetMethod("AddBoba").Invoke(cup, new object[] { 1 });
+        ct.GetField("stalePearls").SetValue(cup, true);
+        ct.GetMethod("Fill").Invoke(cup, new object[] { "ThaiTea" });
+        ct.GetMethod("CloseLid").Invoke(cup, null);
+        object order = Activator.CreateInstance(T("Order"), new object[] { 1, false, "ThaiTea", 100 });
+        object res = T("ServeResult").GetMethod("Evaluate").Invoke(null, new object[] { order, cup });
+        string q = res.GetType().GetField("quality").GetValue(res).ToString();
+
+        // next morning the pot is empty again
+        Component clock = Find("TimeCyc");
+        clock.GetType().GetMethod("AdvanceToNextDay").Invoke(clock, null);
+        yield return null;
+        Debug.Log($"[TEST] pot: raw {raw0} -> {raw1}, cooked {portions} portions, hard-pearl drink = {q}, next day pot = {state.GetValue(pot)}");
+        Assert.AreEqual("Okay", q, "hard pearls were not noticed");
+        Assert.AreEqual("Empty", state.GetValue(pot).ToString(), "pot not emptied overnight");
+        UnityEngine.Object.Destroy(cupGo);
     }
 
     [UnityTest, Timeout(60000)]

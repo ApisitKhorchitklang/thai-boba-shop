@@ -24,8 +24,8 @@ public class TutorialSystem : MonoBehaviour
     public GameObject arrowPrefab;
     public float arrowHeight = 0.12f;
 
-    public enum Step { Look, WaitCustomer, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam }   // Foam: only when the order asks for it
-    public const int TotalSteps = 9;
+    public enum Step { Look, WaitCustomer, Cook, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam }   // Foam: only when the order asks for it
+    public const int TotalSteps = 10;
 
     public bool Running { get; private set; }
     public Step Current { get; private set; }
@@ -185,6 +185,9 @@ public class TutorialSystem : MonoBehaviour
         CupController cup = aim != null ? aim.HeldCup : null;
         if (front == null || front.order == null || (!front.AtCounter && cup == null)) return Step.WaitCustomer;
         Order o = front.order;
+        BobaPot pot = BobaPot.Instance;
+        bool needPearls = o.bobaCount > 0 && (cup == null || cup.bobaCount < o.bobaCount);
+        if (needPearls && pot != null && (pot.Current == BobaPot.State.Empty || pot.Current == BobaPot.State.Stale)) return Step.Cook;
         if (cup == null) return Step.TakeCup;
         if (IsWrong(cup, o)) return Step.WrongCup;
         if (string.IsNullOrEmpty(cup.flavor)) return Step.Pour;
@@ -240,6 +243,11 @@ public class TutorialSystem : MonoBehaviour
                 body = Loc.T("รอที่หลังเคาน์เตอร์ ลูกค้าจะมาสั่งตรงหน้าร้าน · ระหว่างนี้นาฬิกาในเกมหยุดเดิน ไม่ต้องรีบ",
                              "Wait behind the counter, customers order at the front · the clock is paused for now, no rush");
                 break;
+            case Step.Cook:
+                title = Loc.T("ต้มไข่มุกก่อน", "Cook the pearls first");
+                body = Loc.T($"ไข่มุกต้องต้มก่อนถึงจะตักได้ · ไปที่<b>หม้อไข่มุก</b> แล้ว{use} · ระหว่างรอสุก หยิบแก้วและเทชาไว้ก่อนได้ · ไข่มุกสดอยู่ได้ราว 2 ชม. ในเกม",
+                             $"Pearls must be cooked before you can scoop them · go to the <b>pearl pot</b> and {use} · while they boil you can take a cup and pour the tea · they stay fresh for about 2 game hours");
+                break;
             case Step.TakeCup:
                 title = Loc.T("ลูกค้าสั่ง: ", "Order: ") + (o != null ? o.ToThaiString().Replace("\n", " · ") : "");
                 body = Loc.T($"ออเดอร์จะอยู่ที่การ์ดด้านขวาด้วย · เริ่มจาก<b>หยิบแก้ว</b>ที่กองแก้ว แล้ว{use}",
@@ -252,6 +260,11 @@ public class TutorialSystem : MonoBehaviour
                 break;
             case Step.Boba:
                 title = Loc.T($"ตักไข่มุก {o.bobaCount} ช้อน", $"Add {o.bobaCount} scoop{(o.bobaCount > 1 ? "s" : "")} of pearls");
+                if (BobaPot.Instance != null && BobaPot.Instance.IsCooking)
+                {
+                    body = Loc.T($"รอไข่มุกสุกอีกนิด ({BobaPot.Instance.CookProgress * 100f:0}%) แล้วค่อยตัก", $"Wait for the pearls to finish ({BobaPot.Instance.CookProgress * 100f:0}%), then scoop");
+                    break;
+                }
                 body = Loc.T($"{use}ที่<b>หม้อไข่มุก</b> · กด 1 ครั้ง = 1 ช้อน (ดูจำนวนได้จาก popup)",
                              $"At the <b>pearl pot</b>, {use} · each press = 1 scoop (the popup shows the count)");
                 break;
@@ -342,6 +355,7 @@ public class TutorialSystem : MonoBehaviour
             case Step.Boba: return Station(IngredientStation.Kind.Boba, null);
             case Step.Ice: return Station(IngredientStation.Kind.Ice, null);
             case Step.Sweet: return Station(IngredientStation.Kind.Sweetness, null);
+            case Step.Cook: return Station(IngredientStation.Kind.Boba, null);
             case Step.Foam: return Station(IngredientStation.Kind.Foam, null);
             case Step.Seal: return Find<SealerStation>();
             case Step.Serve: return Find<ServeStation>();

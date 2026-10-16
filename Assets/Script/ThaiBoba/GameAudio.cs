@@ -92,7 +92,7 @@ public class GameAudio : MonoBehaviour
         float rain = WeatherSystem.Instance != null ? WeatherSystem.Instance.Rain : 0f;
         if (rainSrc != null) rainSrc.volume = Mathf.MoveTowards(rainSrc.volume, rain * 0.75f * sfx, Time.unscaledDeltaTime * 0.3f);
         if (trafficSrc != null) trafficSrc.volume = 0.22f * sfx;
-        if (boilSrc != null) boilSrc.volume = 0.35f * sfx;
+        if (boilSrc != null) boilSrc.volume = (BobaPot.Instance != null && BobaPot.Instance.IsCooking ? 0.55f : 0.12f) * sfx;   // rolling boil while cooking
 
         // birds by day, crickets at night, chatter while the soi's shops are open; rain drowns them out
         if (clock == null) clock = FindFirstObjectByType<TimeCyc>();

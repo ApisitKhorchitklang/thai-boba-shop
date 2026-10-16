@@ -66,6 +66,13 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
         if (c == null || !c.IsWaitingAtCounter) return;
         Order o = c.order;
 
+        // an empty / hard pot gets cooked before anything else (what the tutorial teaches)
+        BobaPot firstPot = FindFirstObjectByType<BobaPot>();
+        if (o.bobaCount > 0 && (cup == null || cup.bobaCount < o.bobaCount) && firstPot != null &&
+            (firstPot.Current == BobaPot.State.Empty || firstPot.Current == BobaPot.State.Stale) && (cup == null || !cup.CanAddBoba || firstPot.Current == BobaPot.State.Empty))
+        {
+            Use(aim, Station(IngredientStation.Kind.Boba)); return;
+        }
         if (cup == null)
         {
             Use(aim, FindFirstObjectByType<CupDispenser>());
@@ -75,6 +82,14 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
             return;
         }
 
+        // pearls have to be cooked first (the pot starts every day empty)
+        BobaPot pot = FindFirstObjectByType<BobaPot>();
+        if (o.bobaCount > cup.bobaCount && pot != null && !pot.Ready)
+        {
+            if (!pot.IsCooking) { Use(aim, Station(IngredientStation.Kind.Boba)); return; }      // one action per step, like a player
+            if (cup.CanFill) Use(aim, Station(IngredientStation.Kind.Flavor, o.flavor));          // prep while it boils
+            return;
+        }
         // Tea first, then pearls/ice/sweetness: checks that ingredients can be added in any order before sealing
         if (cup.CanFill) { Use(aim, Station(IngredientStation.Kind.Flavor, o.flavor)); return; }
         if (cup.bobaCount < o.bobaCount)

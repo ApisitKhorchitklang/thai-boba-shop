@@ -12,6 +12,7 @@ public class CupController : MonoBehaviour
     public int sweetness = 100;
     public int maxBoba = 3;
     public bool hasFoam = false;
+    public bool stalePearls = false;   // scooped from a pot that had gone hard
 
     // Fired whenever the cup contents change (CupVisual listens to this)
     public event System.Action<CupController> OnChanged;
@@ -123,6 +124,7 @@ public class CupController : MonoBehaviour
         flavor = "";
         sweetness = 100;
         hasFoam = false;
+        stalePearls = false;
         Changed();
     }
 

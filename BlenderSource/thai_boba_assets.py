@@ -69,6 +69,7 @@ PAL = {
     "tutorial_glow":((1.00, 0.80, 0.20), 0.3, 0, 1, 3),
     "cardboard":    ((0.72, 0.53, 0.32), 0.9, 0, 1, 0),
     "cheese_foam":  ((0.99, 0.93, 0.76), 0.55, 0, 1, 0),
+    "boil_water":   ((0.62, 0.42, 0.24), 0.05, 0, 0.75, 0),
     "tutorial_rim": ((1.00, 0.97, 0.88), 0.3, 0, 1, 2),
     "screen":       ((0.20, 0.70, 0.95), 0.2, 0, 1, 2),
     # drinks
@@ -900,6 +901,8 @@ def build_cup_stack():
 def build_cup_sealer():
     """Cup sealing machine — iconic in Thai boba shops."""
     a = Asset("SM_CupSealer")
+    a._g("Sealer_Body")
+    a.name_default = "Sealer_Body"
     a.box((0.32, 0.36, 0.52), (0, 0, 0.26), "white", bevel=0.02)
     a.bmm(-0.11, 0.11, -0.185, -0.1, 0.05, 0.25, "black")                  # cup bay
     a.cyl(0.05, 0.02, (0, -0.12, 0.06), "steel", seg=16)                    # cup holder
@@ -909,8 +912,9 @@ def build_cup_sealer():
         a.cyl(0.018, 0.02, (0.06 + i * 0.05, -0.2, 0.4), c, rot=(90, 0, 0), seg=10)
     a.cyl(0.07, 0.22, (0, 0.06, 0.6), "seal_film", rot=(0, 90, 0), seg=16)  # film roll
     a.cyl(0.02, 0.28, (0, 0.06, 0.6), "steel", rot=(0, 90, 0), seg=8)
-    a.tube((0.17, 0, 0.42), (0.2, -0.2, 0.62), 0.015, "steel")             # pull lever
-    a.sphere(0.035, (0.2, -0.2, 0.62), "red_plastic", seg=10, rings=6)
+    a.tube((0.17, 0, 0.42), (0.2, -0.2, 0.62), 0.015, "steel", g="Sealer_Lever")             # pull lever
+    a.sphere(0.035, (0.2, -0.2, 0.62), "red_plastic", seg=10, rings=6, g="Sealer_Lever")
+    a.origin("Sealer_Lever", (0.17, 0, 0.42))                               # pivot where the lever meets the machine
     return a.build()
 
 
@@ -933,15 +937,22 @@ def build_tea_urns():
 
 
 def build_boba_pot():
+    """Pearl pot. Children: Pot_Body, Pot_Pearls (cooked pearls), Pot_Water (boiling water, shown while cooking)."""
     a = Asset("SM_BobaPot")
+    a._g("Pot_Body")
+    a.name_default = "Pot_Body"
     a.box((0.4, 0.4, 0.1), (0, 0, 0.05), "black", bevel=0.01)              # warmer
     a.cyl(0.03, 0.01, (0.12, -0.2, 0.05), "red_plastic", rot=(90, 0, 0), seg=8)
     a.cyl(0.16, 0.2, (0, 0, 0.2), "steel", seg=24)
-    a.cyl(0.152, 0.01, (0, 0, 0.27), "pearl", seg=24)
+    a.cyl(0.152, 0.01, (0, 0, 0.27), "pearl", seg=24, g="Pot_Pearls")
     rnd = random.Random(11)
     for i in range(40):
         ang, rad = rnd.uniform(0, 6.28), rnd.uniform(0, 0.14)
-        a.sphere(0.011, (math.cos(ang) * rad, math.sin(ang) * rad, 0.278), "pearl", seg=6, rings=4)
+        a.sphere(0.011, (math.cos(ang) * rad, math.sin(ang) * rad, 0.278), "pearl", seg=6, rings=4, g="Pot_Pearls")
+    a.cyl(0.153, 0.012, (0, 0, 0.262), "boil_water", seg=24, g="Pot_Water")
+    for i in range(14):                                                     # bubbles
+        ang, rad = rnd.uniform(0, 6.28), rnd.uniform(0, 0.13)
+        a.sphere(0.012, (math.cos(ang) * rad, math.sin(ang) * rad, 0.27), "white", scale=(1, 1, 0.5), seg=8, rings=4, g="Pot_Water")
     for s in (-1, 1):
         a.bmm(s * 0.16 - 0.03, s * 0.16 + 0.03, -0.02, 0.02, 0.26, 0.28, "black")
     a.tube((0.05, 0.02, 0.27), (0.2, 0.1, 0.45), 0.01, "steel")            # ladle

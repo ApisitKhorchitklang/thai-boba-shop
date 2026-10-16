@@ -35,7 +35,7 @@ public class UpgradeShop : MonoBehaviour
         new Upgrade("speaker",     "ลำโพงเปิดเพลงลูกทุ่ง",      "บรรยากาศดี ทิป +10%", 250) { nameEN = "Luk thung speaker", descriptionEN = "Good vibes: tips +10%" },
         new Upgrade("fan",         "พัดลมตั้งพื้น",              "ลูกค้าใจเย็นขึ้น ความอดทน +20%", 300) { nameEN = "Standing fan", descriptionEN = "Cooler customers: patience +20%" },
         new Upgrade("seating",     "โต๊ะสแตนเลส + เก้าอี้แดง",   "นั่งรอสบาย ความอดทน +10% ทิป +10%", 450) { nameEN = "Steel table + red stools", descriptionEN = "Comfy waiting: patience +10%, tips +10%" },
-        new Upgrade("bigger_pot",  "หม้อต้มไข่มุกใบใหญ่",         "ได้ไข่มุกฟรี +60 ทุกเช้า", 500) { nameEN = "Big pearl pot", descriptionEN = "+60 free pearls every morning" },
+        new Upgrade("bigger_pot",  "หม้อต้มไข่มุกใบใหญ่",         "ต้มได้ครั้งละ 50 ที่ + ไข่มุกดิบฟรี 60 ทุกเช้า", 500) { nameEN = "Big pearl pot", descriptionEN = "Cooks 50 portions per batch + 60 free raw pearls every morning" },
         new Upgrade("fast_sealer", "เครื่องซีลรุ่นเทอร์โบ",        "ซีลแก้วเร็วขึ้น 3 เท่า", 600) { nameEN = "Turbo sealer", descriptionEN = "Seals cups 3x faster" },
         new Upgrade("neon",        "ป้ายไฟนีออน",                "ร้านเด่น ลูกค้าเพิ่ม 25%", 800) { nameEN = "Neon sign", descriptionEN = "Stand out: +25% customers" },
         new Upgrade("delivery",    "เปิดรับเดลิเวอรี่",            "รายได้เพิ่ม 15% ของยอดขายทุกวัน", 1500) { nameEN = "Delivery service", descriptionEN = "Extra income: 15% of daily sales" },
