@@ -80,6 +80,7 @@ public static class SaveSystem
 
     public static void SaveGame()
     {
+        if (ChallengeMode.Active) return;                   // the daily challenge never touches the saves
         if (InventoryManager.Instance == null)
         {
             Debug.LogWarning("No InventoryManager to save.");
@@ -198,6 +199,16 @@ public static class SaveSystem
             reputation = 3f, xp = 0, level = 1, bestCombo = 0, upgrades = new string[0]
         };
         Apply(fresh);
+    }
+
+    // A fresh shop in memory only (daily challenge): nothing is deleted or written
+    public static void ApplyFresh(int money, int level, int day)
+    {
+        Apply(new SaveData
+        {
+            cups = 50, boba = 200, ice = 500, baseSyrup = 300, foam = 40, money = money, day = day,
+            reputation = 3f, xp = 0, level = level, bestCombo = 0, upgrades = new string[0]
+        });
     }
 
     public static void DeleteAllSaves()

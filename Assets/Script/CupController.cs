@@ -13,6 +13,9 @@ public class CupController : MonoBehaviour
     public int maxBoba = 3;
     public bool hasFoam = false;
     public bool stalePearls = false;   // scooped from a pot that had gone hard
+    public bool blended = false;       // frappe (blender, needs tea + ice)
+    public bool marshmallow = false;
+    public bool watered = false;       // hit by a Songkran water splash while open
 
     // Fired whenever the cup contents change (CupVisual listens to this)
     public event System.Action<CupController> OnChanged;
@@ -24,6 +27,31 @@ public class CupController : MonoBehaviour
     public bool CanFill => Open && string.IsNullOrEmpty(flavor);
     // cheese foam goes on top of the tea, before sealing
     public bool CanAddFoam => Open && !hasFoam && !string.IsNullOrEmpty(flavor);
+    public bool CanBlend => Open && !blended && !string.IsNullOrEmpty(flavor) && hasIce;
+    public bool CanAddMarshmallow => Open && !marshmallow && !string.IsNullOrEmpty(flavor);
+
+    public bool Blend()
+    {
+        if (!CanBlend) return false;
+        blended = true;
+        Changed();
+        return true;
+    }
+
+    public bool AddMarshmallow()
+    {
+        if (!CanAddMarshmallow) return false;
+        marshmallow = true;
+        Changed();
+        return true;
+    }
+
+    public void Splash()
+    {
+        if (State == CupState.LidClosed || State == CupState.Empty || watered) return;
+        watered = true;
+        Changed();
+    }
     public bool CanSeal => State == CupState.Filled;
     public bool CanChangeSweetness => State != CupState.Empty && State != CupState.LidClosed;
 
@@ -125,6 +153,7 @@ public class CupController : MonoBehaviour
         sweetness = 100;
         hasFoam = false;
         stalePearls = false;
+        blended = marshmallow = watered = false;
         Changed();
     }
 
@@ -136,6 +165,6 @@ public class CupController : MonoBehaviour
 
     public bool MatchesOrder(Order order)
     {
-        return order != null && MatchesOrder(order.bobaCount, order.wantsIce, order.flavor) && sweetness == order.sweetness && hasFoam == order.wantsFoam;
+        return order != null && MatchesOrder(order.bobaCount, order.wantsIce, order.flavor) && sweetness == order.sweetness && hasFoam == order.wantsFoam && blended == order.blended && marshmallow == order.marshmallow && !watered;
     }
 }

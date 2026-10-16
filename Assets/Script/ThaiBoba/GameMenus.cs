@@ -137,8 +137,28 @@ public class GameMenus : MonoBehaviour
         StartNewGame();
     }
 
+    // Main menu: today's challenge (same customers for everyone today, never saved)
+    public void ChallengeButton()
+    {
+        GameAudio.Play(Sfx.Click);
+        StartChallenge(ChallengeMode.TodaySeed);
+    }
+
+    public void StartChallenge(int seed)
+    {
+        ChallengeMode.Begin(seed);
+        SaveSystem.ApplyFresh(ChallengeMode.StartMoney, ChallengeMode.StartLevel, 1 + seed % 30);
+        BeginPlay();
+        TimeCyc clock = FindFirstObjectByType<TimeCyc>();
+        if (clock != null) clock.SetTime(ChallengeMode.StartHour, 0);
+        int best = ChallengeMode.Best(seed);
+        ShopHUD.ToastNow(Loc.T($"ท้าทายรายวัน {ChallengeMode.DateLabel}! ทำคะแนนให้มากที่สุดก่อน 15:00" + (best > 0 ? $" (สถิติวันนี้ {best})" : ""),
+                               $"Daily challenge {ChallengeMode.DateLabel}! Score as much as you can before 15:00" + (best > 0 ? $" (today's best {best})" : "")), 4f);
+    }
+
     public void StartNewGame()
     {
+        ChallengeMode.End();
         SaveSystem.StartNewGame(startingMoney);
         BeginPlay();
     }
@@ -193,6 +213,7 @@ public class GameMenus : MonoBehaviour
 
     public void MainMenuButton()
     {
+        ChallengeMode.End();
         GameAudio.Play(Sfx.Click);
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex >= 0

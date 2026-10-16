@@ -24,7 +24,7 @@ public class TutorialSystem : MonoBehaviour
     public GameObject arrowPrefab;
     public float arrowHeight = 0.12f;
 
-    public enum Step { Look, WaitCustomer, Cook, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam }   // Foam: only when the order asks for it
+    public enum Step { Look, WaitCustomer, Cook, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam, Blend, Marshmallow }   // Foam/Blend/Marshmallow: only when the order asks for it
     public const int TotalSteps = 10;
 
     public bool Running { get; private set; }
@@ -140,7 +140,7 @@ public class TutorialSystem : MonoBehaviour
     {
         if (!Running)
         {
-            bool firstDay = clock != null && clock.Days == 1 && !Completed;
+            bool firstDay = clock != null && clock.Days == 1 && !Completed && !ChallengeMode.Active;
             if (GameMenus.GameRunning && (firstDay || replayRequested))
             {
                 replayRequested = false;
@@ -195,6 +195,8 @@ public class TutorialSystem : MonoBehaviour
         if (o.wantsIce && !cup.hasIce) return Step.Ice;
         if (cup.sweetness != o.sweetness) return Step.Sweet;
         if (o.wantsFoam && !cup.hasFoam) return Step.Foam;
+        if (o.blended && !cup.blended) return Step.Blend;
+        if (o.marshmallow && !cup.marshmallow) return Step.Marshmallow;
         if (cup.State != CupController.CupState.LidClosed) return Step.Seal;
         return Step.Serve;
     }
@@ -205,6 +207,9 @@ public class TutorialSystem : MonoBehaviour
         if (cup.bobaCount > o.bobaCount) return true;
         if (cup.hasIce && !o.wantsIce) return true;
         if (cup.hasFoam && !o.wantsFoam) return true;
+        if (cup.blended && !o.blended) return true;
+        if (cup.marshmallow && !o.marshmallow) return true;
+        if (cup.watered) return true;
         if (cup.State == CupController.CupState.LidClosed && !cup.MatchesOrder(o)) return true;
         return false;
     }
@@ -283,6 +288,16 @@ public class TutorialSystem : MonoBehaviour
                 body = Loc.T($"ออเดอร์นี้ขอท็อปชีสโฟม · ไปที่<b>ตู้เย็น</b> แล้ว{use} (ต้องเทชาก่อน)",
                              $"This order wants cheese foam · go to the <b>fridge</b> and {use} (after pouring the tea)");
                 break;
+            case Step.Blend:
+                title = Loc.T("ปั่นเป็นเฟรปเป้", "Blend it into a frappe");
+                body = Loc.T($"เมนูหน้าร้อน · ไปที่<b>เครื่องปั่น</b>บนรถเข็นเมนูตามฤดู แล้ว{use} (ต้องมีชา + น้ำแข็ง)",
+                             $"Hot-season menu · go to the <b>blender</b> on the seasonal cart and {use} (needs tea + ice)");
+                break;
+            case Step.Marshmallow:
+                title = Loc.T("ใส่มาร์ชเมลโลว์", "Add marshmallows");
+                body = Loc.T($"เมนูหน้าหนาว · ไปที่<b>โหลมาร์ชเมลโลว์</b>บนรถเข็นเมนูตามฤดู แล้ว{use}",
+                             $"Cool-season menu · go to the <b>marshmallow jar</b> on the seasonal cart and {use}");
+                break;
             case Step.Seal:
                 title = Loc.T("ซีลฝาแก้ว", "Seal the cup");
                 body = Loc.T($"เดินไปที่<b>เครื่องซีล</b>บนเคาน์เตอร์ แล้ว{use} · ซีลแล้วจะใส่อะไรเพิ่มไม่ได้",
@@ -307,7 +322,7 @@ public class TutorialSystem : MonoBehaviour
         SetButtonLabel(skipButton, pc ? Loc.T("ข้าม", "Skip") + " <size=80%>[Tab]</size>" : Loc.T("ข้าม", "Skip"));
         SetButtonLabel(finishButton, pc ? Loc.T("เริ่มขายเลย!", "Let's sell!") + " <size=80%>[Enter]</size>" : Loc.T("เริ่มขายเลย!", "Let's sell!"));
         if (stepText != null)
-            stepText.text = Current == Step.Done ? Loc.T("เสร็จ!", "Done!") : Current == Step.WrongCup ? "!" : Current == Step.Foam ? "+" : $"{(int)Current + 1}/{TotalSteps}";
+            stepText.text = Current == Step.Done ? Loc.T("เสร็จ!", "Done!") : Current == Step.WrongCup ? "!" : Current == Step.Foam || Current == Step.Blend || Current == Step.Marshmallow ? "+" : $"{(int)Current + 1}/{TotalSteps}";
         if (titleText != null) titleText.text = title;
         if (bodyText != null) bodyText.text = body;
     }
@@ -357,6 +372,8 @@ public class TutorialSystem : MonoBehaviour
             case Step.Sweet: return Station(IngredientStation.Kind.Sweetness, null);
             case Step.Cook: return Station(IngredientStation.Kind.Boba, null);
             case Step.Foam: return Station(IngredientStation.Kind.Foam, null);
+            case Step.Blend: return Station(IngredientStation.Kind.Blend, null);
+            case Step.Marshmallow: return Station(IngredientStation.Kind.Marshmallow, null);
             case Step.Seal: return Find<SealerStation>();
             case Step.Serve: return Find<ServeStation>();
             case Step.WrongCup: return Find<TrashStation>();

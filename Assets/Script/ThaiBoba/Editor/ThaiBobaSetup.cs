@@ -462,6 +462,12 @@ public static partial class ThaiBobaSetup
         Place("SM_DrinkDisplay", -0.1f, 1.3f, 1.0f, 0, shop, Col.None);
         Place("SM_Shaker", 0.15f, 6.4f, 0.9f, 0, shop, Col.None);
         Place("SM_DrinkFridge", -1.85f, 4.6f, 0, 90, shop, Col.Box).AddComponent<IngredientStation>().kind = IngredientStation.Kind.Foam;   // cheese foam topping
+        GameObject seasonCart = Place("SM_SeasonCart", -1.85f, 3.75f, 0, 90, shop, Col.Box);  // seasonal menu: blender + marshmallows
+        foreach (Transform t in seasonCart.GetComponentsInChildren<Transform>())
+        {
+            if (t.name == "Cart_Blender") t.gameObject.AddComponent<IngredientStation>().kind = IngredientStation.Kind.Blend;
+            else if (t.name == "Cart_Marshmallow") t.gameObject.AddComponent<IngredientStation>().kind = IngredientStation.Kind.Marshmallow;
+        }
         BuildDecor(r, shop, env);                                          // decorations / helper / expansion (hidden until bought)
         // the shop computer for ordering supplies: left wall beside the counter, screen facing into the shop
         Place("SM_OrderComputer", -1.8f, 2.75f, 0, 90, shop, Col.Box).AddComponent<SupplyComputer>();
@@ -517,6 +523,7 @@ public static partial class ThaiBobaSetup
         if (sys.GetComponent<DailyGoals>() == null) sys.AddComponent<DailyGoals>();
         if (sys.GetComponent<WeatherSystem>() == null) sys.AddComponent<WeatherSystem>();
         if (sys.GetComponent<RegularsSystem>() == null) sys.AddComponent<RegularsSystem>();
+        if (sys.GetComponent<ChallengeMode>() == null) sys.AddComponent<ChallengeMode>();
         DecorShop decorShop = sys.GetComponent<DecorShop>();
         if (decorShop == null) decorShop = sys.AddComponent<DecorShop>();
         decorShop.items = DecorShop.Defaults();

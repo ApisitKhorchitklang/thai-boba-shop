@@ -91,6 +91,7 @@ public class RegularsSystem : MonoBehaviour
     // Spawner asks this when a customer is about to come: a regular whose hour has come takes the slot
     public Regular TakeDue(int hour)
     {
+        if (ChallengeMode.Active) return null;                    // the challenge is the same for everyone
         foreach (Regular r in regulars)
             if (!r.visitedToday && r.planHour >= 0 && hour >= r.planHour)
             {

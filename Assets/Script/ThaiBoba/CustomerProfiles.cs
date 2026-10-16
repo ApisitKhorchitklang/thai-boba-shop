@@ -118,7 +118,7 @@ public static class CustomerProfiles
         }
 
         float total = student + office + tourist + auntie + rider;
-        float r = Random.value * total;
+        float r = ChallengeMode.Value01() * total;
         if ((r -= student) < 0) return CustomerType.Student;
         if ((r -= office) < 0) return CustomerType.OfficeWorker;
         if ((r -= tourist) < 0) return CustomerType.Tourist;
@@ -130,13 +130,13 @@ public static class CustomerProfiles
     {
         List<DrinkMenu.Drink> menu = DrinkMenu.Unlocked(Mathf.Max(1, shopLevel));
         string flavor = null;
-        if (Random.value < 0.6f)
+        if (ChallengeMode.Value01() < 0.6f)
         {
-            string fav = p.favorites[Random.Range(0, p.favorites.Length)];
+            string fav = p.favorites[ChallengeMode.Range(0, p.favorites.Length)];
             if (menu.Exists(d => d.id == fav)) flavor = fav;
         }
         if (flavor == null)
-            flavor = menu[Random.Range(0, menu.Count)].id;
+            flavor = menu[ChallengeMode.Range(0, menu.Count)].id;
 
         WeatherSystem w = WeatherSystem.Instance;
         float iceChance = p.iceChance;
@@ -145,24 +145,32 @@ public static class CustomerProfiles
             if (w.IsRaining || w.CurrentSeason == WeatherSystem.Season.Cool)
             {
                 iceChance *= 0.35f;                                   // rainy / cool days: warm drinks
-                if (Random.value < 0.4f)
+                if (ChallengeMode.Value01() < 0.4f)
                 {
                     string[] warm = { "Cocoa", "MilkTea", "ThaiTea" };
-                    string pick = warm[Random.Range(0, warm.Length)];
+                    string pick = warm[ChallengeMode.Range(0, warm.Length)];
                     if (menu.Exists(d => d.id == pick)) flavor = pick;
                 }
             }
             else if (w.CurrentSeason == WeatherSystem.Season.Hot) iceChance = Mathf.Max(iceChance, 0.95f);
         }
-        int boba = Random.value < p.bobaChance ? Random.Range(1, 4) : 0;
-        bool ice = forceIce || Random.value < iceChance;
-        int sweet = p.sweetness[Random.Range(0, p.sweetness.Length)];
+        int boba = ChallengeMode.Value01() < p.bobaChance ? ChallengeMode.Range(1, 4) : 0;
+        bool ice = forceIce || ChallengeMode.Value01() < iceChance;
+        int sweet = p.sweetness[ChallengeMode.Range(0, p.sweetness.Length)];
         // cheese foam topping: popular with reviewers and tourists, rarely with aunties; not on the soda
         float foamChance = p.type == CustomerType.Influencer ? 0.6f : p.type == CustomerType.Tourist ? 0.4f :
                            p.type == CustomerType.Student ? 0.3f : p.type == CustomerType.OfficeWorker ? 0.25f :
                            p.type == CustomerType.Rider ? 0.15f : 0.08f;
-        bool foam = flavor != "RedLime" && Random.value < foamChance;
-        return new Order(boba, ice, flavor, sweet) { wantsFoam = foam };
+        bool foam = flavor != "RedLime" && ChallengeMode.Value01() < foamChance;
+        // Loy Krathong night: Thai tea with cheese foam is the drink of the evening
+        DailyEventSystem ev = DailyEventSystem.Instance;
+        if (ev != null && ev.Current.type == DailyEventSystem.EventType.LoyKrathong && ChallengeMode.Value01() < 0.4f && menu.Exists(d => d.id == "ThaiTea"))
+        { flavor = "ThaiTea"; foam = true; }
+        // seasonal menu: frappes in the hot season, marshmallows on hot drinks in the cool season
+        WeatherSystem.Season season = w != null ? w.CurrentSeason : WeatherSystem.Season.Hot;
+        bool blended = season == WeatherSystem.Season.Hot && ice && System.Array.IndexOf(new[] { "ThaiTea", "Matcha", "Cocoa", "Taro", "MilkTea" }, flavor) >= 0 && ChallengeMode.Value01() < 0.3f;
+        bool marsh = season == WeatherSystem.Season.Cool && !ice && System.Array.IndexOf(new[] { "Cocoa", "MilkTea", "ThaiTea" }, flavor) >= 0 && ChallengeMode.Value01() < 0.4f;
+        return new Order(boba, ice, flavor, sweet) { wantsFoam = foam, blended = blended, marshmallow = marsh };
     }
 
     public static string Line(string[] lines, Order order)

@@ -15,6 +15,12 @@ A cozy first-person bubble tea shop simulator set in a Bangkok soi — by **Hoy 
 - Sloshing liquid shader, visible pearls per scoop, 3D vehicle and ambience sounds
 - First-day tutorial, daily auto-saves, PC (mouse + keyboard) and touch controls
 - Full **Thai / English** localisation
+- **Cook the pearls** before the rush: fresh for ~2.5 game hours, then they go hard
+- **Regular customers** with names, usual orders and friendship (0-5) — earn a **secret recipe**
+- **Decorate & expand**: plants, bunting, lucky cat, mural… hire a helper, take over the shophouse next door
+- Drink-making animations, customer **emotes**, reviewers snapping photos, end-of-day insights
+- **Thai festivals** (Songkran water fights, Loy Krathong sky lanterns), **seasonal menu** (frappes / marshmallows)
+- **Daily challenge**: the same customers for everyone today, score and share
 
 ## Project
 | | |

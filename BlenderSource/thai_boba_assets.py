@@ -70,6 +70,9 @@ PAL = {
     "cardboard":    ((0.72, 0.53, 0.32), 0.9, 0, 1, 0),
     "cheese_foam":  ((0.99, 0.93, 0.76), 0.55, 0, 1, 0),
     "boil_water":   ((0.62, 0.42, 0.24), 0.05, 0, 0.75, 0),
+    "frappe":       ((0.97, 0.96, 0.95), 0.6, 0, 1, 0),
+    "marsh_pink":   ((1.00, 0.78, 0.86), 0.7, 0, 1, 0),
+    "lantern":      ((1.00, 0.62, 0.22), 0.6, 0, 1, 4),
     "tutorial_rim": ((1.00, 0.97, 0.88), 0.3, 0, 1, 2),
     "screen":       ((0.20, 0.70, 0.95), 0.2, 0, 1, 2),
     # drinks
@@ -836,6 +839,44 @@ def build_front_bench():
     return a.build()
 
 
+def build_season_cart():
+    """Seasonal menu cart: a blender for frappes (hot season) and a jar of marshmallows (cool season).
+    Children Cart_Body, Cart_Blender, Cart_Marshmallow (the two stations). Faces -Y, origin on the floor."""
+    a = Asset("SM_SeasonCart")
+    a._g("Cart_Body")
+    a.name_default = "Cart_Body"
+    a.bmm(-0.38, 0.38, -0.25, 0.25, 0.78, 0.82, "steel", bevel=0.005)
+    a.bmm(-0.36, 0.36, -0.23, 0.23, 0.25, 0.27, "steel")
+    for x in (-0.34, 0.34):
+        for y in (-0.21, 0.21):
+            a.cyl(0.015, 0.8, (x, y, 0.4), "steel_dark", seg=8)
+    a.bmm(-0.36, 0.36, 0.21, 0.24, 0.82, 1.3, "sign_yellow")                          # back board
+    a.text("เมนูตามฤดู", 0.07, (0, 0.205, 1.2), "sign_pink", extrude=0.002)
+    a.text("ปั่น  ·  มาร์ชเมลโลว์", 0.04, (0, 0.205, 1.1), "wood_dark", extrude=0.002)
+    g = "Cart_Blender"
+    a.box((0.16, 0.16, 0.12), (-0.17, -0.02, 0.88), "black", bevel=0.01, g=g)         # motor base
+    a.cyl(0.018, 0.01, (-0.17, -0.105, 0.88), "neon_cyan", rot=(90, 0, 0), seg=10, g=g)
+    a.cyl(0.06, 0.24, (-0.17, -0.02, 1.06), "glass", r2=0.075, seg=16, g=g)           # jug
+    a.cyl(0.05, 0.12, (-0.17, -0.02, 1.0), "thai_tea", r2=0.06, seg=16, g=g)
+    a.cyl(0.078, 0.025, (-0.17, -0.02, 1.19), "black", seg=16, g=g)
+    g = "Cart_Marshmallow"
+    a.cyl(0.08, 0.2, (0.17, -0.02, 0.92), "glass", seg=18, g=g)                       # jar
+    rnd = random.Random(4)
+    for i in range(22):
+        a.box((0.022, 0.022, 0.02), (0.17 + rnd.uniform(-0.05, 0.05), -0.02 + rnd.uniform(-0.05, 0.05), 0.84 + rnd.uniform(0, 0.13)),
+              "white" if i % 2 else "marsh_pink", rot=(rnd.uniform(0, 40), 0, rnd.uniform(0, 90)), bevel=0.004, g=g)
+    a.cyl(0.085, 0.03, (0.17, -0.02, 1.035), "sign_pink", seg=18, g=g)
+    return a.build()
+
+
+def build_sky_lantern():
+    """Khom loy paper sky lantern for Loy Krathong night (used as a particle mesh). ~0.5 m tall."""
+    a = Asset("SM_SkyLantern")
+    a.cyl(0.16, 0.42, (0, 0, 0.21), "lantern", r2=0.21, seg=12)            # one material only: particle meshes need a single sub-mesh
+    a.cyl(0.1, 0.012, (0, 0, 0.0), "lantern", seg=12)
+    return a.build()
+
+
 def build_order_computer():
     """Shop PC on a small desk for ordering supplies. Front (screen) faces -Y. Origin on the floor."""
     a = Asset("SM_OrderComputer")
@@ -956,6 +997,14 @@ def build_cup_modular():
               "ice", rot=(rnd.uniform(0, 90), rnd.uniform(0, 90), 0), g="Cup_Ice")
     a.cyl(0.0412, 0.026, (0, 0, 0.141), "cheese_foam", r2=0.0438, seg=20, g="Cup_Foam")      # cheese foam topping
     a.sphere(0.03, (0, 0, 0.152), "cheese_foam", scale=(1.35, 1.35, 0.32), seg=16, rings=6, g="Cup_Foam")
+    a.sphere(0.04, (0, 0, 0.142), "frappe", scale=(1.05, 1.05, 0.55), seg=16, rings=8, g="Cup_Frappe")      # blended ice dome
+    for i in range(10):
+        ang = i * 2.399
+        a.sphere(0.006, (math.cos(ang) * 0.025, math.sin(ang) * 0.025, 0.152), "pearl", seg=6, rings=4, g="Cup_Frappe")
+    for i in range(7):                                                               # mini marshmallows floating
+        ang = i / 7 * 6.283
+        a.box((0.013, 0.013, 0.012), (math.cos(ang) * 0.022, math.sin(ang) * 0.022, 0.138), "white" if i % 2 else "marsh_pink",
+              rot=(0, 0, i * 25), bevel=0.003, g="Cup_Marshmallow")
     a.cyl(0.046, 0.003, (0, 0, 0.1615), "seal_film", seg=20, g="Cup_SealFilm")
     a.tube((0.008, 0.004, 0.02), (0.022, 0.012, 0.25), 0.0055, "straw", seg=8, g="Cup_Straw")
     return a.build()
@@ -1772,6 +1821,7 @@ BUILDERS = [
     lambda: build_cloud("SM_Cloud_A", 3, 34.0), lambda: build_cloud("SM_Cloud_B", 7, 24.0), lambda: build_cloud("SM_Cloud_C", 11, 46.0),
     lambda: build_puddle("SM_Puddle_A", 5), lambda: build_puddle("SM_Puddle_B", 9), build_hand_umbrella,
     build_tutorial_arrow, build_order_computer, build_lucky_cat, build_bunting, build_mural, build_front_bench, build_fairy_lights,
+    build_season_cart, build_sky_lantern,
     build_counter, build_back_counter, build_cup_modular, build_drink_display, build_cup_stack,
     build_cup_sealer, build_tea_urns, build_boba_pot, build_ice_cooler, build_syrups, build_shaker,
     build_pos, build_menu_board, build_fridge, build_standing_fan,

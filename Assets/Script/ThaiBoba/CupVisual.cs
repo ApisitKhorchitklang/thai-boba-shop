@@ -10,7 +10,7 @@ using UnityEngine;
 public class CupVisual : MonoBehaviour
 {
     private CupController cup;
-    private GameObject ice, seal, straw, foam;
+    private GameObject ice, seal, straw, foam, frappe, marsh;
     private readonly GameObject[] pearls = new GameObject[3];     // Cup_Pearls, Cup_Pearls2, Cup_Pearls3: one per scoop
     private readonly Dictionary<string, GameObject> liquids = new Dictionary<string, GameObject>();
     private readonly Dictionary<Transform, Vector3> restPos = new Dictionary<Transform, Vector3>();
@@ -20,7 +20,7 @@ public class CupVisual : MonoBehaviour
     bool primed;
     string lastFlavor = "";
     int lastBoba;
-    bool lastIce, lastFoam, lastSealed;
+    bool lastIce, lastFoam, lastSealed, lastBlended, lastMarsh;
 
     LiquidSlosh slosh;
     GameObject stream;
@@ -41,6 +41,8 @@ public class CupVisual : MonoBehaviour
             else if (n == "Cup_Pearls3") pearls[2] = t.gameObject;
             else if (n == "Cup_Ice") ice = t.gameObject;
             else if (n == "Cup_Foam") foam = t.gameObject;
+            else if (n == "Cup_Frappe") frappe = t.gameObject;
+            else if (n == "Cup_Marshmallow") marsh = t.gameObject;
             else if (n == "Cup_SealFilm") seal = t.gameObject;
             else if (n == "Cup_Straw") straw = t.gameObject;
             else continue;
@@ -63,6 +65,8 @@ public class CupVisual : MonoBehaviour
             if (pearls[i] != null) pearls[i].SetActive(c.bobaCount > i);
         if (ice != null) ice.SetActive(c.hasIce);
         if (foam != null) foam.SetActive(c.hasFoam);
+        if (frappe != null) frappe.SetActive(c.blended);
+        if (marsh != null) marsh.SetActive(c.marshmallow);
 
         bool filled = c.State == CupController.CupState.Filled || c.State == CupController.CupState.LidClosed;
         foreach (KeyValuePair<string, GameObject> kv in liquids)
@@ -79,6 +83,8 @@ public class CupVisual : MonoBehaviour
                 StartCoroutine(Drop(pearls[c.bobaCount - 1].transform, 0.09f, 0.32f));
             if (c.hasIce && !lastIce && ice != null) StartCoroutine(Drop(ice.transform, 0.12f, 0.35f));
             if (c.hasFoam && !lastFoam && foam != null) StartCoroutine(Puff(foam.transform));
+            if (c.blended && !lastBlended && frappe != null) StartCoroutine(Puff(frappe.transform));
+            if (c.marshmallow && !lastMarsh && marsh != null) StartCoroutine(Drop(marsh.transform, 0.1f, 0.3f));
             if (sealedCup && !lastSealed)
             {
                 if (seal != null) StartCoroutine(Press(seal.transform));
@@ -89,6 +95,8 @@ public class CupVisual : MonoBehaviour
         lastBoba = c.bobaCount;
         lastIce = c.hasIce;
         lastFoam = c.hasFoam;
+        lastBlended = c.blended;
+        lastMarsh = c.marshmallow;
         lastSealed = sealedCup;
     }
 

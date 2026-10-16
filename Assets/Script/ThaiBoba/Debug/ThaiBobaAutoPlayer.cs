@@ -104,6 +104,8 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
         }
         if (cup.sweetness != o.sweetness && cup.CanChangeSweetness) { Use(aim, Station(IngredientStation.Kind.Sweetness)); return; }
         if (o.wantsFoam && !cup.hasFoam) { Use(aim, Station(IngredientStation.Kind.Foam)); return; }
+        if (o.blended && !cup.blended) { Use(aim, Station(IngredientStation.Kind.Blend)); return; }
+        if (o.marshmallow && !cup.marshmallow) { Use(aim, Station(IngredientStation.Kind.Marshmallow)); return; }
         if (cup.CanSeal) { Use(aim, FindFirstObjectByType<SealerStation>()); return; }
         if (cup.State != CupController.CupState.LidClosed) return; // sealer still working
 
@@ -136,9 +138,13 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
         foreach (Behaviour b in new Behaviour[] { player.GetComponent<MovementWithJoy>(), aim.GetComponent<CameraMobile>() })
             if (b != null) b.enabled = false;   // the bot drives the camera itself
 
-        float standZ = target.z < -4f ? target.z + 1.1f : target.z - 1.0f;   // back counter / front counter
+        // side-wall stations (fridge, seasonal cart, ice cooler, computer) are approached from the middle of the shop,
+        // front/back counters from in front of them
+        Vector3 stand;
+        if (Mathf.Abs(target.x) > 1.4f) stand = new Vector3(target.x - Mathf.Sign(target.x) * 1.0f, player.position.y, target.z);
+        else stand = new Vector3(target.x, player.position.y, target.z < -4f ? target.z + 1.1f : target.z - 1.0f);
         if (cc != null) cc.enabled = false;
-        player.position = new Vector3(target.x, player.position.y, standZ);
+        player.position = stand;
         if (cc != null) cc.enabled = true;
         Transform cam = aim.CameraMain;
         cam.rotation = Quaternion.LookRotation(target - cam.position);

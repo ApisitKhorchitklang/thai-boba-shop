@@ -6,7 +6,7 @@ public class DailyEventSystem : MonoBehaviour
 {
     public static DailyEventSystem Instance { get; private set; }
 
-    public enum EventType { Normal, HeatWave, HeavyRain, Payday, Songkran, SchoolHoliday, InfluencerVisit, NightMarket }
+    public enum EventType { Normal, HeatWave, HeavyRain, Payday, Songkran, SchoolHoliday, InfluencerVisit, NightMarket, LoyKrathong }
 
     [Serializable]
     public class DayEvent
@@ -33,6 +33,8 @@ public class DailyEventSystem : MonoBehaviour
     public GameObject songkranDecor;
     [Tooltip("Optional: enabled only on night-market days (stalls, string lights...)")]
     public GameObject nightMarketDecor;
+    [Tooltip("Optional: enabled only on Loy Krathong (lanterns, sky lanterns after dark)")]
+    public GameObject loyKrathongDecor;
 
     public DayEvent Current { get; private set; } = Make(EventType.Normal);
     public static event Action<DayEvent> OnEventStarted;
@@ -65,7 +67,8 @@ public class DailyEventSystem : MonoBehaviour
     {
         EventType type;
         if (day <= 1) type = EventType.Normal;                  // calm first day to learn
-        else if (day % 10 == 0) type = EventType.Songkran;
+        else if (day % 30 == 10) type = EventType.Songkran;          // end of the hot season (April)
+        else if (day % 30 == 27) type = EventType.LoyKrathong;       // cool season full moon (November)
         else if (day % 15 == 0 || day % 30 == 25) type = EventType.Payday;
         else
         {
@@ -85,6 +88,15 @@ public class DailyEventSystem : MonoBehaviour
         if (rainEffect != null) rainEffect.SetActive(type == EventType.HeavyRain);
         if (songkranDecor != null) songkranDecor.SetActive(type == EventType.Songkran);
         if (nightMarketDecor != null) nightMarketDecor.SetActive(type == EventType.NightMarket);
+        if (loyKrathongDecor != null) loyKrathongDecor.SetActive(type == EventType.LoyKrathong);
+        // first day of a season: tell the player what is on the seasonal menu
+        if (day > 1 && (day - 1) % 10 == 0)
+        {
+            WeatherSystem.Season season = WeatherSystem.SeasonForDay(day);
+            ShopHUD.Toast(season == WeatherSystem.Season.Hot ? Loc.T("เข้าหน้าร้อนแล้ว! เมนูพิเศษ: เครื่องดื่มปั่น ที่รถเข็นเมนูตามฤดู", "Hot season! Seasonal menu: blended frappes at the seasonal cart")
+                        : season == WeatherSystem.Season.Cool ? Loc.T("เข้าหน้าหนาวแล้ว! เมนูพิเศษ: เครื่องดื่มร้อนใส่มาร์ชเมลโลว์", "Cool season! Seasonal menu: hot drinks with marshmallows")
+                        : Loc.T("เข้าหน้าฝนแล้ว! ฝนตกบ่อย ลูกค้าแวะหลบฝน", "Rainy season! Frequent showers bring people in"));
+        }
 
         ShopHUD.Toast(Loc.T($"วันที่ {day}: ", $"Day {day}: ") + $"{Current.Title} — {Current.Description}");
         OnEventStarted?.Invoke(Current);
@@ -103,6 +115,8 @@ public class DailyEventSystem : MonoBehaviour
     {
         if (Current.type == EventType.NightMarket && hour >= 17)
             return 1.8f;
+        if (Current.type == EventType.LoyKrathong && hour >= 18)
+            return 2f;
         return 1f;
     }
 
@@ -134,6 +148,10 @@ public class DailyEventSystem : MonoBehaviour
                 return new DayEvent { type = t, titleTH = "รีวิวเวอร์มาเยือน", descriptionTH = "ทำแก้วให้เป๊ะ! ได้ 5 ดาวร้านดังทันที",
                     titleEN = "A reviewer is coming", descriptionEN = "Make it perfect! 5 stars makes the shop famous",
                     spawnMultiplier = 1.1f };
+            case EventType.LoyKrathong:
+                return new DayEvent { type = t, titleTH = "คืนลอยกระทง", descriptionTH = "หลัง 18:00 คนออกมาเที่ยวเต็มซอย โคมลอยเต็มฟ้า ชาไทยท็อปโฟมขายดี",
+                    titleEN = "Loy Krathong night", descriptionEN = "After 18:00 the soi fills up, lanterns float up and Thai tea with cheese foam sells out",
+                    tipMultiplier = 1.3f, touristMultiplier = 2f };
             case EventType.NightMarket:
                 return new DayEvent { type = t, titleTH = "ตลาดนัดหน้าร้าน", descriptionTH = "หลัง 17:00 คนเดินตลาดแวะซื้อเพียบ",
                     titleEN = "Night market", descriptionEN = "After 17:00 market crowds stop by for drinks",

@@ -8,6 +8,8 @@ public class Order
     public string flavor;
     public int sweetness = 100; // percent: 0 / 25 / 50 / 100 / 120
     public bool wantsFoam;      // cheese foam topping (+10 baht), from the fridge
+    public bool blended;        // hot season: frappe from the blender (+10 baht, needs ice)
+    public bool marshmallow;    // cool season: marshmallows on a hot drink (+10 baht)
 
     public Order() { }
 
@@ -30,7 +32,7 @@ public class Order
         {
             DrinkMenu.Drink d = DrinkMenu.Get(flavor);
             int basePrice = d != null ? d.price : 40;
-            return basePrice + (bobaCount > 0 ? 5 : 0) + (wantsFoam ? 10 : 0);
+            return basePrice + (bobaCount > 0 ? 5 : 0) + (wantsFoam ? 10 : 0) + (blended ? 10 : 0) + (marshmallow ? 10 : 0);
         }
     }
 
@@ -47,7 +49,8 @@ public class Order
     {
         string boba = bobaCount == 0 ? Loc.T("ไม่ใส่ไข่มุก", "no pearls") : Loc.T($"ไข่มุก {bobaCount} ช้อน", $"{bobaCount} scoop{(bobaCount > 1 ? "s" : "")} of pearls");
         string ice = wantsIce ? Loc.T("ใส่น้ำแข็ง", "iced") : Loc.T("ร้อน (ไม่ใส่น้ำแข็ง)", "hot (no ice)");
-        string foam = wantsFoam ? Loc.T(" · ท็อปชีสโฟม", " · cheese foam") : "";
+        string foam = (wantsFoam ? Loc.T(" · ท็อปชีสโฟม", " · cheese foam") : "") + (blended ? Loc.T(" · ปั่น", " · blended") : "") +
+                      (marshmallow ? Loc.T(" · มาร์ชเมลโลว์", " · marshmallows") : "");
         return $"{DrinkNameTH} {DrinkMenu.SweetTH(sweetness)}\n{boba} · {ice}{foam}";
     }
 

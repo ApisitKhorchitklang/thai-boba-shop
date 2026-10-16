@@ -208,6 +208,57 @@ public static partial class ThaiBobaSetup
             events.songkranDecor = songkran;
         }
 
+        // Songkran water fights: bursts aimed at the counter front (fired by SongkranSplash, never on their own)
+        GameObject blastRoot = new GameObject("SongkranWaterFight");
+        blastRoot.transform.SetParent(root, false);
+        var blasts = new List<ParticleSystem>();
+        foreach (float bx in new[] { -0.7f, 0.7f })
+        {
+            GameObject b = (GameObject)PrefabUtility.InstantiatePrefab(fx.splash, blastRoot.transform);
+            b.transform.localPosition = P(bx, 0.9f, 1.05f);
+            ParticleSystem ps = b.GetComponent<ParticleSystem>();
+            var em = ps.emission; em.rateOverTime = 0f;
+            var main = ps.main; main.playOnAwake = true; main.loop = true;
+            blasts.Add(ps);
+        }
+        blastRoot.AddComponent<SongkranSplash>().blasts = blasts.ToArray();
+
+        // Loy Krathong night: sky lanterns rising over the soi + warm lights along the shopfronts
+        GameObject loy = new GameObject("LoyKrathongDecor");
+        loy.transform.SetParent(root, false);
+        GameObject lanternAsset = AssetDatabase.LoadAssetAtPath<GameObject>(ModelDir + "SM_SkyLantern.fbx");
+        if (lanternAsset != null)
+        {
+            MeshFilter lmf = lanternAsset.GetComponentInChildren<MeshFilter>();
+            MeshRenderer lmr = lanternAsset.GetComponentInChildren<MeshRenderer>();
+            GameObject sky = FxPrefab("FX_SkyLanterns", (ps, r) =>
+            {
+                var main = ps.main;
+                main.startLifetime = 28f; main.startSpeed = new ParticleSystem.MinMaxCurve(0.35f, 0.7f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.7f, 1.1f); main.maxParticles = 120;
+                main.gravityModifier = -0.01f; main.simulationSpace = ParticleSystemSimulationSpace.World;
+                var em = ps.emission; em.rateOverTime = 0f;
+                var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(70f, 6f, 0.1f);
+                ps.transform.rotation = Quaternion.Euler(-90, 0, 0);
+                var noise = ps.noise; noise.enabled = true; noise.strength = 0.25f; noise.frequency = 0.1f;
+                r.renderMode = ParticleSystemRenderMode.Mesh;
+                r.mesh = lmf != null ? lmf.sharedMesh : null;
+                r.alignment = ParticleSystemRenderSpace.World;
+                if (lmr != null) r.sharedMaterial = lmr.sharedMaterial;
+            });
+            GameObject skyInst = (GameObject)PrefabUtility.InstantiatePrefab(sky, loy.transform);
+            skyInst.transform.localPosition = P(0, -6.7f, 6f);
+            loy.AddComponent<SkyLanterns>().lanterns = skyInst.GetComponent<ParticleSystem>();
+        }
+        for (int k = -3; k <= 3; k++)
+        {
+            if (k == 0 || k == -1) continue;                                 // our shop / the expansion have their own
+            Place("SM_FairyLights", k * 4.6f, -0.3f, 2.62f, 0, loy.transform, Col.None);
+            Place("SM_FairyLights", k * 4.6f, -13.1f, 2.62f, 180, loy.transform, Col.None);
+        }
+        loy.SetActive(false);
+        if (events != null) events.loyKrathongDecor = loy;
+
         // street lamps light up at night
         var lights = new List<Light>();
         foreach (GameObject lamp in refs.lamps)

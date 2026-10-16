@@ -220,6 +220,9 @@ public class ShopHUD : MonoBehaviour
         string seal = cup.State == CupController.CupState.LidClosed ? Loc.T("ซีลแล้ว", "sealed") : Loc.T("ยังไม่ซีล", "not sealed");
         string ice = cup.hasIce ? Loc.T("มีน้ำแข็ง", "ice") : Loc.T("ไม่มีน้ำแข็ง", "no ice");
         if (cup.hasFoam) ice += Loc.T(" · ชีสโฟม", " · cheese foam");
+        if (cup.blended) ice += Loc.T(" · ปั่น", " · blended");
+        if (cup.marshmallow) ice += Loc.T(" · มาร์ชเมลโลว์", " · marshmallows");
+        if (cup.watered) ice += Loc.T(" · <color=#4FA3E0>เปียกน้ำ!</color>", " · <color=#4FA3E0>soaked!</color>");
         return Loc.T($"ในมือ: {tea} · ไข่มุก {cup.bobaCount} · {ice} · {DrinkMenu.SweetTH(cup.sweetness)} · {seal}",
                      $"Holding: {tea} · pearls {cup.bobaCount} · {ice} · {DrinkMenu.SweetTH(cup.sweetness)} · {seal}");
     }
@@ -264,9 +267,48 @@ public class ShopHUD : MonoBehaviour
                (inv.cups < 15 || inv.boba < 60 || inv.ice < 120 || inv.baseSyrup < 80 || inv.foam < 10 ? Loc.T("\n<size=80%><color=#C23A66>ตัวสีแดงใกล้หมด สั่งเพิ่มก่อนเปิดร้านพรุ่งนี้</color></size>", "\n<size=80%><color=#C23A66>Red items are running low, restock before opening tomorrow</color></size>") : "");
     }
 
+    // the challenge result replaces the restock / upgrade side of the summary
+    void SetChallengeLayout(bool challenge)
+    {
+        if (summaryPanel == null) return;
+        foreach (Transform t in summaryPanel.GetComponentsInChildren<Transform>(true))
+            if (t.name.StartsWith("Supply") || t.name.StartsWith("Upgrade")) t.gameObject.SetActive(!challenge);
+        Transform next = summaryPanel.transform.Find("Card/NextDay");
+        TMP_Text label = next != null ? next.GetComponentInChildren<TMP_Text>(true) : null;
+        if (label != null)
+        {
+            LocalizedText lt = label.GetComponent<LocalizedText>();
+            if (lt != null) lt.enabled = !challenge;
+            if (challenge) label.text = Loc.T("กลับเมนูหลัก", "Main menu");
+            else if (lt != null) lt.Apply();
+        }
+    }
+
     void ShowSummary(ShopProgress.DayStats s)
     {
         lastStats = s;
+        SetChallengeLayout(ChallengeMode.Active);
+        if (ChallengeMode.Active)
+        {
+            int score = ChallengeMode.Score(s);
+            bool best = ChallengeMode.Record(score);
+            string share = ChallengeMode.ShareText(s, score);
+            GUIUtility.systemCopyBuffer = share;
+            if (summaryTitle != null) summaryTitle.text = Loc.T($"ท้าทายรายวัน {ChallengeMode.DateLabel}", $"Daily challenge {ChallengeMode.DateLabel}");
+            if (summaryText != null)
+                summaryText.text = Loc.T(
+                    $"<size=150%><b>{score} คะแนน</b></size>" + (best ? "  <color=#4E8A3C>สถิติใหม่!</color>" : $"  <size=80%>(สถิติวันนี้ {ChallengeMode.Best(ChallengeMode.Seed)})</size>") + "\n\n" +
+                    $"กำไร {s.Profit} ฿  +  เป๊ะ {s.perfect} × 20  +  คอมโบ x{s.bestCombo} × 5\n" +
+                    $"เสิร์ฟ {s.served} แก้ว · ลูกค้าเดินหนี {s.angry}\n\n" +
+                    "<size=80%>คัดลอกผลไว้แล้ว วางแชร์ให้เพื่อนได้เลย:\n<i>" + share + "</i></size>",
+                    $"<size=150%><b>{score} points</b></size>" + (best ? "  <color=#4E8A3C>New best!</color>" : $"  <size=80%>(today's best {ChallengeMode.Best(ChallengeMode.Seed)})</size>") + "\n\n" +
+                    $"Profit {s.Profit} ฿  +  perfect {s.perfect} × 20  +  combo x{s.bestCombo} × 5\n" +
+                    $"Served {s.served} · walked out {s.angry}\n\n" +
+                    "<size=80%>Result copied, paste it to share:\n<i>" + share + "</i></size>");
+            if (summaryPanel != null) summaryPanel.SetActive(true);
+            SummaryOpen = true;
+            return;
+        }
         lastStock = StockLine();
         if (summaryTitle != null) summaryTitle.text = Loc.T($"ปิดร้าน · สรุปยอดวันที่ {s.day}", $"Closing time · Day {s.day} summary");
         if (summaryText != null)
@@ -299,6 +341,12 @@ public class ShopHUD : MonoBehaviour
     public void NextDayButton()
     {
         GameAudio.Play(Sfx.Click);
+        if (ChallengeMode.Active)
+        {
+            SummaryOpen = false;
+            if (GameMenus.Instance != null) GameMenus.Instance.MainMenuButton();   // ends the challenge, back to the title
+            return;
+        }
         if (summaryPanel != null) summaryPanel.SetActive(false);
         SummaryOpen = false;
         if (GameManager.Instance != null) GameManager.Instance.EndDay();

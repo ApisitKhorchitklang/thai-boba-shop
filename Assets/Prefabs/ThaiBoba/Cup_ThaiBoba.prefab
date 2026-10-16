@@ -150,6 +150,9 @@ MonoBehaviour:
   maxBoba: 3
   hasFoam: 0
   stalePearls: 0
+  blended: 0
+  marshmallow: 0
+  watered: 0
 --- !u!114 &6586134416265292200
 MonoBehaviour:
   m_ObjectHideFlags: 0

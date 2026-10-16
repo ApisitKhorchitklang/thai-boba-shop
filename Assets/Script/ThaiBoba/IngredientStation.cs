@@ -3,7 +3,7 @@ using UnityEngine;
 // Pearls / ice / tea / sweetness. Put on SM_BobaPot, SM_IceCooler, each Urn_<id> / Tin_<id>, SM_SyrupBottles.
 public class IngredientStation : MonoBehaviour, IInteractable
 {
-    public enum Kind { Boba, Ice, Flavor, Sweetness, Foam }
+    public enum Kind { Boba, Ice, Flavor, Sweetness, Foam, Blend, Marshmallow }
 
     public Kind kind = Kind.Flavor;
     [Tooltip("Drink id for Flavor stations (ThaiTea, MilkTea, Matcha, PinkMilk, Taro, Cocoa, RedLime)")]
@@ -23,6 +23,8 @@ public class IngredientStation : MonoBehaviour, IInteractable
                 return Loc.T("ตักไข่มุก (+1 ช้อน)", "Scoop pearls (+1 scoop)");
             case Kind.Ice: return Loc.T("ใส่น้ำแข็ง", "Add ice");
             case Kind.Foam: return Loc.T("ตู้เย็น: ท็อปชีสโฟม", "Fridge: add cheese foam");
+            case Kind.Blend: return Loc.T("ปั่นเป็นเฟรปเป้ (ต้องมีชา + น้ำแข็ง)", "Blend into a frappe (needs tea + ice)");
+            case Kind.Marshmallow: return Loc.T("ใส่มาร์ชเมลโลว์", "Add marshmallows");
             case Kind.Sweetness:
                 CupController c = player.HeldCup;
                 return c != null ? Loc.T($"ปรับความหวาน (ตอนนี้ {c.sweetness}%)", $"Change sweetness (now {c.sweetness}%)") : Loc.T("ปรับความหวาน", "Change sweetness");
@@ -77,6 +79,32 @@ public class IngredientStation : MonoBehaviour, IInteractable
                 cup.AddIce();
                 GameAudio.Play(Sfx.Ice);
                 ShopHUD.ToastNow(Loc.T("ใส่น้ำแข็งแล้ว", "Ice added"));
+                break;
+
+            case Kind.Blend:
+                if (!cup.CanBlend)
+                {
+                    ShopHUD.ToastNow(cup.blended ? Loc.T("ปั่นไปแล้ว", "Already blended")
+                                   : cup.State == CupController.CupState.LidClosed ? Loc.T("ซีลแล้ว ใส่เพิ่มไม่ได้", "Already sealed, can't add more")
+                                   : Loc.T("ต้องเทชาและใส่น้ำแข็งก่อนปั่น", "Pour the tea and add ice before blending"));
+                    return;
+                }
+                cup.Blend();
+                GameAudio.Play(Sfx.Ice);
+                ShopHUD.ToastNow(Loc.T("ปั่นเป็นเฟรปเป้แล้ว!", "Blended into a frappe!"));
+                break;
+
+            case Kind.Marshmallow:
+                if (!cup.CanAddMarshmallow)
+                {
+                    ShopHUD.ToastNow(cup.marshmallow ? Loc.T("ใส่มาร์ชเมลโลว์ไปแล้ว", "Already has marshmallows")
+                                   : cup.State == CupController.CupState.LidClosed ? Loc.T("ซีลแล้ว ใส่เพิ่มไม่ได้", "Already sealed, can't add more")
+                                   : Loc.T("เทชาก่อน แล้วค่อยใส่มาร์ชเมลโลว์", "Pour the drink first, then the marshmallows"));
+                    return;
+                }
+                cup.AddMarshmallow();
+                GameAudio.Play(Sfx.Boba);
+                ShopHUD.ToastNow(Loc.T("ใส่มาร์ชเมลโลว์แล้ว", "Marshmallows added"));
                 break;
 
             case Kind.Foam:

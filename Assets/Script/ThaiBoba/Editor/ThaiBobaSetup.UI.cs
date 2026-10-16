@@ -79,6 +79,7 @@ public static partial class ThaiBobaSetup
         ["เอฟเฟกต์"] = "Effects",
         ["ความไวเมาส์"] = "Mouse sensitivity",
         ["กลับ"] = "Back",
+        ["ท้าทายรายวัน"] = "Daily challenge",
         ["สั่งของ · คอมพิวเตอร์ร้าน"] = "Order supplies · Shop PC",
         ["สินค้าส่งถึงร้านในไม่กี่วินาที · เงินหักทันทีที่สั่ง"] = "Deliveries arrive in a few seconds · paid when you order",
         ["ยังไม่มีเซฟ · เกมจะบันทึกอัตโนมัติตอนจบแต่ละวัน"] = "No saves yet · the game saves automatically at the end of each day",
@@ -546,12 +547,13 @@ public static partial class ThaiBobaSetup
         Label(main.transform, "Title", "บ้านชานมไข่มุก", 104, Pink, TextAlignmentOptions.Midline, new Vector2(0.27f, 0.5f), C, new Vector2(0, -168), new Vector2(900, 150), true);
         Label(main.transform, "Subtitle", "Thai Boba Shop · เกมเปิดร้านชานมในซอยไทย", 32, Cream, TextAlignmentOptions.Midline,
               new Vector2(0.27f, 0.5f), C, new Vector2(0, -262), new Vector2(900, 60));
-        Image card = Img(main.transform, "Buttons", "panel", new Vector2(0.73f, 0.5f), C, Vector2.zero, new Vector2(640, 740));
+        Image card = Img(main.transform, "Buttons", "panel", new Vector2(0.73f, 0.5f), C, Vector2.zero, new Vector2(640, 858));
         Button cont = Btn(card.transform, "Continue", "button_pink", "เล่นต่อ", "icon_play", new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(540, 108), 36, Color.white, menus.ContinueButton);
         Button newG = Btn(card.transform, "NewGame", "button_cream", "เริ่มเกมใหม่", "icon_shop", new Vector2(0.5f, 1), new Vector2(0, -232), new Vector2(540, 104), 34, Brown, menus.NewGameButton);
-        Btn(card.transform, "Load", "button_cream", "โหลดวันที่บันทึกไว้", "icon_calendar", new Vector2(0.5f, 1), new Vector2(0, -350), new Vector2(540, 104), 32, Brown, menus.OpenLoad);
-        Btn(card.transform, "Settings", "button_cream", "ตั้งค่า", "icon_gear", new Vector2(0.5f, 1), new Vector2(0, -468), new Vector2(540, 104), 34, Brown, menus.OpenSettings);
-        Btn(card.transform, "Quit", "button_orange", "ออกจากเกม", "icon_home", new Vector2(0.5f, 1), new Vector2(0, -586), new Vector2(540, 104), 34, Color.white, menus.QuitButton);
+        Btn(card.transform, "Challenge", "button_green", "ท้าทายรายวัน", "icon_trophy", new Vector2(0.5f, 1), new Vector2(0, -350), new Vector2(540, 104), 34, Color.white, menus.ChallengeButton);
+        Btn(card.transform, "Load", "button_cream", "โหลดวันที่บันทึกไว้", "icon_calendar", new Vector2(0.5f, 1), new Vector2(0, -468), new Vector2(540, 104), 32, Brown, menus.OpenLoad);
+        Btn(card.transform, "Settings", "button_cream", "ตั้งค่า", "icon_gear", new Vector2(0.5f, 1), new Vector2(0, -586), new Vector2(540, 104), 34, Brown, menus.OpenSettings);
+        Btn(card.transform, "Quit", "button_orange", "ออกจากเกม", "icon_home", new Vector2(0.5f, 1), new Vector2(0, -704), new Vector2(540, 104), 34, Color.white, menus.QuitButton);
         menus.continueButton = cont;
         menus.continueLabel = cont.GetComponentInChildren<TMP_Text>();
         menus.newGameLabel = newG.GetComponentInChildren<TMP_Text>();

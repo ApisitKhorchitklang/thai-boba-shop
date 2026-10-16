@@ -464,6 +464,8 @@ MonoBehaviour:
     flavor: 
     sweetness: 100
     wantsFoam: 0
+    blended: 0
+    marshmallow: 0
   payment: 10
   customerType: 0
   maxPatience: 60

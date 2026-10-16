@@ -517,6 +517,143 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
     }
 
+    static Component NewCup(out Type ct)
+    {
+        Component dispenser = Find("CupDispenser");
+        GameObject cupGo = UnityEngine.Object.Instantiate((GameObject)dispenser.GetType().GetField("cupPrefab").GetValue(dispenser), new Vector3(0, 30, 0), Quaternion.identity);
+        cupGo.GetComponent<Rigidbody>().isKinematic = true;
+        Component cup = cupGo.GetComponent(T("CupController"));
+        ct = cup.GetType();
+        ct.GetMethod("Grab").Invoke(cup, null);
+        return cup;
+    }
+
+    [UnityTest, Timeout(90000)]
+    public IEnumerator SeasonsAndFestivals()
+    {
+        yield return LoadScene();
+        // seasonal stations on the cart
+        bool blender = false, marsh = false;
+        foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(T("IngredientStation"), FindObjectsSortMode.None))
+        {
+            string k = o.GetType().GetField("kind").GetValue(o).ToString();
+            blender |= k == "Blend"; marsh |= k == "Marshmallow";
+        }
+        Assert.IsTrue(blender && marsh, "seasonal cart stations missing");
+
+        // frappe: tea + ice + blend, shows the dome; graded against the order
+        Component cup = NewCup(out Type ct);
+        ct.GetMethod("Fill").Invoke(cup, new object[] { "ThaiTea" });
+        Assert.IsFalse((bool)ct.GetMethod("Blend").Invoke(cup, null), "blended without ice");
+        ct.GetMethod("AddIce").Invoke(cup, null);
+        Assert.IsTrue((bool)ct.GetMethod("Blend").Invoke(cup, null));
+        yield return null;
+        Transform dome = null;
+        foreach (Transform t in cup.GetComponentsInChildren<Transform>(true)) if (t.name == "Cup_Frappe") dome = t;
+        Assert.IsTrue(dome != null && dome.gameObject.activeInHierarchy, "frappe not shown");
+        ct.GetMethod("CloseLid").Invoke(cup, null);
+        Type orderT = T("Order");
+        object frappeOrder = Activator.CreateInstance(orderT, new object[] { 0, true, "ThaiTea", 100 });
+        orderT.GetField("blended").SetValue(frappeOrder, true);
+        MethodInfo eval = T("ServeResult").GetMethod("Evaluate");
+        string qFrappe = eval.Invoke(null, new object[] { frappeOrder, cup }).GetType().GetField("quality").GetValue(eval.Invoke(null, new object[] { frappeOrder, cup })).ToString();
+        UnityEngine.Object.Destroy(cup.gameObject);
+
+        // Songkran: an open cup near the counter gets soaked and is refused
+        Component events = Find("DailyEventSystem");
+        events.GetType().GetMethod("RollForDay").Invoke(events, new object[] { 10 });
+        string songkran = events.GetType().GetProperty("Current").GetValue(events).GetType().GetField("type").GetValue(events.GetType().GetProperty("Current").GetValue(events)).ToString();
+        Component splash = Find("SongkranSplash");
+        Assert.IsNotNull(splash, "no Songkran water fight");
+        Component aim = Find("RaycastAim");
+        Component wet = NewCup(out ct);
+        ct.GetMethod("Fill").Invoke(wet, new object[] { "ThaiTea" });
+        aim.GetType().GetMethod("HoldItem").Invoke(aim, new object[] { wet.transform });
+        Transform player = Find("MovementWithJoy").transform;
+        var charCtrl = player.GetComponent<CharacterController>();
+        charCtrl.enabled = false;
+        player.position = new Vector3(player.position.x, player.position.y, -2.0f);       // right behind the counter
+        charCtrl.enabled = true;
+        yield return null;
+        splash.GetType().GetMethod("Splash").Invoke(splash, null);
+        bool soaked = (bool)ct.GetField("watered").GetValue(wet);
+        ct.GetMethod("CloseLid").Invoke(wet, null);
+        object plain = Activator.CreateInstance(orderT, new object[] { 0, false, "ThaiTea", 100 });
+        object wetRes = eval.Invoke(null, new object[] { plain, wet });
+        string qWet = wetRes.GetType().GetField("quality").GetValue(wetRes).ToString();
+
+        // Loy Krathong: lanterns + evening rush
+        events.GetType().GetMethod("RollForDay").Invoke(events, new object[] { 27 });
+        object cur = events.GetType().GetProperty("Current").GetValue(events);
+        string loy = cur.GetType().GetField("type").GetValue(cur).ToString();
+        GameObject loyDecor = (GameObject)events.GetType().GetField("loyKrathongDecor").GetValue(events);
+        float evening = (float)events.GetType().GetMethod("HourSpawnMultiplier").Invoke(events, new object[] { 19 });
+
+        Debug.Log($"[TEST] seasons: frappe order -> {qFrappe}, day10 {songkran}, soaked {soaked} -> {qWet}, day27 {loy}, lanterns {loyDecor != null && loyDecor.activeSelf}, evening x{evening}");
+        Assert.AreEqual("Perfect", qFrappe);
+        Assert.AreEqual("Songkran", songkran);
+        Assert.IsTrue(soaked, "open cup by the counter was not soaked");
+        Assert.AreEqual("Wrong", qWet, "soaked drink was accepted");
+        Assert.AreEqual("LoyKrathong", loy);
+        Assert.IsTrue(loyDecor != null && loyDecor.activeSelf, "no Loy Krathong decorations");
+        Assert.AreEqual(2f, evening, 0.01f);
+    }
+
+    [UnityTest, Timeout(120000)]
+    public IEnumerator DailyChallengeIsSeededAndUnsaved()
+    {
+        yield return LoadScene(startGame: false);
+        Type cm = T("ChallengeMode");
+        Type cp = T("CustomerProfiles");
+        // same seed -> same customers and orders
+        string Orders()
+        {
+            cm.GetMethod("Begin").Invoke(null, new object[] { 20261016 });
+            var sb = new System.Text.StringBuilder();
+            object prof = cp.GetMethod("Get").Invoke(null, new object[] { Enum.Parse(T("CustomerType"), "Student") });
+            for (int i = 0; i < 6; i++)
+            {
+                sb.Append(cp.GetMethod("Roll").Invoke(null, new object[] { 12 })).Append(':');
+                sb.Append(cp.GetMethod("CreateOrder").Invoke(null, new object[] { prof, 3, false })).Append('|');
+            }
+            return sb.ToString();
+        }
+        string a = Orders(), b = Orders();
+        Assert.AreEqual(a, b, "challenge orders differ for the same day");
+
+        int savesBefore = Directory.Exists(SlotDir) ? Directory.GetFiles(SlotDir).Length : 0;
+        Component menus = (Component)Static("GameMenus", "Instance");
+        menus.GetType().GetMethod("StartChallenge").Invoke(menus, new object[] { 20261016 });
+        yield return null;
+        Component gm = Find("GameManager");
+        Component clock = Find("TimeCyc");
+        int money = (int)gm.GetType().GetField("money").GetValue(gm);
+        int hour = (int)clock.GetType().GetProperty("Hours").GetValue(clock);
+        Assert.IsTrue((bool)cm.GetProperty("Active").GetValue(null));
+        T("SaveSystem").GetMethod("SaveGame").Invoke(null, null);
+        int savesAfter = Directory.Exists(SlotDir) ? Directory.GetFiles(SlotDir).Length : 0;
+
+        // 15:00 -> the challenge result
+        clock.GetType().GetMethod("SetTime").Invoke(clock, new object[] { 15, 0 });
+        float t0 = Time.realtimeSinceStartup;
+        while (!(bool)Static("ShopHUD", "SummaryOpen") && Time.realtimeSinceStartup - t0 < 5f) yield return null;
+        Component hud = Find("ShopHUD");
+        string title = ((TMPro.TMP_Text)hud.GetType().GetField("summaryTitle").GetValue(hud)).text;
+        string body = ((TMPro.TMP_Text)hud.GetType().GetField("summaryText").GetValue(hud)).text;
+        bool supplyHidden = !hud.transform.Find("SummaryPanel/Card/Supply0").gameObject.activeSelf;
+        string clip = GUIUtility.systemCopyBuffer;
+        Debug.Log($"[TEST] challenge: start {hour}:00 money {money}, saves {savesBefore}->{savesAfter}, summary '{title}', restock hidden {supplyHidden}, share '{clip}'");
+        Assert.AreEqual(11, hour);
+        Assert.AreEqual(300, money);
+        Assert.AreEqual(savesBefore, savesAfter, "the challenge wrote a save");
+        Assert.IsTrue((bool)Static("ShopHUD", "SummaryOpen"), "no result at 15:00");
+        StringAssert.Contains("16/10/2026", title);
+        Assert.IsTrue(supplyHidden, "restock buttons still shown in the challenge result");
+        StringAssert.Contains("#ThaiBobaShop", clip);
+        cm.GetMethod("End").Invoke(null, null);
+        PlayerPrefs.DeleteKey("tb_challenge_20261016");
+    }
+
     [UnityTest, Timeout(60000)]
     public IEnumerator DrinkAnimationsEmotesAndDayReport()
     {
