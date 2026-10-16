@@ -15,7 +15,7 @@ public static partial class ThaiBobaSetup
     const string BrandingDir = "Assets/Branding/";
     public const string ProductName = "Thai Boba Shop";
     public const string CompanyName = "Hoy Studio";
-    public const string Version = "1.0.0";
+    public const string Version = "1.0.1";
     static string MarketingDir => Path.GetFullPath(Path.Combine(Application.dataPath, "../Marketing/itch"));
     static string BuildDir => Path.GetFullPath(Path.Combine(Application.dataPath, "../Builds"));
 
@@ -50,7 +50,7 @@ public static partial class ThaiBobaSetup
         PlayerSettings.bundleVersion = Version;
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Standalone, "com.hoystudio.thaibobashop");
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.hoystudio.thaibobashop");
-        PlayerSettings.Android.bundleVersionCode = 1;
+        PlayerSettings.Android.bundleVersionCode = 2;
 
         // icons: rounded for desktop, full-bleed square for Android
         Texture2D rounded = IconTexture("icon_rounded_1024.png");
