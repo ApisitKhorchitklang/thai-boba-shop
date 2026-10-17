@@ -1822,4 +1822,86 @@ public class ThaiBobaLoopTest
         Call(T("SaveSystem"), "LoadGame");
         Assert.Less(Vector3.Distance(new Vector3(root.position.x, 0, root.position.z), new Vector3(free.x, 0, free.z)), 0.01f, "layout not saved");
     }
+
+    // Rain only over the open street (never inside the shops), the wet street reflects, cats keep their heads on
+    [UnityTest, Timeout(120000)]
+    public IEnumerator RainStaysOutsideAndTheStreetReflects()
+    {
+        yield return LoadScene();
+        Component weather = Find("WeatherSystem");
+        int quality = PlayerPrefs.GetInt("tb_quality", 2);
+        try
+        {
+            Set(T("GameSettings"), "Quality", 2);
+            Call(weather, "Force", 1f, 1f, false);
+            ParticleSystem rain = (ParticleSystem)Get(weather, "rain");
+            var parts = new ParticleSystem.Particle[4000];
+            int total = 0, overShops = 0;
+            Vector3 worst = Vector3.zero;
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 4f)
+            {
+                int n = rain.GetParticles(parts);
+                bool local = rain.main.simulationSpace == ParticleSystemSimulationSpace.Local;
+                for (int i = 0; i < n; i++)
+                {
+                    Vector3 w = local ? rain.transform.TransformPoint(parts[i].position) : parts[i].position;
+                    total++;
+                    if (w.z < 1.0f || w.z > 12.5f) { overShops++; worst = w; }       // our row (z < 1) / the far row (z > 12.5)
+                }
+                yield return null;
+            }
+            Component planar = Find("PlanarReflection");
+            Assert.IsNotNull(planar, "no planar reflection in the scene");
+            bool gpu = SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null;
+            bool reflecting = gpu ? (bool)Get(planar, "Rendering") : (bool)Get(planar, "Active");
+            var sheets = (Renderer[])Get(planar, "surfaces");
+            Debug.Log($"[TEST] rain: {total} drop samples, {overShops} over the shops (e.g. {worst}); reflection on {reflecting}, sheets {sheets.Length}");
+            Assert.Greater(total, 500, "no rain falling");
+            Assert.AreEqual(0, overShops, "rain falls inside / over the shops: " + worst);
+            Assert.IsTrue(reflecting, "the wet street doesn't reflect");
+            Assert.IsTrue(sheets.Length >= 3, "no reflection sheets on the road / footpaths");
+            if (gpu)
+            {
+                Assert.IsNotNull(Get(planar, "Texture"), "no reflection texture");
+                Assert.IsTrue(sheets[0].enabled, "reflection sheets not shown on the wet road");
+            }
+
+            Set(T("GameSettings"), "Quality", 0);
+            yield return null;
+            yield return null;
+            Assert.IsFalse((bool)Get(planar, "Rendering") || (bool)Get(planar, "Active"), "reflection still on with Low graphics");
+            Set(T("GameSettings"), "Quality", 2);
+            Call(weather, "Force", 0f, 0f, false);
+            yield return new WaitForSecondsRealtime(4f);
+            Assert.IsFalse((bool)Get(planar, "Rendering") || (bool)Get(planar, "Active"), "reflection still on for a dry street");
+        }
+        finally
+        {
+            Call(weather, "Force", -1f, -1f, false);
+            Set(T("GameSettings"), "Quality", quality);
+        }
+
+        // cats: head (and legs) ride on the body whatever the pose
+        Component cat = (Component)UnityEngine.Object.FindFirstObjectByType(T("StrayCat"));
+        Transform head = null, body = null;
+        foreach (Transform t in cat.GetComponentsInChildren<Transform>(true))
+        {
+            if (t.name.StartsWith("Cat_Head")) head = t;
+            if (t.name.StartsWith("Cat_Body")) body = t;
+        }
+        Assert.IsTrue(head != null && body != null && head.IsChildOf(body), "the cat's head isn't attached to its body");
+        Vector3 rest = body.InverseTransformPoint(head.position);
+        float drift = 0f;
+        Time.timeScale = 4f;
+        float t1 = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - t1 < 10f)
+        {
+            drift = Mathf.Max(drift, Vector3.Distance(body.InverseTransformPoint(head.position), rest));
+            yield return null;
+        }
+        Time.timeScale = 1f;
+        Debug.Log($"[TEST] cat: head drift from the body {drift * 100f:0.0} cm");
+        Assert.Less(drift, 0.06f, "the cat's head drifts away from its body");
+    }
 }

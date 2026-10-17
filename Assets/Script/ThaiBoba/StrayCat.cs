@@ -3,7 +3,8 @@ using UnityEngine.AI;
 
 // A soi cat (แมวจร). Wanders between favourite spots (under the table, by the spirit house, in front of the
 // chicken-rice stall...), sits, grooms, naps (longer at night and in the midday heat), meows now and then, and can
-// be petted when you're close. The SM_Cat model comes in parts; legs, tail and head are animated here.
+// be petted when you're close. The SM_Cat model comes in parts; at start they are rigged into a little hierarchy
+// (pivot at the shoulders > body > head, tail, legs) so everything stays attached while the body sits up or lies down.
 [RequireComponent(typeof(NavMeshAgent))]
 public class StrayCat : MonoBehaviour, IInteractable
 {
@@ -16,9 +17,10 @@ public class StrayCat : MonoBehaviour, IInteractable
     float stateTimer = 2f, phase, meowTimer, petCooldown, petGlow;
     NavMeshAgent agent;
     TimeCyc clock;
-    Transform body, head, tail, legFL, legFR, legBL, legBR;
-    Vector3 bodyPos, headPos;
-    Quaternion bodyRot, headRot, tailRot, legRot;
+    Transform body, head, tail, legFL, legFR, legBL, legBR, pivot;
+    Vector3 pivotPos, headPos;
+    Quaternion pivotRot, headRot, tailRot, flRot, frRot, blRot, brRot;
+    float sit, sleep;                                    // smoothed pose blends
     CustomerEmote emote;
 
     void Start()
@@ -43,13 +45,31 @@ public class StrayCat : MonoBehaviour, IInteractable
             else if (n == "Cat_Leg_BL") legBL = t;
             else if (n == "Cat_Leg_BR") legBR = t;
         }
-        if (body != null) { bodyPos = body.localPosition; bodyRot = body.localRotation; }
-        if (head != null) { headPos = head.localPosition; headRot = head.localRotation; }
-        if (tail != null) tailRot = tail.localRotation;
-        if (legFL != null) legRot = legFL.localRotation;
+        Rig();
         Tint();
         meowTimer = Random.Range(8f, 25f);
         phase = Random.value * 10f;
+    }
+
+    // pivot at the front shoulders > body > head / tail / legs, keeping where everything is now
+    void Rig()
+    {
+        if (body == null) return;
+        pivot = new GameObject("CatPivot").transform;
+        pivot.SetParent(body.parent, false);
+        Vector3 shoulder = legFL != null && legFR != null ? (legFL.position + legFR.position) * 0.5f : body.position;
+        pivot.SetPositionAndRotation(shoulder, body.parent.rotation);
+        body.SetParent(pivot, true);
+        foreach (Transform t in new[] { head, tail, legFL, legFR, legBL, legBR })
+            if (t != null) t.SetParent(body, true);
+        pivotPos = pivot.localPosition;
+        pivotRot = pivot.localRotation;
+        if (head != null) { headPos = head.localPosition; headRot = head.localRotation; }
+        if (tail != null) tailRot = tail.localRotation;
+        if (legFL != null) flRot = legFL.localRotation;
+        if (legFR != null) frRot = legFR.localRotation;
+        if (legBL != null) blRot = legBL.localRotation;
+        if (legBR != null) brRot = legBR.localRotation;
     }
 
     // the fur material is shared by every cat: tint per cat with a property block
@@ -115,43 +135,45 @@ public class StrayCat : MonoBehaviour, IInteractable
         else { state = State.Sit; stateTimer = Random.Range(10f, 30f); }
     }
 
-    // procedural poses: trotting legs, a swaying tail, sitting up, curling up to sleep, licking a paw
+    // procedural poses: trotting legs, a swaying tail, sitting up, curling up to sleep, licking a paw.
+    // Rotations are applied in the parent's axes (pre-multiplied), so the parts' own import rotations don't matter.
     void Animate()
     {
-        float t = Time.time + phase;
+        if (pivot == null) return;
+        float t = Time.time + phase, dt = Time.deltaTime;
         float speed = agent.velocity.magnitude;
         float gait = speed > 0.05f ? Mathf.Clamp01(speed / walkSpeed) : 0f;
-        float swing = Mathf.Sin(t * 9f) * 28f * gait;
-        Quaternion Leg(float a) => legRot * Quaternion.Euler(a, 0f, 0f);
-        float sit = state == State.Sit || state == State.Groom ? 1f : 0f;
-        float sleep = state == State.Sleep ? 1f : 0f;
-        if (legFL != null) legFL.localRotation = Quaternion.Slerp(legFL.localRotation, Leg(swing - 70f * sleep), Time.deltaTime * 10f);
-        if (legBR != null) legBR.localRotation = Quaternion.Slerp(legBR.localRotation, Leg(swing + 75f * sleep - 60f * sit), Time.deltaTime * 10f);
-        if (legFR != null) legFR.localRotation = Quaternion.Slerp(legFR.localRotation, Leg(-swing - 70f * sleep), Time.deltaTime * 10f);
-        if (legBL != null) legBL.localRotation = Quaternion.Slerp(legBL.localRotation, Leg(-swing + 75f * sleep - 60f * sit), Time.deltaTime * 10f);
-        if (body != null)
-        {
-            // sitting: haunches down, chest up; sleeping: flat on the ground
-            Quaternion bRot = bodyRot * Quaternion.Euler(-24f * sit, 0f, 4f * sleep);
-            Vector3 bPos = bodyPos + new Vector3(0f, -0.1f * sleep - 0.035f * sit + Mathf.Abs(Mathf.Sin(t * 9f)) * 0.008f * gait, 0f);
-            body.localRotation = Quaternion.Slerp(body.localRotation, bRot, Time.deltaTime * 4f);
-            body.localPosition = Vector3.Lerp(body.localPosition, bPos, Time.deltaTime * 4f);
-        }
+        sit = Mathf.MoveTowards(sit, state == State.Sit || state == State.Groom ? 1f : 0f, dt * 2.5f);
+        sleep = Mathf.MoveTowards(sleep, state == State.Sleep ? 1f : 0f, dt * 1.2f);
+        float stride = Mathf.Sin(t * 9f) * 28f * gait;
+
+        // sitting: the rear drops around the shoulders (front paws stay planted); sleeping: down on the ground
+        pivot.localRotation = Quaternion.Euler(-16f * sit * (1f - sleep), 0f, 7f * sleep) * pivotRot;
+        pivot.localPosition = pivotPos + new Vector3(0f, -0.085f * sleep + Mathf.Abs(Mathf.Sin(t * 9f)) * 0.006f * gait, 0f);
+        float frontKeep = 16f * sit * (1f - sleep);                                   // front legs stay upright when sitting
+        Leg(legFL, flRot, stride + frontKeep + 80f * sleep);
+        Leg(legFR, frRot, -stride + frontKeep + 80f * sleep);
+        Leg(legBL, blRot, -stride - 45f * sit * (1f - sleep) - 85f * sleep);
+        Leg(legBR, brRot, stride - 45f * sit * (1f - sleep) - 85f * sleep);
+
         if (head != null)
         {
             float look = Mathf.Sin(t * 0.7f) * 25f * (1f - sleep);
-            float groom = state == State.Groom ? Mathf.Sin(t * 6f) * 12f + 25f : 0f;
-            Quaternion hRot = headRot * Quaternion.Euler(groom + 20f * sleep, look, 15f * sleep);
-            Vector3 hPos = headPos + new Vector3(0f, -0.12f * sleep + 0.03f * sit, 0.02f * sit);
-            head.localRotation = Quaternion.Slerp(head.localRotation, hRot, Time.deltaTime * 5f);
-            head.localPosition = Vector3.Lerp(head.localPosition, hPos, Time.deltaTime * 4f);
+            float groom = state == State.Groom ? 22f + Mathf.Sin(t * 6f) * 12f : 0f;
+            head.localRotation = Quaternion.Euler(groom + 22f * sleep - 10f * sit * (1f - sleep), look, 12f * sleep) * headRot;
+            head.localPosition = headPos + new Vector3(0f, -0.04f * sleep, 0f);
         }
         if (tail != null)
         {
-            float sway = Mathf.Sin(t * (petGlow > 0f ? 6f : 1.8f)) * (sleep > 0f ? 6f : 22f);
-            tail.localRotation = Quaternion.Slerp(tail.localRotation, tailRot * Quaternion.Euler(-60f * sleep, sway, 0f), Time.deltaTime * 6f);
+            float sway = Mathf.Sin(t * (petGlow > 0f ? 6f : 1.8f)) * (sleep > 0.5f ? 6f : 22f);
+            tail.localRotation = Quaternion.Euler(-55f * sleep, sway, 0f) * tailRot;
         }
-        petGlow -= Time.deltaTime;
+        petGlow -= dt;
+    }
+
+    static void Leg(Transform leg, Quaternion rest, float angle)
+    {
+        if (leg != null) leg.localRotation = Quaternion.Euler(angle, 0f, 0f) * rest;
     }
 
     // ---------------------------------------------------------------- petting

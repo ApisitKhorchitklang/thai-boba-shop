@@ -89,13 +89,11 @@ public class ThaiBobaShotsTest
             }
         }
         Canvas.ForceUpdateCanvases();
-        shot.targetTexture = rt;
         shot.Render();
         RenderTexture.active = rt;
         tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
         tex.Apply();
         RenderTexture.active = null;
-        shot.targetTexture = null;
         File.WriteAllBytes(Path.Combine(dir, name + ".png"), tex.EncodeToPNG());
         for (int i = 0; i < canvases.Length; i++)
             if (canvases[i] != null && canvases[i].renderMode != modes[i]) { canvases[i].renderMode = modes[i]; canvases[i].worldCamera = null; }
@@ -136,6 +134,8 @@ public class ThaiBobaShotsTest
         shot.enabled = false;
         rt = new RenderTexture(1600, 900, 24);
         tex = new Texture2D(1600, 900, TextureFormat.RGB24, false);
+        shot.targetTexture = rt;                                     // keeps the shot's aspect for the wet-street reflection too
+        T("PlanarReflection").GetField("ViewOverride").SetValue(null, shot);
         Component clock = Find("TimeCyc"), weather = Find("WeatherSystem");
 
         // noon: the neighbour open with riders waiting, cats, the topping bar, the rival across the street
@@ -173,6 +173,29 @@ public class ThaiBobaShotsTest
         yield return Wait(0.5f);
         Shoot("play_mothers_day", P(-3.0f, -6.0f, 3.2f), P(1.0f, -0.5f, 2.6f));
 
+        // rain: the shop stays dry, the street reflects (mirror camera follows the shot camera: give it a frame)
+        Call(clock, "SetTime", 13, 0);
+        Call(weather, "Force", 1f, 1f, false);
+        yield return Wait(3f);
+        shot.transform.position = P(0.0f, 3.2f, 1.6f);
+        shot.transform.LookAt(P(0.0f, -6.0f, 1.0f));
+        yield return null;
+        Shoot("play_rain_from_shop", P(0.0f, 3.2f, 1.6f), P(0.0f, -6.0f, 1.0f));
+        shot.transform.position = P(-2.0f, -2.6f, 1.6f);
+        shot.transform.LookAt(P(4.0f, -9.0f, 0.4f));
+        yield return null;
+        Shoot("play_rain_reflection", P(-2.0f, -2.6f, 1.6f), P(4.0f, -9.0f, 0.4f));
+        shot.transform.position = new Vector3(-7f, 4.2f, 10.5f);
+        shot.transform.LookAt(new Vector3(-0.2f, 1.2f, 0f));
+        yield return null;
+        Shoot("play_rain_street", new Vector3(-7f, 4.2f, 10.5f), new Vector3(-0.2f, 1.2f, 0f));
+        Call(weather, "Force", 0f, 0f, false);
+
+        // a cat, close up, sitting and walking
+        var cat = (Component)UnityEngine.Object.FindFirstObjectByType(T("StrayCat"));
+        Vector3 cp = cat.transform.position;
+        Shoot("play_cat", cp + cat.transform.right * 0.9f + Vector3.up * 0.45f + cat.transform.forward * 0.3f, cp + Vector3.up * 0.22f);
+
         // a rainy night: headlights, tail lights, wet reflections of lamps and signs
         Component traffic = Find("TrafficSpawner");
         var prefabs = (GameObject[])Get(traffic, "vehiclePrefabs");
@@ -187,7 +210,13 @@ public class ThaiBobaShotsTest
         Call(clock, "SetTime", 21, 0);
         Call(weather, "Force", 1f, 1f, false);
         yield return Wait(2f);
+        shot.transform.position = new Vector3(-7f, 4.2f, 10.5f);
+        shot.transform.LookAt(new Vector3(-0.2f, 1.2f, 0f));
+        yield return null;
         Shoot("play_night_wet", new Vector3(-7f, 4.2f, 10.5f), new Vector3(-0.2f, 1.2f, 0f));
+        shot.transform.position = P(-6.0f, -6.0f, 1.6f);
+        shot.transform.LookAt(P(6.0f, -6.0f, 0.6f));
+        yield return null;
         Shoot("play_night_road", P(-6.0f, -6.0f, 1.6f), P(6.0f, -6.0f, 0.6f));
         Call(weather, "Force", -1f, -1f, false);
 
@@ -217,6 +246,7 @@ public class ThaiBobaShotsTest
         Shoot("play_arrange", P(0.0f, 3.4f, 1.65f), P(0.0f, -2.0f, 1.2f), ui: true);
         Call(dp, "End");
 
+        T("PlanarReflection").GetField("ViewOverride").SetValue(null, null);
         UnityEngine.Object.Destroy(camGo);
         T("StoryMode").GetField("AutoPopups").SetValue(null, true);
         T("StatsSystem").GetMethod("EndTests").Invoke(null, null);

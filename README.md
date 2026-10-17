@@ -30,7 +30,7 @@ A cozy first-person bubble tea shop simulator set in a Bangkok soi — by **Hoy 
 - **A barista** to hire and train (serves the 2nd customer in line), plus the helper
 - More festivals: **Chinese New Year** (lanterns, firecrackers, ang pao), **Mother's Day**, the **Vegetarian Festival** (no dairy / egg for เจ customers)
 - A living soi: the chicken-rice stall next door keeps its own hours (shutter, chopping, lunch riders), **stray cats** you can pet
-- Rainy nights: vehicle headlights light the road and lamps / signs / headlights **reflect on the wet asphalt**
+- **Wet streets really reflect** (mirrored reflection camera + raindrop ripples): shops, signs, cars, people and the falling rain; at night headlights light the road
 - **Arrange the shop yourself**: move and turn plants, the bench, the table set, signs (never onto the customers' line)
 - **Lifetime stats and 20 medals**; NPC gestures (phones, watches, sipping, waving, angry head shakes) and LODs
 

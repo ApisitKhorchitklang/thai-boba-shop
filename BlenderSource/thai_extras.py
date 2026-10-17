@@ -114,7 +114,9 @@ def build_cat():
     a.sphere(0.07, (0, -0.12, 0.215), "cat_fur", scale=(1.0, 1.2, 1.0), seg=12, rings=8, g=g)        # shoulders
     a.sphere(0.075, (0, 0.13, 0.2), "cat_fur", scale=(1.05, 1.1, 0.95), seg=12, rings=8, g=g)        # haunches
     g = "Cat_Head"
-    a.sphere(0.07, (0, -0.255, 0.285), "cat_fur", scale=(1.1, 0.95, 0.9), seg=16, rings=10, g=g)
+    a.sphere(0.07, (0, -0.25, 0.285), "cat_fur", scale=(1.1, 0.95, 0.9), seg=16, rings=10, g=g)
+    a.sphere(0.052, (0, -0.2, 0.25), "cat_fur", scale=(1.0, 1.15, 1.05), seg=12, rings=8, g=g)        # neck: no gap when the head turns
+    a.sphere(0.04, (0, -0.225, 0.215), "cat_white", scale=(1.0, 0.9, 1.1), seg=10, rings=6, g=g)      # white chest
     a.sphere(0.034, (0, -0.315, 0.268), "cat_white", scale=(1.3, 0.85, 0.8), seg=12, rings=8, g=g)  # muzzle
     a.sphere(0.008, (0, -0.344, 0.282), "pink", seg=8, rings=5, g=g)                                 # nose
     for sx in (-1, 1):

@@ -148,11 +148,12 @@ public static partial class ThaiBobaSetup
         Transform wx = new GameObject("Weather").transform;
         wx.SetParent(root, false);
 
-        // rain falls over the street, splashes hit the road and footpaths
+        // rain falls over the open street (awning edge of our row, z 1.2, to the far row's awnings, z 12.2);
+        // the shops and the covered footpath stay dry. Splashes hit the same strip.
         GameObject rain = (GameObject)PrefabUtility.InstantiatePrefab(fx.rain, wx);
-        rain.transform.localPosition = new Vector3(0, 16f, 5f);
+        rain.transform.localPosition = new Vector3(0, 16f, 6.7f);
         GameObject splash = (GameObject)PrefabUtility.InstantiatePrefab(fx.rainSplash, wx);
-        splash.transform.localPosition = new Vector3(0, 0.02f, 6f);
+        splash.transform.localPosition = new Vector3(0, 0.02f, 6.7f);
 
         // lightning: a cold directional flash
         GameObject lg = new GameObject("LightningFlash");
@@ -188,6 +189,47 @@ public static partial class ThaiBobaSetup
         }
         Random.state = old;
         layer.clouds = clouds.ToArray();
+
+        // real reflections on the wet street: a mirrored camera + transparent sheets on the road and both footpaths
+        string reflMatPath = FxDir + "M_WetReflection.mat";
+        Material reflMat = AssetDatabase.LoadAssetAtPath<Material>(reflMatPath);
+        Shader reflShader = Shader.Find("ThaiBoba/WetReflection");
+        if (reflMat == null && reflShader != null)
+        {
+            System.IO.Directory.CreateDirectory(FxDir);
+            reflMat = new Material(reflShader);
+            AssetDatabase.CreateAsset(reflMat, reflMatPath);              // the asset also keeps the shader in player builds
+        }
+        if (reflMat != null)
+        {
+            // asphalt, not a mirror: a darker, slightly blue reflection that fades out looking straight down
+            reflMat.SetColor("_Tint", new Color(0.72f, 0.76f, 0.86f));
+            reflMat.SetFloat("_Strength", 0.62f);
+            reflMat.SetFloat("_Distort", 0.03f);
+            EditorUtility.SetDirty(reflMat);
+        }
+        PlanarReflection planar = wx.gameObject.AddComponent<PlanarReflection>();
+        planar.planeHeight = -0.15f;
+        var sheets = new List<Renderer>();
+        // (Unity z) road between the kerbs, our footpath, the far footpath; just above each surface
+        foreach (var (name, z0, z1, y) in new[] { ("WetSheet_Road", 2.95f, 10.45f, -0.138f), ("WetSheet_NearPath", 0.05f, 2.9f, 0.012f), ("WetSheet_FarPath", 10.5f, 13.35f, 0.012f) })
+        {
+            GameObject q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            q.name = name;
+            Object.DestroyImmediate(q.GetComponent<Collider>());
+            q.transform.SetParent(wx, false);
+            q.transform.localPosition = new Vector3(0f, y, (z0 + z1) * 0.5f);
+            q.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);       // lying flat, facing up
+            q.transform.localScale = new Vector3(84f, z1 - z0, 1f);
+            q.layer = 4;                                                     // "Water": left out of its own reflection
+            MeshRenderer mr = q.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = reflMat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            NoWalk(q);
+            sheets.Add(mr);
+        }
+        planar.surfaces = sheets.ToArray();
 
         // wet road / footpaths + puddles
         WetSurfaces wet = wx.gameObject.AddComponent<WetSurfaces>();

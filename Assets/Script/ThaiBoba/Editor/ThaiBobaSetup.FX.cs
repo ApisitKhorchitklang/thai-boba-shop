@@ -141,7 +141,8 @@ public static partial class ThaiBobaSetup
             main.startLifetime = 1.3f; main.startSpeed = 14f; main.startSize = 0.035f; main.maxParticles = 2500;
             main.startColor = new Color(0.8f, 0.88f, 1f, 0.55f);
             var em = ps.emission; em.rateOverTime = 1100f;
-            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(70f, 22f, 1f);
+            // only over the open street, between the two rows' awnings: never through a roof into the shops
+            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(70f, 11f, 1f);
             r.renderMode = ParticleSystemRenderMode.Stretch; r.velocityScale = 0.05f; r.lengthScale = 1f;
             ps.transform.rotation = Quaternion.Euler(90, 0, 0);
         });
@@ -152,7 +153,7 @@ public static partial class ThaiBobaSetup
             main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.09f); main.maxParticles = 600;
             main.startColor = new Color(0.85f, 0.9f, 1f, 0.6f); main.gravityModifier = 0.6f;
             var em = ps.emission; em.rateOverTime = 0f;
-            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(70f, 18f, 0.05f);
+            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(70f, 10.6f, 0.05f);
             ps.transform.rotation = Quaternion.Euler(-90, 0, 0);
         });
         fx.splash = FxPrefab("FX_WaterSplash", (ps, r) =>
