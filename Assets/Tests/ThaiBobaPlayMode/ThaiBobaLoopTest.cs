@@ -587,6 +587,21 @@ public class ThaiBobaLoopTest
         float f1 = (float)patience.GetValue(front), s1 = (float)patience.GetValue(second);
         Debug.Log($"[TEST] front patience {f0:0.0} -> {f1:0.0}, second in line {s0:0.0} -> {s1:0.0}");
         Assert.AreEqual(s0, s1, 0.001f, "customer waiting in line lost patience");
+        Assert.Less(f1, f0 - 1f, "the customer at the counter never loses patience");
+
+        // the story popup opened during the tutorial must not leave patience frozen once both are gone
+        Type cc = T("CustomerController");
+        Component story = Find("StoryMode");
+        cc.GetField("FrozenByTutorial").SetValue(null, true);         // tutorial running
+        story.GetType().GetMethod("ShowPanel").Invoke(story, null);
+        cc.GetField("FrozenByTutorial").SetValue(null, false);        // tutorial done
+        Assert.IsTrue((bool)cc.GetProperty("PatienceFrozen").GetValue(null), "story popup open: patience should wait");
+        story.GetType().GetMethod("ClosePanel").Invoke(story, null);
+        Assert.IsFalse((bool)cc.GetProperty("PatienceFrozen").GetValue(null), "patience stays frozen after the popup and the tutorial closed");
+        float p0 = (float)patience.GetValue(front);
+        yield return new WaitForSeconds(1.5f);
+        if (queue.Count > 0 && queue[0] == front)
+            Assert.Less((float)patience.GetValue(front), p0 - 0.5f, "patience does not drop after closing the story popup");
     }
 
     static Component NewCup(out Type ct)

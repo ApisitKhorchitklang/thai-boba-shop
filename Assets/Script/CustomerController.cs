@@ -49,7 +49,10 @@ public class CustomerController : MonoBehaviour
     Quaternion faceRotation;
     public static CustomerController Front => Queue.Count > 0 ? Queue[0] : null;
     // Tutorial: nobody gets impatient while the player is learning
-    public static bool PatienceFrozen;
+    // Patience stops while the tutorial runs or the story popup is open. Each owner keeps its own flag, so one
+    // closing can never leave the other's freeze switched on (that left every customer waiting forever).
+    public static bool FrozenByTutorial, FrozenByStory;
+    public static bool PatienceFrozen => FrozenByTutorial || FrozenByStory;
     [System.NonSerialized] public BaristaStaff claimedBy;          // the barista is making this customer's drink
 
     public float Patience { get; private set; }

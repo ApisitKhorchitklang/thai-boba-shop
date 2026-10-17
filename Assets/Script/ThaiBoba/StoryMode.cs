@@ -156,6 +156,7 @@ public class StoryMode : MonoBehaviour
     {
         Instance = this;
         if (panel != null) panel.SetActive(false);
+        CustomerController.FrozenByStory = false;                      // statics survive a scene reload
         if (continueButton != null) continueButton.onClick.AddListener(ClosePanel);
     }
 
@@ -251,12 +252,10 @@ public class StoryMode : MonoBehaviour
     }
 
     // ---------------------------------------------------------------- popup
-    bool patienceWasFrozen;
-
     public void ShowPanel()
     {
         if (panel == null) return;
-        if (!panel.activeSelf) { patienceWasFrozen = CustomerController.PatienceFrozen; CustomerController.PatienceFrozen = true; }   // nobody walks out while you read
+        CustomerController.FrozenByStory = true;                       // nobody walks out while you read
         panel.SetActive(true);
         GameAudio.Play(Sfx.Open);
         Refresh();
@@ -265,7 +264,7 @@ public class StoryMode : MonoBehaviour
     public void ClosePanel()
     {
         if (panel == null) return;
-        if (panel.activeSelf) CustomerController.PatienceFrozen = patienceWasFrozen;
+        CustomerController.FrozenByStory = false;
         panel.SetActive(false);
         GameAudio.Play(Sfx.Close);
         outroChapter = -1;

@@ -45,6 +45,7 @@ public class TutorialSystem : MonoBehaviour
     {
         Instance = this;
         if (panel != null) panel.SetActive(false);
+        CustomerController.FrozenByTutorial = false;                   // statics survive a scene reload
     }
 
     void OnDestroy()
@@ -88,7 +89,7 @@ public class TutorialSystem : MonoBehaviour
         Spawner.TutorialOrder = new Order(1, true, "ThaiTea", DrinkMenu.NextSweetness(100));   // one press of the syrup
         Spawner.TutorialCustomerSpawned = CustomerController.Front != null;   // replay mid-day: teach on the current customer
         Spawner.TutorialActive = true;
-        CustomerController.PatienceFrozen = true;
+        CustomerController.FrozenByTutorial = true;
         if (clock != null) { savedTimeScale = clock.timeScale; clock.timeScale = 0f; }
 
         if (arrowPrefab != null && arrow == null)
@@ -107,7 +108,7 @@ public class TutorialSystem : MonoBehaviour
     {
         Running = false;
         Spawner.TutorialActive = false;
-        CustomerController.PatienceFrozen = false;
+        CustomerController.FrozenByTutorial = false;
         if (clock != null && clock.timeScale == 0f) clock.timeScale = savedTimeScale;
         if (arrow != null) Destroy(arrow);
         if (panel != null) panel.SetActive(false);
