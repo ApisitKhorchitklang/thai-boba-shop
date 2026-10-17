@@ -261,6 +261,16 @@ public static partial class ThaiBobaSetup
         Add(Sfx.Step, 0.35f, 0, "sfx_step0", "sfx_step1", "sfx_step2", "sfx_step3", "sfx_step4");
         Add(Sfx.Thunder, 1f, 0, "sfx_thunder");
         Add(Sfx.Camera, 0.8f, 0, "sfx_camera");
+        // synthesized in ArtSource/Audio/synth_sfx.py
+        Add(Sfx.Blender, 0.85f, 0, "sfx_blender");
+        Add(Sfx.Meow, 0.75f, 0, "sfx_meow", "sfx_meow2");
+        Add(Sfx.Chop, 0.6f, 0, "sfx_chop", "sfx_chop2");
+        Add(Sfx.Firecracker, 1f, 0, "sfx_firecracker");
+        Add(Sfx.AppOrder, 0.75f, 0, "sfx_app_order");
+        Add(Sfx.Shake, 0.6f, 0, "sfx_shake");
+        Add(Sfx.HornMoto, 0.7f, 0, "sfx_horn_moto");
+        Add(Sfx.Medal, 0.75f, 0, "jingle_medal");
+        Add(Sfx.Chapter, 0.75f, 0, "jingle_chapter");
         a.music = Clip("music_shop");
         a.trafficLoop = Clip("amb_traffic");
         a.rainLoop = Clip("amb_rain");
@@ -271,6 +281,8 @@ public static partial class ThaiBobaSetup
         Transform pot = Marker("BoilingPot", refs.root.transform, 0.5f, 6.5f, 0);
         pot.localPosition += Vector3.up * 1.2f;
         a.boilingPoint = pot;
+        a.crowdPoint = Marker("CrowdPoint", refs.root.transform, -1.2f, -1.0f, 0);
+        a.crowdPoint.localPosition += Vector3.up * 1.4f;
         return a;
     }
 }

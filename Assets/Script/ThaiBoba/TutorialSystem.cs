@@ -24,7 +24,7 @@ public class TutorialSystem : MonoBehaviour
     public GameObject arrowPrefab;
     public float arrowHeight = 0.12f;
 
-    public enum Step { Look, WaitCustomer, Cook, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam, Blend, Marshmallow }   // Foam/Blend/Marshmallow: only when the order asks for it
+    public enum Step { Look, WaitCustomer, Cook, TakeCup, Pour, Boba, Ice, Sweet, Seal, Serve, WrongCup, Done, Foam, Blend, Marshmallow, Topping }   // Foam/Blend/Marshmallow/Topping: only when the order asks for it
     public const int TotalSteps = 10;
 
     public bool Running { get; private set; }
@@ -197,6 +197,7 @@ public class TutorialSystem : MonoBehaviour
         if (o.wantsFoam && !cup.hasFoam) return Step.Foam;
         if (o.blended && !cup.blended) return Step.Blend;
         if (o.marshmallow && !cup.marshmallow) return Step.Marshmallow;
+        if (!string.IsNullOrEmpty(o.topping) && cup.topping != o.topping) return Step.Topping;
         if (cup.State != CupController.CupState.LidClosed) return Step.Seal;
         return Step.Serve;
     }
@@ -209,6 +210,7 @@ public class TutorialSystem : MonoBehaviour
         if (cup.hasFoam && !o.wantsFoam) return true;
         if (cup.blended && !o.blended) return true;
         if (cup.marshmallow && !o.marshmallow) return true;
+        if (!string.IsNullOrEmpty(cup.topping) && cup.topping != o.topping) return true;
         if (cup.watered) return true;
         if (cup.State == CupController.CupState.LidClosed && !cup.MatchesOrder(o)) return true;
         return false;
@@ -298,6 +300,12 @@ public class TutorialSystem : MonoBehaviour
                 body = Loc.T($"เมนูหน้าหนาว · ไปที่<b>โหลมาร์ชเมลโลว์</b>บนรถเข็นเมนูตามฤดู แล้ว{use}",
                              $"Cool-season menu · go to the <b>marshmallow jar</b> on the seasonal cart and {use}");
                 break;
+            case Step.Topping:
+                DrinkMenu.Topping tp = DrinkMenu.GetTopping(o.topping);
+                title = Loc.T("ใส่", "Add ") + (tp != null ? tp.Name : "");
+                body = Loc.T($"ออเดอร์นี้ขอท็อปปิ้ง · ไปที่<b>ถาดท็อปปิ้ง</b>ข้างผนังขวา เลือกถาด<b>{tp?.nameTH}</b> แล้ว{use}",
+                             $"This order wants a topping · go to the <b>topping bar</b> by the right wall, pick the <b>{tp?.nameEN}</b> tub and {use}");
+                break;
             case Step.Seal:
                 title = Loc.T("ซีลฝาแก้ว", "Seal the cup");
                 body = Loc.T($"เดินไปที่<b>เครื่องซีล</b>บนเคาน์เตอร์ แล้ว{use} · ซีลแล้วจะใส่อะไรเพิ่มไม่ได้",
@@ -322,7 +330,7 @@ public class TutorialSystem : MonoBehaviour
         SetButtonLabel(skipButton, pc ? Loc.T("ข้าม", "Skip") + " <size=80%>[Tab]</size>" : Loc.T("ข้าม", "Skip"));
         SetButtonLabel(finishButton, pc ? Loc.T("เริ่มขายเลย!", "Let's sell!") + " <size=80%>[Enter]</size>" : Loc.T("เริ่มขายเลย!", "Let's sell!"));
         if (stepText != null)
-            stepText.text = Current == Step.Done ? Loc.T("เสร็จ!", "Done!") : Current == Step.WrongCup ? "!" : Current == Step.Foam || Current == Step.Blend || Current == Step.Marshmallow ? "+" : $"{(int)Current + 1}/{TotalSteps}";
+            stepText.text = Current == Step.Done ? Loc.T("เสร็จ!", "Done!") : Current == Step.WrongCup ? "!" : Current == Step.Foam || Current == Step.Blend || Current == Step.Marshmallow || Current == Step.Topping ? "+" : $"{(int)Current + 1}/{TotalSteps}";
         if (titleText != null) titleText.text = title;
         if (bodyText != null) bodyText.text = body;
     }
@@ -374,6 +382,7 @@ public class TutorialSystem : MonoBehaviour
             case Step.Foam: return Station(IngredientStation.Kind.Foam, null);
             case Step.Blend: return Station(IngredientStation.Kind.Blend, null);
             case Step.Marshmallow: return Station(IngredientStation.Kind.Marshmallow, null);
+            case Step.Topping: return Station(IngredientStation.Kind.Topping, front != null && front.order != null ? front.order.topping : null);
             case Step.Seal: return Find<SealerStation>();
             case Step.Serve: return Find<ServeStation>();
             case Step.WrongCup: return Find<TrashStation>();

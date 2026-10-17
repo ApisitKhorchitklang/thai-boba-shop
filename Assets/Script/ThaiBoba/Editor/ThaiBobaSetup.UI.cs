@@ -83,6 +83,12 @@ public static partial class ThaiBobaSetup
         ["สั่งของ · คอมพิวเตอร์ร้าน"] = "Order supplies · Shop PC",
         ["สินค้าส่งถึงร้านในไม่กี่วินาที · เงินหักทันทีที่สั่ง"] = "Deliveries arrive in a few seconds · paid when you order",
         ["ยังไม่มีเซฟ · เกมจะบันทึกอัตโนมัติตอนจบแต่ละวัน"] = "No saves yet · the game saves automatically at the end of each day",
+        ["สถิติ & เหรียญรางวัล"] = "Stats & medals",
+        ["สถิติ & เหรียญ"] = "Stats & medals",
+        ["เนื้อเรื่อง"] = "Story",
+        ["ไปกันเลย!"] = "Let's go!",
+        ["หมุน"] = "Turn",
+        ["เสร็จ"] = "Done",
     };
 
     static void Localize(TMP_Text t)
@@ -332,6 +338,40 @@ public static partial class ThaiBobaSetup
         hud.patienceFill.type = Image.Type.Filled;
         hud.patienceFill.fillMethod = Image.FillMethod.Horizontal;
 
+        // right, under the order: the delivery app ticket (shown while one is open)
+        Image dcard = Img(game, "DeliveryCard", "panel", MR, MR, new Vector2(-20, -140), new Vector2(460, 190));
+        Img(dcard.transform, "Icon", "icon_clock", TL, TL, new Vector2(22, -16), new Vector2(52, 52));
+        TMP_Text dTitle = Label(dcard.transform, "Title", "", 25, Pink, TextAlignmentOptions.MidlineLeft, TL, TL, new Vector2(84, -16), new Vector2(360, 52), true);
+        TMP_Text dItems = Label(dcard.transform, "Items", "", 18, Brown, TextAlignmentOptions.TopLeft, TL, TL, new Vector2(24, -70), new Vector2(420, 84));
+        dItems.enableAutoSizing = true;
+        dItems.fontSizeMin = 13;
+        dItems.fontSizeMax = 18;
+        Img(dcard.transform, "TimerBack", "panel_dark", BC, BC, new Vector2(0, 16), new Vector2(400, 20));
+        Image dFill = Img(dcard.transform, "TimerFill", "chip", BC, BC, new Vector2(0, 19), new Vector2(392, 14));
+        dFill.type = Image.Type.Filled;
+        dFill.fillMethod = Image.FillMethod.Horizontal;
+        DeliverySystem delivery = Object.FindFirstObjectByType<DeliverySystem>();
+        if (delivery != null) { delivery.card = dcard.gameObject; delivery.cardTitle = dTitle; delivery.cardItems = dItems; delivery.timerFill = dFill; }
+        dcard.gameObject.SetActive(false);
+
+        // left, under the goals: the story chapter (tap to open the story)
+        StoryMode story = Object.FindFirstObjectByType<StoryMode>();
+        Button storyChip = Btn(game, "StoryChip", "chip", "", "icon_star", ML, new Vector2(255, -122), new Vector2(470, 62), 22, Brown,
+                               story != null ? (UnityAction)story.ShowPanel : null);
+        if (story != null) story.hudChip = storyChip.GetComponentInChildren<TMP_Text>();
+
+        // arrange mode: hint bar (top) + turn / done buttons for touch
+        Image arrange = Img(game, "ArrangeBar", "panel_dark", TC, TC, new Vector2(0, -132), new Vector2(1180, 72));
+        TMP_Text arrangeText = FillLabel(arrange.transform, "", 24, Color.white, TextAlignmentOptions.Midline, 20, 20);
+        RectTransform arrangeTouch = Stretch(game, "ArrangeTouch");
+        DesktopPlayerInput pin = Object.FindFirstObjectByType<DesktopPlayerInput>();
+        Btn(arrangeTouch, "Turn", "round_blue", "หมุน", null, BR, new Vector2(-150, 420), new Vector2(150, 150), 32, Color.white, pin != null ? (UnityAction)pin.RotateButton : null);
+        Btn(arrangeTouch, "Done", "button_green", "เสร็จ", null, BR, new Vector2(-400, 300), new Vector2(200, 90), 32, Color.white, pin != null ? (UnityAction)pin.DoneArrangingButton : null);
+        DecorPlacement placement = Object.FindFirstObjectByType<DecorPlacement>();
+        if (placement != null) { placement.hintBar = arrange.gameObject; placement.hintText = arrangeText; placement.touchButtons = arrangeTouch.gameObject; }
+        arrange.gameObject.SetActive(false);
+        arrangeTouch.gameObject.SetActive(false);
+
         // left: daily goals card
         Image goals = Img(game, "GoalsCard", "panel", ML, ML, new Vector2(20, 30), new Vector2(470, 230));
         Img(goals.transform, "Icon", "icon_trophy", TL, TL, new Vector2(24, -18), new Vector2(60, 60));
@@ -377,8 +417,9 @@ public static partial class ThaiBobaSetup
         FillLabel(ob.transform, "สั่งของ · คอมพิวเตอร์ร้าน", 36, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
         OrderPanel orderPc = hud.gameObject.AddComponent<OrderPanel>();
         orderPc.panel = op.gameObject;
-        orderPc.supplyTab = Btn(op.transform, "TabSupply", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(-165, -112), new Vector2(310, 62), 26, Brown);
-        orderPc.decorTab = Btn(op.transform, "TabDecor", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(165, -112), new Vector2(310, 62), 26, Brown);
+        orderPc.supplyTab = Btn(op.transform, "TabSupply", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(-312, -112), new Vector2(296, 62), 23, Brown);
+        orderPc.decorTab = Btn(op.transform, "TabDecor", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(0, -112), new Vector2(296, 62), 23, Brown);
+        orderPc.staffTab = Btn(op.transform, "TabStaff", "button_cream", "", null, new Vector2(0.5f, 1), new Vector2(312, -112), new Vector2(296, 62), 23, Brown);
 
         RectTransform sg = Stretch(op.transform, "SupplyGroup");
         orderPc.supplyGroup = sg.gameObject;
@@ -402,8 +443,8 @@ public static partial class ThaiBobaSetup
                                    new Vector2(0, -180), new Vector2(940, 56));
         for (int i = 0; i < 8; i++)
         {
-            bool big = i >= 6;                                                     // helper + expansion
-            Button b = Btn(dg, "Decor" + i, big ? "button_orange" : "button_green", "", null, new Vector2(0.5f, 1),
+            string look = i == 7 ? "button_blue" : i == 6 ? "button_orange" : "button_green";   // expansion, then "arrange the shop"
+            Button b = Btn(dg, "Decor" + i, look, "", null, new Vector2(0.5f, 1),
                            new Vector2(-232 + (i % 2) * 464, -262 - (i / 2) * 104), new Vector2(448, 96), 25, Color.white);
             TMP_Text t = b.GetComponentInChildren<TMP_Text>();
             t.lineSpacing = -18;
@@ -411,6 +452,22 @@ public static partial class ThaiBobaSetup
             orderPc.decorLabels[i] = t;
         }
         dg.gameObject.SetActive(false);
+
+        RectTransform stg = Stretch(op.transform, "StaffGroup");
+        orderPc.staffGroup = stg.gameObject;
+        orderPc.staffInfo = Label(stg, "Info", "", 25, Brown, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f),
+                                  new Vector2(0, -180), new Vector2(940, 56));
+        for (int i = 0; i < 5; i++)
+        {
+            string look = i == 3 ? "button_blue" : i == 4 ? "button_pink" : i == 2 ? "button_orange" : "button_green";
+            Vector2 at = i < 4 ? new Vector2(-232 + (i % 2) * 464, -270 - (i / 2) * 118) : new Vector2(0, -506);
+            Button b = Btn(stg, "Staff" + i, look, "", null, new Vector2(0.5f, 1), at, new Vector2(i < 4 ? 448 : 560, 106), 24, Color.white);
+            TMP_Text t = b.GetComponentInChildren<TMP_Text>();
+            t.lineSpacing = -18;
+            orderPc.staffButtons[i] = b;
+            orderPc.staffLabels[i] = t;
+        }
+        stg.gameObject.SetActive(false);
 
         orderPc.closeButton = Btn(op.transform, "Close", "button_pink", "ปิด", null, new Vector2(0.5f, 0), new Vector2(0, 70), new Vector2(300, 88), 32, Color.white);
         orderPc.closeLabel = orderPc.closeButton.GetComponentInChildren<TMP_Text>();
@@ -551,12 +608,13 @@ public static partial class ThaiBobaSetup
         Label(main.transform, "Subtitle", "Thai Boba Shop · เกมเปิดร้านชานมในซอยไทย", 32, Cream, TextAlignmentOptions.Midline,
               new Vector2(0.27f, 0.5f), C, new Vector2(0, -262), new Vector2(900, 60));
         Image card = Img(main.transform, "Buttons", "panel", new Vector2(0.73f, 0.5f), C, Vector2.zero, new Vector2(640, 858));
-        Button cont = Btn(card.transform, "Continue", "button_pink", "เล่นต่อ", "icon_play", new Vector2(0.5f, 1), new Vector2(0, -110), new Vector2(540, 108), 36, Color.white, menus.ContinueButton);
-        Button newG = Btn(card.transform, "NewGame", "button_cream", "เริ่มเกมใหม่", "icon_shop", new Vector2(0.5f, 1), new Vector2(0, -232), new Vector2(540, 104), 34, Brown, menus.NewGameButton);
-        Btn(card.transform, "Challenge", "button_green", "ท้าทายรายวัน", "icon_trophy", new Vector2(0.5f, 1), new Vector2(0, -350), new Vector2(540, 104), 34, Color.white, menus.ChallengeButton);
-        Btn(card.transform, "Load", "button_cream", "โหลดวันที่บันทึกไว้", "icon_calendar", new Vector2(0.5f, 1), new Vector2(0, -468), new Vector2(540, 104), 32, Brown, menus.OpenLoad);
-        Btn(card.transform, "Settings", "button_cream", "ตั้งค่า", "icon_gear", new Vector2(0.5f, 1), new Vector2(0, -586), new Vector2(540, 104), 34, Brown, menus.OpenSettings);
-        Btn(card.transform, "Quit", "button_orange", "ออกจากเกม", "icon_home", new Vector2(0.5f, 1), new Vector2(0, -704), new Vector2(540, 104), 34, Color.white, menus.QuitButton);
+        Button cont = Btn(card.transform, "Continue", "button_pink", "เล่นต่อ", "icon_play", new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(540, 100), 34, Color.white, menus.ContinueButton);
+        Button newG = Btn(card.transform, "NewGame", "button_cream", "เริ่มเกมใหม่", "icon_shop", new Vector2(0.5f, 1), new Vector2(0, -206), new Vector2(540, 94), 32, Brown, menus.NewGameButton);
+        Btn(card.transform, "Challenge", "button_green", "ท้าทายรายวัน", "icon_trophy", new Vector2(0.5f, 1), new Vector2(0, -312), new Vector2(540, 94), 32, Color.white, menus.ChallengeButton);
+        Btn(card.transform, "Load", "button_cream", "โหลดวันที่บันทึกไว้", "icon_calendar", new Vector2(0.5f, 1), new Vector2(0, -418), new Vector2(540, 94), 30, Brown, menus.OpenLoad);
+        Btn(card.transform, "Stats", "button_cream", "สถิติ & เหรียญ", "icon_star", new Vector2(0.5f, 1), new Vector2(0, -524), new Vector2(540, 94), 32, Brown, menus.OpenStats);
+        Btn(card.transform, "Settings", "button_cream", "ตั้งค่า", "icon_gear", new Vector2(0.5f, 1), new Vector2(0, -630), new Vector2(540, 94), 32, Brown, menus.OpenSettings);
+        Btn(card.transform, "Quit", "button_orange", "ออกจากเกม", "icon_home", new Vector2(0.5f, 1), new Vector2(0, -736), new Vector2(540, 94), 32, Color.white, menus.QuitButton);
         menus.continueButton = cont;
         menus.continueLabel = cont.GetComponentInChildren<TMP_Text>();
         menus.newGameLabel = newG.GetComponentInChildren<TMP_Text>();
@@ -569,15 +627,17 @@ public static partial class ThaiBobaSetup
 
         // ----- pause
         GameObject pause = Overlay("PauseMenu", 0.55f);
-        Image pcard = Img(pause.transform, "Card", "panel", C, C, Vector2.zero, new Vector2(640, 874));
+        Image pcard = Img(pause.transform, "Card", "panel", C, C, Vector2.zero, new Vector2(640, 1000));
         Image pr = Img(pcard.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), C, new Vector2(0, -6), new Vector2(460, 100));
         FillLabel(pr.transform, "หยุดเกม", 40, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
-        Btn(pcard.transform, "Resume", "button_pink", "เล่นต่อ", "icon_play", new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(520, 100), 34, Color.white, menus.ResumeButton);
-        Btn(pcard.transform, "Save", "button_green", "บันทึกเกม", "icon_save", new Vector2(0.5f, 1), new Vector2(0, -254), new Vector2(520, 100), 34, Color.white, menus.SaveButton);
-        Btn(pcard.transform, "Load", "button_cream", "โหลดวันที่บันทึกไว้", "icon_calendar", new Vector2(0.5f, 1), new Vector2(0, -368), new Vector2(520, 100), 30, Brown, menus.OpenLoad);
-        Btn(pcard.transform, "Settings", "button_cream", "ตั้งค่า", "icon_gear", new Vector2(0.5f, 1), new Vector2(0, -482), new Vector2(520, 100), 34, Brown, menus.OpenSettings);
-        Btn(pcard.transform, "Tutorial", "button_cream", "เล่นบทสอนอีกครั้ง", "icon_star", new Vector2(0.5f, 1), new Vector2(0, -596), new Vector2(520, 100), 30, Brown, menus.ReplayTutorialButton);
-        Btn(pcard.transform, "MainMenu", "button_orange", "กลับเมนูหลัก", "icon_home", new Vector2(0.5f, 1), new Vector2(0, -710), new Vector2(520, 100), 34, Color.white, menus.MainMenuButton);
+        Btn(pcard.transform, "Resume", "button_pink", "เล่นต่อ", "icon_play", new Vector2(0.5f, 1), new Vector2(0, -135), new Vector2(520, 92), 32, Color.white, menus.ResumeButton);
+        Btn(pcard.transform, "Save", "button_green", "บันทึกเกม", "icon_save", new Vector2(0.5f, 1), new Vector2(0, -239), new Vector2(520, 92), 32, Color.white, menus.SaveButton);
+        Btn(pcard.transform, "Story", "button_cream", "เนื้อเรื่อง", "icon_star", new Vector2(0.5f, 1), new Vector2(0, -343), new Vector2(520, 92), 32, Brown, menus.StoryButton);
+        Btn(pcard.transform, "Stats", "button_cream", "สถิติ & เหรียญ", "icon_trophy", new Vector2(0.5f, 1), new Vector2(0, -447), new Vector2(520, 92), 32, Brown, menus.OpenStats);
+        Btn(pcard.transform, "Load", "button_cream", "โหลดวันที่บันทึกไว้", "icon_calendar", new Vector2(0.5f, 1), new Vector2(0, -551), new Vector2(520, 92), 29, Brown, menus.OpenLoad);
+        Btn(pcard.transform, "Settings", "button_cream", "ตั้งค่า", "icon_gear", new Vector2(0.5f, 1), new Vector2(0, -655), new Vector2(520, 92), 32, Brown, menus.OpenSettings);
+        Btn(pcard.transform, "Tutorial", "button_cream", "เล่นบทสอนอีกครั้ง", "icon_play", new Vector2(0.5f, 1), new Vector2(0, -759), new Vector2(520, 92), 29, Brown, menus.ReplayTutorialButton);
+        Btn(pcard.transform, "MainMenu", "button_orange", "กลับเมนูหลัก", "icon_home", new Vector2(0.5f, 1), new Vector2(0, -863), new Vector2(520, 92), 32, Color.white, menus.MainMenuButton);
 
         // ----- settings
         GameObject settings = Overlay("SettingsMenu", 0.6f);
@@ -622,6 +682,66 @@ public static partial class ThaiBobaSetup
                                     TextAlignmentOptions.Midline, C, C, new Vector2(0, 40), new Vector2(900, 80));
         Btn(lcard.transform, "Back", "button_pink", "กลับ", "icon_home", new Vector2(0.5f, 0), new Vector2(0, 80), new Vector2(360, 100), 34, Color.white, menus.Back);
 
+        // ----- stats & medals
+        GameObject stats = Overlay("StatsMenu", 0.6f);
+        Image tcard = Img(stats.transform, "Card", "panel", C, C, Vector2.zero, new Vector2(1640, 960));
+        Image trib = Img(tcard.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), C, new Vector2(0, -6), new Vector2(640, 100));
+        FillLabel(trib.transform, "สถิติ & เหรียญรางวัล", 38, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
+        menus.statsText = Label(tcard.transform, "Stats", "", 25, Brown, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(60, -120), new Vector2(620, 700));
+        menus.statsText.enableAutoSizing = true;
+        menus.statsText.fontSizeMin = 16;
+        menus.statsText.fontSizeMax = 25;
+        menus.medalCountText = Label(tcard.transform, "MedalCount", "", 30, Pink, TextAlignmentOptions.MidlineLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(720, -100), new Vector2(860, 56), true);
+        RectTransform grid = Rect(tcard.transform, "MedalGrid", new Vector2(0, 1), new Vector2(0, 1), new Vector2(720, -160), new Vector2(880, 690));
+        GridLayoutGroup gl = grid.gameObject.AddComponent<GridLayoutGroup>();
+        gl.cellSize = new Vector2(212, 128);
+        gl.spacing = new Vector2(10, 10);
+        gl.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        gl.constraintCount = 4;
+        Image cell = Img(grid, "MedalTemplate", "button_cream", new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(212, 128));
+        Img(cell.transform, "Icon", "icon_star", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(54, 54));
+        TMP_Text cellLabel = Label(cell.transform, "Label", "", 17, Brown, TextAlignmentOptions.Top, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(200, 62));
+        cellLabel.enableAutoSizing = true;
+        cellLabel.fontSizeMin = 11;
+        cellLabel.fontSizeMax = 17;
+        menus.medalGrid = grid;
+        menus.medalTemplate = cell.gameObject;
+        var iconNames = new List<string>();
+        foreach (StatsSystem.Medal m in StatsSystem.Medals) if (!iconNames.Contains(m.icon)) iconNames.Add(m.icon);
+        menus.medalIconNames = iconNames.ToArray();
+        menus.medalIconSprites = iconNames.ConvertAll(n => S(n)).ToArray();
+        Btn(tcard.transform, "Back", "button_pink", "กลับ", "icon_home", new Vector2(0.5f, 0), new Vector2(0, 70), new Vector2(360, 100), 34, Color.white, menus.Back);
+        menus.statsPanel = stats;
+
+        // ----- story popup (StoryMode)
+        GameObject storyP = Overlay("StoryPanel", 0.6f);
+        Image scard2 = Img(storyP.transform, "Card", "panel", C, C, Vector2.zero, new Vector2(1240, 880));
+        Image srib = Img(scard2.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), C, new Vector2(0, -6), new Vector2(560, 100));
+        TMP_Text sChapter = FillLabel(srib.transform, "", 34, Color.white, TextAlignmentOptions.Midline, 10, 10, true);
+        sChapter.margin = new Vector4(0, 0, 0, 10);
+        TMP_Text sTitle = Label(scard2.transform, "Title", "", 40, Pink, TextAlignmentOptions.Midline, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(1100, 70), true);
+        TMP_Text sBody = Label(scard2.transform, "Body", "", 26, Brown, TextAlignmentOptions.TopLeft, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -180), new Vector2(1120, 400));
+        sBody.enableAutoSizing = true;
+        sBody.fontSizeMin = 17;
+        sBody.fontSizeMax = 26;
+        TMP_Text sGoals = Label(scard2.transform, "Goals", "", 26, Brown, TextAlignmentOptions.TopLeft, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -590), new Vector2(1120, 150));
+        sGoals.enableAutoSizing = true;
+        sGoals.fontSizeMin = 17;
+        sGoals.fontSizeMax = 26;
+        Button sGo = Btn(scard2.transform, "Continue", "button_pink", "ไปกันเลย!", "icon_play", new Vector2(0.5f, 0), new Vector2(0, 66), new Vector2(380, 96), 34, Color.white);
+        foreach (TMP_Text t in new[] { sChapter, sTitle, sBody, sGoals }) Unlocalize(t);
+        StoryMode storyMode = Object.FindFirstObjectByType<StoryMode>();
+        if (storyMode != null)
+        {
+            storyMode.panel = storyP;
+            storyMode.chapterText = sChapter;
+            storyMode.titleText = sTitle;
+            storyMode.bodyText = sBody;
+            storyMode.goalsText = sGoals;
+            storyMode.continueButton = sGo;
+        }
+        storyP.SetActive(false);
+
         menus.mainMenu = main;
         menus.pausePanel = pause;
         menus.settingsPanel = settings;
@@ -629,6 +749,7 @@ public static partial class ThaiBobaSetup
         pause.SetActive(false);
         settings.SetActive(false);
         load.SetActive(false);
+        stats.SetActive(false);
         menus.gameplayUI = new[] { hud.transform.Find("Gameplay").gameObject };
 
         // cinematic camera behind the main menu

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3229233588780030187}
   - component: {fileID: 3475955288802287532}
   - component: {fileID: 2761940220570716147}
+  - component: {fileID: 2741757022841799459}
   - component: {fileID: 1818890374669387725}
   m_Layer: 0
   m_Name: Traffic_Car_Taxi_GreenYellow
@@ -65,6 +66,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 828a678f3c1e74440a10e0836af2b47f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelSpin
+--- !u!114 &2741757022841799459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7342500866223921553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd116cae883ce3e449ab78d18573cbb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleLights
+  glowMaterial: {fileID: 2100000, guid: 4568b36a31854034387fd5e06f3d3213, type: 2}
+  headlights:
+  - {x: -0.600407, y: 0.5328817, z: 2.2398756}
+  - {x: 0.60040706, y: 0.5328817, z: 2.2398756}
+  taillights:
+  - {x: -0.63641286, y: 0.8477269, z: -2.2161818}
+  - {x: 0.63641286, y: 0.8477269, z: -2.2161818}
+  poolLength: 7
+  poolWidth: 3.2
+  headColor: {r: 1, g: 0.92, b: 0.75, a: 1}
+  tailColor: {r: 1, g: 0.08, b: 0.05, a: 1}
 --- !u!114 &1818890374669387725
 MonoBehaviour:
   m_ObjectHideFlags: 0

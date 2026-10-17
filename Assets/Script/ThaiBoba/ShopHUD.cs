@@ -244,6 +244,8 @@ public class ShopHUD : MonoBehaviour
         if (cup.hasFoam) ice += Loc.T(" · ชีสโฟม", " · cheese foam");
         if (cup.blended) ice += Loc.T(" · ปั่น", " · blended");
         if (cup.marshmallow) ice += Loc.T(" · มาร์ชเมลโลว์", " · marshmallows");
+        DrinkMenu.Topping tp = DrinkMenu.GetTopping(cup.topping);
+        if (tp != null) ice += " · " + tp.Name;
         if (cup.watered) ice += Loc.T(" · <color=#4FA3E0>เปียกน้ำ!</color>", " · <color=#4FA3E0>soaked!</color>");
         return Loc.T($"ในมือ: {tea} · ไข่มุก {cup.bobaCount} · {ice} · {DrinkMenu.SweetTH(cup.sweetness)} · {seal}",
                      $"Holding: {tea} · pearls {cup.bobaCount} · {ice} · {DrinkMenu.SweetTH(cup.sweetness)} · {seal}");
@@ -256,13 +258,24 @@ public class ShopHUD : MonoBehaviour
         if (eventIcon != null)
         {
             Sprite s = ev.type == DailyEventSystem.EventType.HeavyRain ? rainIcon
-                     : ev.type == DailyEventSystem.EventType.Songkran || ev.type == DailyEventSystem.EventType.NightMarket ||
-                       ev.type == DailyEventSystem.EventType.Payday ? festivalIcon : sunIcon;
+                     : DailyEventSystem.IsFestival(ev.type) || ev.type == DailyEventSystem.EventType.Payday ? festivalIcon : sunIcon;
             if (s != null) eventIcon.sprite = s;
         }
     }
 
     static string Regulars() => RegularsSystem.Instance != null ? RegularsSystem.Instance.TodaySummary() : "";
+
+    // deliveries, toppings, the barista, ang pao + the rival across the street
+    static string Extras(ShopProgress.DayStats s)
+    {
+        var parts = new List<string>();
+        if (s.deliveries + s.deliveriesLate > 0) parts.Add(Loc.T($"เดลิเวอรี่ทัน {s.deliveries} · ไม่ทัน {s.deliveriesLate}", $"Deliveries {s.deliveries} on time · {s.deliveriesLate} late"));
+        if (s.toppings > 0) parts.Add(Loc.T($"ท็อปปิ้ง {s.toppings}", $"Toppings {s.toppings}"));
+        if (s.staffDrinks > 0) parts.Add(Loc.T($"พนักงานชงให้ {s.staffDrinks} แก้ว", $"Barista served {s.staffDrinks}"));
+        if (s.angPao > 0) parts.Add(Loc.T($"อั่งเปา {s.angPao} ซอง", $"Ang pao {s.angPao}"));
+        string line = parts.Count > 0 ? "\n<size=90%>" + string.Join("   ·   ", parts) + "</size>" : "";
+        return line + (RivalShop.Instance != null ? RivalShop.Instance.SummaryLine() : "");
+    }
 
     // best seller + busiest hour, to plan tomorrow (cook pearls before the rush, stock up the favourite)
     static string Insights(ShopProgress.DayStats s)
@@ -342,13 +355,13 @@ public class ShopHUD : MonoBehaviour
                   $"Best combo  x{s.bestCombo}\n\n" +
                   $"Sales  <color=#4E8A3C>+{s.revenue} ฿</color>     Tips  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
                   $"Bonus  <color=#4E8A3C>+{s.bonus} ฿</color>     Expenses  <color=#C23A66>-{s.expenses} ฿</color>\n" +
-                  $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + Insights(s) + Regulars() + lastStock
+                  $"<size=125%><b>Net profit  {s.Profit} ฿</b></size>" + Insights(s) + Extras(s) + Regulars() + lastStock
                 : $"เสิร์ฟ  <b>{s.served}</b> แก้ว   (เป๊ะ {s.perfect} · พอใช้ {s.okay})\n" +
                   $"ลูกค้าเดินหนี  {s.angry}     แก้วโดนปฏิเสธ  {s.rejected}\n" +
                   $"คอมโบสูงสุด  x{s.bestCombo}\n\n" +
                   $"ยอดขาย  <color=#4E8A3C>+{s.revenue} ฿</color>     ทิป  <color=#4E8A3C>+{s.tips} ฿</color>\n" +
                   $"โบนัส  <color=#4E8A3C>+{s.bonus} ฿</color>     ค่าใช้จ่าย  <color=#C23A66>-{s.expenses} ฿</color>\n" +
-                  $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + Insights(s) + Regulars() + lastStock;
+                  $"<size=125%><b>กำไรสุทธิ  {s.Profit} ฿</b></size>" + Insights(s) + Extras(s) + Regulars() + lastStock;
         }
         if (upgradesText != null && UpgradeShop.Instance != null)
             upgradesText.text = UpgradeShop.Instance.Describe();

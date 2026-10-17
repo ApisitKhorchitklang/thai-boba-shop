@@ -27,3 +27,8 @@ amb_birds.wav ("Campaign Morning" #0912), amb_night.wav ("Campaign at Night #4" 
     BigSoundBank (CC0)                   https://bigsoundbank.com  (cut / looped in Blender; originals in /AudioSource/bsb_ambience)
 sfx_camera.wav ("iPhone camera" #0448)
     BigSoundBank (CC0)                   https://bigsoundbank.com/iphone-camera-s0448.html
+sfx_blender, sfx_horn_tuk/2, sfx_horn_moto, sfx_tuk_pass (putter layered on sfx_moto_pass), sfx_meow/2, sfx_chop/2,
+sfx_firecracker, sfx_app_order, sfx_shake (.wav)
+    Original, synthesized for this game by ArtSource/Audio/synth_sfx.py (CC0)
+jingle_medal.ogg (jingles_STEEL02), jingle_chapter.ogg (jingles_SAX05)
+    Kenney - Music Jingles               https://kenney.nl/assets/music-jingles

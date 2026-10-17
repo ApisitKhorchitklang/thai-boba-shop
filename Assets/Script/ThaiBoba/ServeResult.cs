@@ -40,7 +40,18 @@ public class ServeResult
         if (cup.stalePearls && cup.bobaCount > 0) r.mistakes.Add(Loc.T("ไข่มุกแข็ง", "hard pearls"));
         if (cup.blended != order.blended) r.mistakes.Add(order.blended ? Loc.T("ลืมปั่น", "forgot to blend") : Loc.T("ไม่ได้สั่งปั่น", "didn't want it blended"));
         if (cup.marshmallow != order.marshmallow) r.mistakes.Add(order.marshmallow ? Loc.T("ลืมมาร์ชเมลโลว์", "forgot the marshmallows") : Loc.T("ไม่ได้สั่งมาร์ชเมลโลว์", "didn't want marshmallows"));
-        if (cup.hasFoam != order.wantsFoam) r.mistakes.Add(order.wantsFoam ? Loc.T("ลืมท็อปชีสโฟม", "forgot the cheese foam") : Loc.T("ไม่ได้สั่งชีสโฟม", "didn't order cheese foam"));
+        bool jayBroken = order.vegetarian && (cup.hasFoam || cup.topping == "Pudding");
+        if (jayBroken) r.mistakes.Add(Loc.T("ลูกค้ากินเจ ไม่ทานนม/ไข่!", "vegetarian: no dairy or egg!"));
+        if (cup.hasFoam != order.wantsFoam && !(jayBroken && cup.hasFoam))
+            r.mistakes.Add(order.wantsFoam ? Loc.T("ลืมท็อปชีสโฟม", "forgot the cheese foam") : Loc.T("ไม่ได้สั่งชีสโฟม", "didn't order cheese foam"));
+        string want = order.topping ?? "", got = cup.topping ?? "";
+        if (want != got && !(jayBroken && got == "Pudding"))
+        {
+            DrinkMenu.Topping tw = DrinkMenu.GetTopping(want), tg = DrinkMenu.GetTopping(got);
+            r.mistakes.Add(tg == null ? Loc.T($"ลืมใส่{tw.nameTH}", $"forgot the {tw.nameEN}")
+                         : tw == null ? Loc.T($"ไม่ได้สั่ง{tg.nameTH}", $"didn't order {tg.nameEN}")
+                         : Loc.T($"ท็อปปิ้งผิด (สั่ง{tw.nameTH})", $"wrong topping (wanted {tw.nameEN})"));
+        }
 
         r.quality = r.mistakes.Count == 0 ? ServeQuality.Perfect : ServeQuality.Okay;
         return r;

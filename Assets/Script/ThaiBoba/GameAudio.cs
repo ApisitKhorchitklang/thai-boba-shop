@@ -6,7 +6,8 @@ public enum Sfx
     Click, Open, Close, Confirm, Error,
     Cup, Boba, Ice, Sweet, Pour, SealStart, SealDone, Trash,
     Coins, Tip, Combo, Angry, Reject, Bless,
-    LevelUp, Goal, DayEnd, Start, Step, Thunder, Camera
+    LevelUp, Goal, DayEnd, Start, Step, Thunder, Camera,
+    Blender, Meow, Chop, Firecracker, AppOrder, Shake, Medal, Chapter, HornMoto
 }
 
 // Music, ambience (traffic / rain / boiling pot) and one-shot sound effects. All clips are CC0 (see Assets/Audio/ThaiBoba/CREDITS.txt).
@@ -35,8 +36,11 @@ public class GameAudio : MonoBehaviour
     public AudioClip marketLoop;         // people chatting along the soi
     [Tooltip("3D position of the boiling pot")]
     public Transform boilingPoint;
+    [Tooltip("In front of the shop: people chatting in line, louder the longer the line")]
+    public Transform crowdPoint;
 
-    AudioSource musicSrc, trafficSrc, rainSrc, boilSrc, birdsSrc, nightSrc, marketSrc;
+    AudioSource musicSrc, trafficSrc, rainSrc, boilSrc, birdsSrc, nightSrc, marketSrc, crowdSrc;
+    readonly List<AudioSource> pool3D = new List<AudioSource>();
     TimeCyc clock;
     readonly List<AudioSource> pool = new List<AudioSource>();
     readonly Dictionary<Sfx, Entry> map = new Dictionary<Sfx, Entry>();
@@ -59,6 +63,29 @@ public class GameAudio : MonoBehaviour
             if (boilingPoint != null) boilSrc.transform.position = boilingPoint.position;
         }
         for (int i = 0; i < 8; i++) pool.Add(gameObject.AddComponent<AudioSource>());
+        if (marketLoop != null && crowdPoint != null)
+        {
+            crowdSrc = Loop(marketLoop, true);
+            crowdSrc.transform.position = crowdPoint.position;
+            crowdSrc.minDistance = 2.5f;
+            crowdSrc.maxDistance = 16f;
+            crowdSrc.pitch = 1.06f;                                     // not in step with the soi-wide murmur
+            crowdSrc.volume = 0f;
+            crowdSrc.time = marketLoop.length * 0.5f;
+        }
+        for (int i = 0; i < 6; i++)
+        {
+            GameObject go = new GameObject("Sfx3D_" + i);
+            go.transform.SetParent(transform, false);
+            AudioSource s = go.AddComponent<AudioSource>();
+            s.playOnAwake = false;
+            s.spatialBlend = 1f;
+            s.rolloffMode = AudioRolloffMode.Linear;
+            s.minDistance = 2f;
+            s.maxDistance = 22f;
+            s.dopplerLevel = 0f;
+            pool3D.Add(s);
+        }
         GameSettings.Changed += ApplyVolumes;
         GameSettings.Apply();
     }
@@ -107,6 +134,13 @@ public class GameAudio : MonoBehaviour
         Fade(birdsSrc, day * 0.2f * dry * sfx);
         Fade(nightSrc, Mathf.Clamp01(night) * 0.24f * dry * sfx);
         Fade(marketSrc, busy * (1f - rain * 0.6f) * sfx);
+        // the line chats: more people waiting = louder murmur at the shopfront
+        if (crowdSrc != null)
+        {
+            float people = CustomerController.Queue.Count + CustomerController.Incoming * 0.4f;
+            float target = GameMenus.GameRunning ? Mathf.Clamp01((people - 1f) / 5f) * 0.42f * sfx * (1f - rain * 0.5f) : 0f;
+            crowdSrc.volume = Mathf.MoveTowards(crowdSrc.volume, target, Time.unscaledDeltaTime * 0.15f);
+        }
     }
 
     static void Fade(AudioSource s, float target)
@@ -122,6 +156,28 @@ public class GameAudio : MonoBehaviour
     public static void Play(Sfx id)
     {
         if (Instance != null) Instance.PlayInternal(id);
+    }
+
+    // A sound out in the world (blender, cats, the chicken-rice cleaver, firecrackers): fades with distance
+    public static void PlayAt(Sfx id, Vector3 position, float volume = 1f, float pitch = 1f)
+    {
+        if (Instance != null) Instance.PlayAtInternal(id, position, volume, pitch);
+    }
+
+    void PlayAtInternal(Sfx id, Vector3 position, float volume, float pitch)
+    {
+        if (!map.TryGetValue(id, out Entry e) || e.clips == null || e.clips.Length == 0) return;
+        AudioClip clip = e.clips[Random.Range(0, e.clips.Length)];
+        if (clip == null || pool3D.Count == 0) return;
+        AudioSource src = pool3D[0];
+        foreach (AudioSource s in pool3D) if (!s.isPlaying) { src = s; break; }
+        src.Stop();
+        src.transform.position = position;
+        src.clip = clip;
+        src.volume = e.volume * volume * GameSettings.Sfx;
+        src.pitch = pitch * Random.Range(0.95f, 1.05f);
+        src.Play();
+        if (e.maxSeconds > 0f) src.SetScheduledEndTime(AudioSettings.dspTime + e.maxSeconds);
     }
 
     void PlayInternal(Sfx id)

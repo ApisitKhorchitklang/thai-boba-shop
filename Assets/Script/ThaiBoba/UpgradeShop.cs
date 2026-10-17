@@ -38,7 +38,7 @@ public class UpgradeShop : MonoBehaviour
         new Upgrade("bigger_pot",  "หม้อต้มไข่มุกใบใหญ่",         "ต้มได้ครั้งละ 50 ที่ + ไข่มุกดิบฟรี 60 ทุกเช้า", 500) { nameEN = "Big pearl pot", descriptionEN = "Cooks 50 portions per batch + 60 free raw pearls every morning" },
         new Upgrade("fast_sealer", "เครื่องซีลรุ่นเทอร์โบ",        "ซีลแก้วเร็วขึ้น 3 เท่า", 600) { nameEN = "Turbo sealer", descriptionEN = "Seals cups 3x faster" },
         new Upgrade("neon",        "ป้ายไฟนีออน",                "ร้านเด่น ลูกค้าเพิ่ม 25%", 800) { nameEN = "Neon sign", descriptionEN = "Stand out: +25% customers" },
-        new Upgrade("delivery",    "เปิดรับเดลิเวอรี่",            "รายได้เพิ่ม 15% ของยอดขายทุกวัน", 1500) { nameEN = "Delivery service", descriptionEN = "Extra income: 15% of daily sales" },
+        new Upgrade("delivery",    "เปิดรับเดลิเวอรี่",            "ออเดอร์จากแอป 2-3 แก้ว ไรเดอร์มารับ (มีเวลาจำกัด)", 1500) { nameEN = "Delivery service", descriptionEN = "App orders of 2-3 drinks, a rider picks them up (timed)" },
     };
 
     public static event Action OnChanged;
@@ -49,7 +49,7 @@ public class UpgradeShop : MonoBehaviour
     public float PatienceMultiplier => (Has("fan") ? 1.2f : 1f) * (Has("seating") ? 1.1f : 1f);
     public float TipMultiplier => (Has("speaker") ? 1.1f : 1f) * (Has("seating") ? 1.1f : 1f);
     public float SpawnMultiplier => Has("neon") ? 1.25f : 1f;
-    public float DeliveryShare => Has("delivery") ? 0.15f : 0f;
+    public float DeliveryShare => 0f;                     // deliveries are real orders now (DeliverySystem), no passive share
 
     void Awake()
     {
@@ -128,7 +128,7 @@ public class UpgradeShop : MonoBehaviour
             case "bigger_pot": return Loc.T("หม้อไข่มุกบนเคาน์เตอร์หลังใหญ่ขึ้นแล้ว", "The pearl pot on the back counter got bigger");
             case "fast_sealer": return Loc.T("เครื่องซีลติดชุดแต่ง TURBO แล้ว", "The sealer now wears its TURBO kit");
             case "neon": return Loc.T("ป้ายนีออนอยู่หน้าตึกกับผนังซ้ายในร้าน", "Neon on the shopfront and on the left wall inside");
-            case "delivery": return Loc.T("มอเตอร์ไซค์ส่งของจอดอยู่หน้าร้าน", "The delivery scooter is parked out front");
+            case "delivery": return Loc.T("ชั้นรับออเดอร์อยู่บนเคาน์เตอร์ข้างเครื่องซีล · ออเดอร์แอปจะเด้งขึ้นทางขวา", "The pick-up rack is on the counter next to the sealer · app orders pop up on the right");
             default: return "";
         }
     }

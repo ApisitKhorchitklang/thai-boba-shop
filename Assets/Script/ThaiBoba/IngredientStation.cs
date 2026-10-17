@@ -3,10 +3,10 @@ using UnityEngine;
 // Pearls / ice / tea / sweetness. Put on SM_BobaPot, SM_IceCooler, each Urn_<id> / Tin_<id>, SM_SyrupBottles.
 public class IngredientStation : MonoBehaviour, IInteractable
 {
-    public enum Kind { Boba, Ice, Flavor, Sweetness, Foam, Blend, Marshmallow }
+    public enum Kind { Boba, Ice, Flavor, Sweetness, Foam, Blend, Marshmallow, Topping }
 
     public Kind kind = Kind.Flavor;
-    [Tooltip("Drink id for Flavor stations (ThaiTea, MilkTea, Matcha, PinkMilk, Taro, Cocoa, RedLime)")]
+    [Tooltip("Drink id for Flavor stations (ThaiTea, MilkTea, Matcha, PinkMilk, Taro, Cocoa, RedLime); topping id for Topping stations (Konjac, Jelly, Pudding)")]
     public string flavorId = "ThaiTea";
     public AudioClip useSfx;
 
@@ -25,6 +25,12 @@ public class IngredientStation : MonoBehaviour, IInteractable
             case Kind.Foam: return Loc.T("ตู้เย็น: ท็อปชีสโฟม", "Fridge: add cheese foam");
             case Kind.Blend: return Loc.T("ปั่นเป็นเฟรปเป้ (ต้องมีชา + น้ำแข็ง)", "Blend into a frappe (needs tea + ice)");
             case Kind.Marshmallow: return Loc.T("ใส่มาร์ชเมลโลว์", "Add marshmallows");
+            case Kind.Topping:
+                DrinkMenu.Topping tp = DrinkMenu.GetTopping(flavorId);
+                if (tp == null) return "";
+                int lv = ShopProgress.Instance != null ? ShopProgress.Instance.level : 99;
+                return DrinkMenu.ToppingUnlocked(tp, lv) ? Loc.T($"ใส่{tp.nameTH} (+{tp.price} ฿)", $"Add {tp.nameEN} (+{tp.price} ฿)")
+                                                         : Loc.T($"{tp.nameTH} (ปลดล็อกที่เลเวล {tp.unlockLevel})", $"{tp.nameEN} (unlocks at level {tp.unlockLevel})");
             case Kind.Sweetness:
                 CupController c = player.HeldCup;
                 return c != null ? Loc.T($"ปรับความหวาน (ตอนนี้ {c.sweetness}%)", $"Change sweetness (now {c.sweetness}%)") : Loc.T("ปรับความหวาน", "Change sweetness");
@@ -90,7 +96,7 @@ public class IngredientStation : MonoBehaviour, IInteractable
                     return;
                 }
                 cup.Blend();
-                GameAudio.Play(Sfx.Ice);
+                GameAudio.PlayAt(Sfx.Blender, transform.position);
                 ShopHUD.ToastNow(Loc.T("ปั่นเป็นเฟรปเป้แล้ว!", "Blended into a frappe!"));
                 break;
 
@@ -105,6 +111,27 @@ public class IngredientStation : MonoBehaviour, IInteractable
                 cup.AddMarshmallow();
                 GameAudio.Play(Sfx.Boba);
                 ShopHUD.ToastNow(Loc.T("ใส่มาร์ชเมลโลว์แล้ว", "Marshmallows added"));
+                break;
+
+            case Kind.Topping:
+                DrinkMenu.Topping top = DrinkMenu.GetTopping(flavorId);
+                if (top == null) return;
+                if (ShopProgress.Instance != null && !DrinkMenu.ToppingUnlocked(top, ShopProgress.Instance.level))
+                {
+                    ShopHUD.ToastNow(Loc.T($"{top.nameTH} ยังไม่ปลดล็อก (เลเวล {top.unlockLevel})", $"{top.nameEN} is still locked (level {top.unlockLevel})"));
+                    return;
+                }
+                if (!cup.CanAddTopping)
+                {
+                    DrinkMenu.Topping had = DrinkMenu.GetTopping(cup.topping);
+                    ShopHUD.ToastNow(cup.State == CupController.CupState.LidClosed ? Loc.T("ซีลแล้ว ใส่เพิ่มไม่ได้", "Already sealed, can't add more")
+                                   : had != null ? Loc.T($"ใส่{had.nameTH}ไปแล้ว (แก้วละ 1 ท็อปปิ้ง)", $"Already has {had.nameEN} (one topping per cup)")
+                                   : Loc.T("หยิบแก้วก่อนนะ", "Take a cup first"));
+                    return;
+                }
+                cup.AddTopping(top.id);
+                GameAudio.Play(Sfx.Boba);
+                ShopHUD.ToastNow(Loc.T($"ใส่{top.nameTH}แล้ว", $"{top.nameEN} added"));
                 break;
 
             case Kind.Foam:

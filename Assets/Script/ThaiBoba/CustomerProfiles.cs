@@ -20,12 +20,15 @@ public static class CustomerProfiles
         public float iceChance;
         public float bobaChance;
         public string[] greet, thanks, okay, wrong, angry;
+        public string[] toppingLikes = new string[0];   // toppings this kind of customer goes for
+        public float toppingChance;
     }
 
     static readonly Dictionary<CustomerType, Profile> profiles = new Dictionary<CustomerType, Profile>
     {
         [CustomerType.Student] = new Profile
         {
+            toppingLikes = new[] { "Pudding", "Jelly", "Pudding" }, toppingChance = 0.35f,
             type = CustomerType.Student, labelTH = "นักเรียน", labelEN = "Student", patience = 45f, payMultiplier = 1f, tipBase = 3,
             favorites = new[] { "PinkMilk", "MilkTea", "Cocoa" }, sweetness = new[] { 100, 120, 100 },
             iceChance = 0.95f, bobaChance = 0.9f,
@@ -37,6 +40,7 @@ public static class CustomerProfiles
         },
         [CustomerType.OfficeWorker] = new Profile
         {
+            toppingLikes = new[] { "Konjac", "Konjac", "Jelly" }, toppingChance = 0.25f,
             type = CustomerType.OfficeWorker, labelTH = "พนักงานออฟฟิศ", labelEN = "Office worker", patience = 35f, payMultiplier = 1f, tipBase = 10,
             favorites = new[] { "ThaiTea", "Matcha", "MilkTea" }, sweetness = new[] { 25, 50, 50, 100 },
             iceChance = 0.85f, bobaChance = 0.5f,
@@ -48,6 +52,7 @@ public static class CustomerProfiles
         },
         [CustomerType.Tourist] = new Profile
         {
+            toppingLikes = new[] { "Pudding", "Jelly" }, toppingChance = 0.35f,
             type = CustomerType.Tourist, labelTH = "นักท่องเที่ยว", labelEN = "Tourist", patience = 75f, payMultiplier = 1.3f, tipBase = 20,
             favorites = new[] { "ThaiTea", "ThaiTea", "Taro" }, sweetness = new[] { 50, 100 },
             iceChance = 1f, bobaChance = 0.8f,
@@ -59,6 +64,7 @@ public static class CustomerProfiles
         },
         [CustomerType.Auntie] = new Profile
         {
+            toppingLikes = new[] { "Jelly", "Jelly", "Konjac" }, toppingChance = 0.3f,
             type = CustomerType.Auntie, labelTH = "ป้าข้างบ้าน", labelEN = "Auntie next door", patience = 90f, payMultiplier = 1f, tipBase = 5,
             favorites = new[] { "ThaiTea", "MilkTea", "Cocoa" }, sweetness = new[] { 0, 25, 25 },
             iceChance = 0.6f, bobaChance = 0.3f,
@@ -70,6 +76,7 @@ public static class CustomerProfiles
         },
         [CustomerType.Rider] = new Profile
         {
+            toppingLikes = new[] { "Konjac", "Pudding" }, toppingChance = 0.15f,
             type = CustomerType.Rider, labelTH = "ไรเดอร์", labelEN = "Delivery rider", patience = 28f, payMultiplier = 1f, tipBase = 8,
             favorites = new[] { "ThaiTea", "Matcha", "Taro", "RedLime" }, sweetness = new[] { 50, 100 },
             iceChance = 1f, bobaChance = 0.7f,
@@ -81,6 +88,7 @@ public static class CustomerProfiles
         },
         [CustomerType.Influencer] = new Profile
         {
+            toppingLikes = new[] { "Pudding", "Jelly", "Konjac" }, toppingChance = 0.5f,
             type = CustomerType.Influencer, labelTH = "รีวิวเวอร์", labelEN = "Reviewer", patience = 60f, payMultiplier = 1f, tipBase = 50,
             favorites = new[] { "Taro", "Matcha", "PinkMilk", "RedLime" }, sweetness = new[] { 25, 50 },
             iceChance = 1f, bobaChance = 1f,
@@ -115,6 +123,7 @@ public static class CustomerProfiles
             student *= ev.Current.studentMultiplier;
             office *= ev.Current.officeMultiplier;
             tourist *= ev.Current.touristMultiplier;
+            auntie *= ev.Current.auntieMultiplier;
         }
 
         float total = student + office + tourist + auntie + rider;
@@ -170,7 +179,45 @@ public static class CustomerProfiles
         WeatherSystem.Season season = w != null ? w.CurrentSeason : WeatherSystem.Season.Hot;
         bool blended = season == WeatherSystem.Season.Hot && ice && System.Array.IndexOf(new[] { "ThaiTea", "Matcha", "Cocoa", "Taro", "MilkTea" }, flavor) >= 0 && ChallengeMode.Value01() < 0.3f;
         bool marsh = season == WeatherSystem.Season.Cool && !ice && System.Array.IndexOf(new[] { "Cocoa", "MilkTea", "ThaiTea" }, flavor) >= 0 && ChallengeMode.Value01() < 0.4f;
-        return new Order(boba, ice, flavor, sweet) { wantsFoam = foam, blended = blended, marshmallow = marsh };
+        // topping bar: each kind of customer has favourites; only what the shop has unlocked
+        string topping = "";
+        if (p.toppingLikes.Length > 0 && ChallengeMode.Value01() < p.toppingChance)
+        {
+            DrinkMenu.Topping t = DrinkMenu.GetTopping(p.toppingLikes[ChallengeMode.Range(0, p.toppingLikes.Length)]);
+            if (DrinkMenu.ToppingUnlocked(t, Mathf.Max(1, shopLevel)) && !(t.id == "Pudding" && flavor == "RedLime")) topping = t.id;
+        }
+        // vegetarian festival: many customers eat เจ: no dairy foam, no egg pudding, and they lean to the fruity drinks
+        bool jay = ev != null && ev.Current.vegetarianChance > 0f && ChallengeMode.Value01() < ev.Current.vegetarianChance;
+        if (jay)
+        {
+            foam = false;
+            if (topping == "Pudding") topping = "";
+            string[] plant = { "RedLime", "ButterflyPea", "Matcha" };
+            string pick = plant[ChallengeMode.Range(0, plant.Length)];
+            DrinkMenu.Drink pd = DrinkMenu.Get(pick);
+            if (ChallengeMode.Value01() < 0.5f && pd != null && DrinkMenu.IsUnlocked(pd, Mathf.Max(1, shopLevel))) flavor = pick;
+        }
+        return new Order(boba, ice, flavor, sweet) { wantsFoam = foam, blended = blended, marshmallow = marsh, topping = topping, vegetarian = jay };
+    }
+
+    // festival days: some customers greet with the occasion (null = use their normal line)
+    public static string FestivalGreeting(Order order)
+    {
+        DailyEventSystem ev = DailyEventSystem.Instance;
+        if (ev == null || order == null) return null;
+        string drink = order.DrinkNameTH;
+        if (order.vegetarian)
+            return Loc.T($"กินเจอยู่จ้ะ {drink}ไม่ใส่นมไม่ใส่ไข่นะ", $"I'm eating vegetarian: {drink}, no dairy, no egg please");
+        if (Random.value > 0.5f) return null;
+        switch (ev.Current.type)
+        {
+            case DailyEventSystem.EventType.ChineseNewYear:
+                return Loc.T($"ซินเจียยู่อี่ ซินนี้ฮวดไช้! ขอ{drink}แก้วนึง", $"Sin jia yu ee! Happy New Year! One {drink}, please");
+            case DailyEventSystem.EventType.MothersDay:
+                return Loc.T($"วันนี้วันแม่ ขอ{drink}ไปฝากแม่ด้วยนะ", $"It's Mother's Day, a {drink} for my mum, please");
+            default:
+                return null;
+        }
     }
 
     public static string Line(string[] lines, Order order)

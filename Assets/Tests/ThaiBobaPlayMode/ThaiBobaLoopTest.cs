@@ -30,6 +30,8 @@ public class ThaiBobaLoopTest
         PlayerPrefs.SetInt("tb_tutorial_done", 1);           // other tests play a normal day; the tutorial test turns it back on
         langPref = PlayerPrefs.GetInt("tb_lang", -1);
         SetLanguage("TH");                                    // checks below look for Thai text; the English test switches
+        T("StatsSystem").GetMethod("ResetForTests").Invoke(null, null);          // never touch the player's medals / lifetime stats
+        T("StoryMode").GetField("AutoPopups").SetValue(null, false);            // no story popups in the middle of other tests
     }
 
     [TearDown]
@@ -44,7 +46,77 @@ public class ThaiBobaLoopTest
         SetLanguage(langPref == 1 ? "EN" : "TH");
         if (langPref < 0) PlayerPrefs.DeleteKey("tb_lang");
         Time.timeScale = 1f;
+        T("StoryMode").GetField("AutoPopups").SetValue(null, true);
+        T("StatsSystem").GetMethod("EndTests").Invoke(null, null);
     }
+
+    // ---------------------------------------------------------------- reflection helpers for the newer systems
+    const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
+    static object Get(object target, string member)
+    {
+        Type t = target as Type ?? target.GetType();
+        object inst = target is Type ? null : target;
+        FieldInfo f = t.GetField(member, Any);
+        if (f != null) return f.GetValue(inst);
+        return t.GetProperty(member, Any).GetValue(inst);
+    }
+
+    static void Set(object target, string member, object value)
+    {
+        Type t = target as Type ?? target.GetType();
+        object inst = target is Type ? null : target;
+        FieldInfo f = t.GetField(member, Any);
+        if (f != null) f.SetValue(inst, value);
+        else t.GetProperty(member, Any).SetValue(inst, value);
+    }
+
+    static object Call(object target, string method, params object[] args)
+    {
+        Type t = target as Type ?? target.GetType();
+        object inst = target is Type ? null : target;
+        foreach (MethodInfo m in t.GetMethods(Any))
+            if (m.Name == method && m.GetParameters().Length == args.Length) return m.Invoke(inst, args);
+        throw new MissingMethodException(t.Name, method);
+    }
+
+    static Component Inst(string type) => (Component)T(type).GetProperty("Instance").GetValue(null);
+
+    static object NewOrder(string flavor, int boba, bool ice, int sweet) =>
+        Activator.CreateInstance(T("Order"), new object[] { boba, ice, flavor, sweet });
+
+    static object Result(string quality)
+    {
+        object r = Activator.CreateInstance(T("ServeResult"));
+        Set(r, "quality", Enum.Parse(T("ServeQuality"), quality));
+        return r;
+    }
+
+    // a finished, sealed cup made exactly to the order (straight through CupController)
+    static GameObject MakeCup(object order, bool extraFoam = false)
+    {
+        Component dispenser = Find("CupDispenser");
+        GameObject prefab = (GameObject)Get(dispenser, "cupPrefab");
+        GameObject go = UnityEngine.Object.Instantiate(prefab, new Vector3(0, 30f, 0), Quaternion.identity);
+        go.GetComponent<Rigidbody>().isKinematic = true;
+        Component cup = go.GetComponent(T("CupController"));
+        Call(cup, "Grab");
+        int boba = (int)Get(order, "bobaCount");
+        if (boba > 0) Call(cup, "AddBoba", boba);
+        if ((bool)Get(order, "wantsIce")) Call(cup, "AddIce");
+        Call(cup, "Fill", (string)Get(order, "flavor"));
+        Call(cup, "SetSweetness", (int)Get(order, "sweetness"));
+        if ((bool)Get(order, "wantsFoam") || extraFoam) Call(cup, "AddFoam");
+        if ((bool)Get(order, "blended")) Call(cup, "Blend");
+        if ((bool)Get(order, "marshmallow")) Call(cup, "AddMarshmallow");
+        string top = (string)Get(order, "topping");
+        if (!string.IsNullOrEmpty(top)) Call(cup, "AddTopping", top);
+        Call(cup, "CloseLid");
+        return go;
+    }
+
+    static string Quality(object order, GameObject cup) =>
+        Get(Call(T("ServeResult"), "Evaluate", order, cup.GetComponent(T("CupController"))), "quality").ToString();
 
     static Type T(string name) => Type.GetType(name + ", Assembly-CSharp");
 
@@ -747,7 +819,8 @@ public class ThaiBobaLoopTest
         yield return null;
         Assert.IsTrue(((GameObject)panelT.GetField("decorGroup").GetValue(panel)).activeInHierarchy, "decorate tab not shown");
         var labels = (TMPro.TMP_Text[])panelT.GetField("decorLabels").GetValue(panel);
-        Assert.IsNotEmpty(labels[7].text, "expansion not listed");
+        Assert.IsNotEmpty(labels[6].text, "expansion not listed");
+        Assert.IsNotEmpty(labels[7].text, "no 'arrange the shop' button");
         panelT.GetMethod("Close").Invoke(panel, null);
 
         var items = (System.Collections.IList)dsT.GetField("items").GetValue(ds);
@@ -783,7 +856,8 @@ public class ThaiBobaLoopTest
         string[] owned = (string[])dsT.GetMethod("OwnedIds").Invoke(ds, null);
         Debug.Log($"[TEST] decor: spent {spent}, beauty {beauty}, customers x{spawn:0.00}, helper pot {potState}, wage {before - after}, owned {owned.Length}");
         Assert.AreNotEqual("Empty", potState, "helper did not cook pearls");
-        Assert.AreEqual(120, before - after, "helper wage not paid at closing");
+        int wages = (int)dsT.GetField("helperWage").GetValue(ds) + (int)dsT.GetProperty("BaristaWage").GetValue(ds);
+        Assert.AreEqual(wages, before - after, "staff wages not paid at closing");
         Assert.AreEqual(items.Count, owned.Length, "purchases not in save data");
         Assert.Greater(spawn, 1.3f, "decor/expansion did not bring more customers");
     }
@@ -1337,5 +1411,415 @@ public class ThaiBobaLoopTest
         Debug.Log("[TEST] " + report);
         Assert.IsNotNull(result, "bot timed out before serving all customers");
         Assert.IsTrue((bool)result, report);
+    }
+
+    // ======================================================================== the living soi (phase 2)
+
+    // Topping bar: konjac / pandan jelly / pudding; graded like everything else, vegetarian customers refuse dairy + egg
+    [UnityTest, Timeout(60000)]
+    public IEnumerator ToppingsAndVegetarianOrders()
+    {
+        yield return LoadScene();
+        int tubs = 0;
+        foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(T("IngredientStation"), FindObjectsSortMode.None))
+            if (Get(o, "kind").ToString() == "Topping") tubs++;
+        Assert.AreEqual(3, tubs, "the topping bar should have three tubs");
+
+        object pudding = NewOrder("ThaiTea", 1, true, 50);
+        Set(pudding, "topping", "Pudding");
+        GameObject cup = MakeCup(pudding);
+        yield return null;
+        bool puddingShown = false, jellyShown = false;
+        foreach (Transform t in cup.GetComponentsInChildren<Transform>(true))
+        {
+            if (t.name == "Cup_Pudding") puddingShown = t.gameObject.activeInHierarchy;
+            if (t.name == "Cup_Jelly") jellyShown = t.gameObject.activeInHierarchy;
+        }
+        Assert.IsTrue(puddingShown, "pudding not shown in the cup");
+        Assert.IsFalse(jellyShown, "jelly shown although the cup has pudding");
+        Assert.AreEqual("Perfect", Quality(pudding, cup));
+        object jelly = NewOrder("ThaiTea", 1, true, 50);
+        Set(jelly, "topping", "Jelly");
+        Assert.AreEqual("Okay", Quality(jelly, cup), "wrong topping not noticed");
+        Assert.AreEqual(65, (int)Get(pudding, "Price"), "pudding should cost +15");
+
+        object veg = NewOrder("Matcha", 0, true, 50);
+        Set(veg, "vegetarian", true);
+        GameObject foamy = MakeCup(veg, extraFoam: true);
+        object res = Call(T("ServeResult"), "Evaluate", veg, foamy.GetComponent(T("CupController")));
+        string summary = (string)Get(res, "Summary");
+        Assert.AreEqual("Okay", Get(res, "quality").ToString());
+        StringAssert.Contains("เจ", summary, "foam for a vegetarian customer not called out");
+
+        // customers ask for toppings once they're unlocked; on the vegetarian festival many eat เจ
+        Set(Find("ShopProgress"), "level", 6);
+        object reviewer = Call(T("CustomerProfiles"), "Get", Enum.Parse(T("CustomerType"), "Influencer"));
+        int withTopping = 0;
+        for (int i = 0; i < 80; i++)
+            if (!string.IsNullOrEmpty((string)Get(Call(T("CustomerProfiles"), "CreateOrder", reviewer, 6, false), "topping"))) withTopping++;
+        Component events = Inst("DailyEventSystem");
+        Call(events, "RollForDay", 19);
+        object student = Call(T("CustomerProfiles"), "Get", Enum.Parse(T("CustomerType"), "Student"));
+        int jay = 0, broken = 0;
+        for (int i = 0; i < 80; i++)
+        {
+            object o = Call(T("CustomerProfiles"), "CreateOrder", student, 6, false);
+            if (!(bool)Get(o, "vegetarian")) continue;
+            jay++;
+            if ((bool)Get(o, "wantsFoam") || (string)Get(o, "topping") == "Pudding") broken++;
+        }
+        Debug.Log($"[TEST] toppings: reviewer orders with topping {withTopping}/80, vegetarian orders {jay}/80 ({broken} with dairy/egg)");
+        Assert.Greater(withTopping, 15, "customers never order toppings");
+        Assert.Greater(jay, 25, "vegetarian festival has no vegetarian customers");
+        Assert.AreEqual(0, broken, "a vegetarian ordered cheese foam or pudding");
+        UnityEngine.Object.Destroy(cup);
+        UnityEngine.Object.Destroy(foamy);
+    }
+
+    // App delivery: ticket pops up, wrong cups are refused, the rider rides up and takes the bag
+    [UnityTest, Timeout(120000)]
+    public IEnumerator DeliveryOrderPickedUpByRider()
+    {
+        yield return LoadScene();
+        Component gm = Find("GameManager");
+        Set(gm, "money", 5000);
+        Assert.IsTrue((bool)Call(Inst("UpgradeShop"), "Buy", "delivery"), "could not buy the delivery upgrade");
+        Component ds = Inst("DeliverySystem");
+        Assert.IsTrue((bool)Get(ds, "Enabled"));
+        object ticket = Call(ds, "NewTicket", 2);
+        var items = (System.Collections.IList)Get(ticket, "items");
+        Assert.AreEqual(2, items.Count);
+        yield return null;
+        Assert.IsTrue(((GameObject)Get(ds, "card")).activeInHierarchy, "the delivery ticket card is not on the HUD");
+
+        Component aim = Find("RaycastAim");
+        GameObject wrong = MakeCup(NewOrder("ButterflyPea", 0, true, 100));
+        Call(aim, "HoldItem", wrong.transform);
+        Assert.IsFalse((bool)Call(ds, "PlaceCup", aim), "a drink that isn't on the order was accepted");
+        UnityEngine.Object.Destroy(wrong);
+        yield return null;
+
+        int moneyBefore = (int)Get(gm, "money");
+        foreach (object it in items)
+        {
+            GameObject c = MakeCup(Get(it, "order"));
+            Call(aim, "HoldItem", c.transform);
+            Assert.IsTrue((bool)Call(ds, "PlaceCup", aim), "the rack refused a correct drink");
+            yield return null;
+        }
+        Time.timeScale = 3f;
+        bool riderSeen = false;
+        float t0 = Time.realtimeSinceStartup;
+        while (Get(ds, "Current") != null && Time.realtimeSinceStartup - t0 < 45f)
+        {
+            riderSeen |= ((Component)Get(ds, "rider")).gameObject.activeInHierarchy;
+            yield return null;
+        }
+        Time.timeScale = 1f;
+        object today = Get(Find("ShopProgress"), "today");
+        int money = (int)Get(gm, "money");
+        Debug.Log($"[TEST] delivery: picked up {Get(ds, "Current") == null}, rider seen {riderSeen}, money +{money - moneyBefore}, deliveries {Get(today, "deliveries")}");
+        Assert.IsNull(Get(ds, "Current"), "the rider never picked the order up");
+        Assert.IsTrue(riderSeen, "no rider came to the shop");
+        Assert.AreEqual(1, (int)Get(today, "deliveries"));
+        Assert.Greater(money, moneyBefore, "the delivery wasn't paid");
+    }
+
+    // The barista takes the 2nd customer in line and serves them while the front one waits
+    [UnityTest, Timeout(150000)]
+    public IEnumerator BaristaServesTheNextCustomer()
+    {
+        yield return LoadScene();
+        Set(Find("GameManager"), "money", 10000);
+        Component shop = Inst("DecorShop");
+        Assert.IsTrue((bool)Call(shop, "Buy", "barista"), "could not hire the barista");
+        Component barista = Inst("BaristaStaff");
+        yield return null;
+        Assert.IsTrue(((GameObject)Get(barista, "body")).activeInHierarchy, "the barista is not at the counter");
+        Component spawner = Find("Spawner");
+        Set(spawner, "spawnInterval", 1.5f);
+        Time.timeScale = 3f;
+        object today = Get(Find("ShopProgress"), "today");
+        bool sawWork = false, sawShake = false;
+        float t0 = Time.realtimeSinceStartup;
+        while ((int)Get(today, "staffDrinks") < 1 && Time.realtimeSinceStartup - t0 < 100f)
+        {
+            if (Get(barista, "Working") != null)
+            {
+                sawWork = true;
+                Component drv = ((Component)barista).GetComponentInChildren(T("NPCAnimDriver"), true);
+                if (drv != null && Get(drv, "Current").ToString() == "Shake") sawShake = true;
+            }
+            yield return null;
+        }
+        Time.timeScale = 1f;
+        int made = (int)Get(today, "staffDrinks");
+        Debug.Log($"[TEST] barista: worked {sawWork}, shaking {sawShake}, drinks served {made}, level {Get(barista, "Level")}");
+        Assert.IsTrue(sawWork, "the barista never took an order");
+        Assert.IsTrue(sawShake, "the barista doesn't shake the drink");
+        Assert.GreaterOrEqual(made, 1, "the barista never served anyone");
+        Assert.IsTrue((bool)Call(shop, "TrainBarista"), "training failed");
+        Assert.AreEqual(2, (int)Get(barista, "Level"));
+    }
+
+    // A rival opens across the street, pulls customers, and perfect drinks (with a promo) beat it
+    [UnityTest, Timeout(60000)]
+    public IEnumerator RivalOpensAndIsBeaten()
+    {
+        yield return LoadScene();
+        Component rival = Inst("RivalShop");
+        GameObject closed = (GameObject)Get(rival, "closedFront"), open = (GameObject)Get(rival, "rivalFront");
+        Assert.IsNotNull(closed, "the empty shophouse opposite isn't linked");
+        Assert.IsTrue(closed.activeInHierarchy && !open.activeInHierarchy, "the rival is there from the start");
+        Component sp = Find("ShopProgress");
+        float before = (float)Get(sp, "SpawnRateMultiplier");
+        Call(rival, "OpenUp");
+        yield return null;
+        Assert.IsTrue((bool)Get(rival, "Open"));
+        Assert.IsTrue(open.activeInHierarchy && !closed.activeInHierarchy, "the rival's shopfront didn't appear");
+        Assert.Less((float)Get(sp, "SpawnRateMultiplier"), before, "the rival doesn't pull customers away");
+        Component gm = Find("GameManager");
+        Set(gm, "money", 1000);
+        Assert.IsTrue((bool)Call(rival, "BuyPromo"), "promo failed");
+        Assert.AreEqual(1000 - (int)Get(rival, "promoCost"), (int)Get(gm, "money"));
+        object perfect = Result("Perfect");
+        int n = 0;
+        while ((bool)Get(rival, "Open") && n++ < 60) Call(rival, "Served", null, perfect);
+        yield return null;
+        object life = Get(T("StatsSystem"), "Life");
+        Debug.Log($"[TEST] rival: beaten after {n} perfect drinks, wins {Get(life, "rivalWins")}");
+        Assert.IsFalse((bool)Get(rival, "Open"), "perfect drinks never beat the rival");
+        Assert.IsTrue(closed.activeInHierarchy && !open.activeInHierarchy, "the rival's shop didn't close");
+        Assert.AreEqual(1, (int)Get(life, "rivalWins"));
+        Assert.IsTrue((bool)Call(T("StatsSystem"), "Has", "rival_win"), "no medal for beating the rival");
+    }
+
+    // Chinese New Year, Mother's Day and the vegetarian festival: their days, decor, firecrackers and ang pao
+    [UnityTest, Timeout(60000)]
+    public IEnumerator NewFestivalsHaveDecorAndMoments()
+    {
+        yield return LoadScene();
+        Component ev = Inst("DailyEventSystem");
+        (int day, string type, string decor)[] fests = { (29, "ChineseNewYear", "chineseNewYearDecor"), (17, "MothersDay", "mothersDayDecor"), (19, "Vegetarian", "vegetarianDecor") };
+        foreach (var f in fests)
+        {
+            Call(ev, "RollForDay", f.day);
+            yield return null;
+            Assert.AreEqual(f.type, Get(Get(ev, "Current"), "type").ToString(), $"day {f.day}");
+            GameObject d = (GameObject)Get(ev, f.decor);
+            Assert.IsNotNull(d, f.decor + " missing");
+            Assert.IsTrue(d.activeInHierarchy, f.type + " decor not shown");
+            Assert.IsTrue((bool)Call(T("DailyEventSystem"), "IsFestival", Get(Get(ev, "Current"), "type")));
+        }
+        Assert.IsFalse(((GameObject)Get(ev, "chineseNewYearDecor")).activeInHierarchy, "old festival decor stays up");
+        Call(ev, "RollForDay", 29);
+        Component fx = Find("FestivalFX");
+        Call(fx, "Fire");
+        ParticleSystem sparks = (ParticleSystem)Get(fx, "firecrackerSparks");
+        Assert.IsTrue(sparks != null && sparks.isPlaying, "no firecracker sparks");
+        Set(fx, "angPaoChance", 1f);
+        Component gm = Find("GameManager");
+        int money = (int)Get(gm, "money");
+        Call(fx, "Served", null, Result("Perfect"));
+        object today = Get(Find("ShopProgress"), "today");
+        Assert.AreEqual(1, (int)Get(today, "angPao"), "no ang pao on Chinese New Year");
+        Assert.Greater((int)Get(gm, "money"), money);
+    }
+
+    // Next door: the chicken-rice stall opens in the morning, has riders at lunch, closes its shutter after
+    [UnityTest, Timeout(60000)]
+    public IEnumerator NeighbourKeepsShopHours()
+    {
+        yield return LoadScene();
+        Component clock = Find("TimeCyc");
+        Component stall = Find("NeighbourStall");
+        Assert.IsNotNull(stall, "no neighbour stall");
+        Call(clock, "SetTime", 12, 0);
+        yield return new WaitForSeconds(0.5f);
+        Assert.IsTrue((bool)Get(stall, "IsOpen"), "closed at noon");
+        Assert.IsTrue(((GameObject)Get(stall, "vendor")).activeInHierarchy, "no vendor at the stall");
+        Assert.IsFalse(((GameObject)Get(stall, "tarp")).activeInHierarchy, "the tarp is on while open");
+        Assert.IsTrue(((GameObject[])Get(stall, "lunchRiders"))[0].activeInHierarchy, "no riders waiting at lunch");
+        Call(clock, "SetTime", 16, 0);
+        yield return new WaitForSeconds(4f);
+        Transform shutter = (Transform)Get(stall, "shutterDoor");
+        Assert.IsFalse((bool)Get(stall, "IsOpen"), "still open in the afternoon");
+        Assert.IsTrue(shutter.gameObject.activeInHierarchy && shutter.localScale.y > 0.9f, "the shutter didn't come down");
+        Assert.IsTrue(((GameObject)Get(stall, "tarp")).activeInHierarchy, "no tarp over the closed stall");
+        Assert.IsFalse(((GameObject[])Get(stall, "lunchRiders"))[0].activeInHierarchy, "riders still waiting after closing");
+        Call(clock, "SetTime", 9, 0);
+        yield return new WaitForSeconds(4f);
+        Assert.IsTrue((bool)Get(stall, "IsOpen"));
+        Assert.IsFalse(shutter.gameObject.activeInHierarchy, "the shutter didn't roll up");
+    }
+
+    // Stray cats wander the footpath and can be petted
+    [UnityTest, Timeout(90000)]
+    public IEnumerator StrayCatsWanderAndCanBePetted()
+    {
+        yield return LoadScene();
+        UnityEngine.Object[] cats = UnityEngine.Object.FindObjectsByType(T("StrayCat"), FindObjectsSortMode.None);
+        Assert.AreEqual(3, cats.Length, "expected three stray cats");
+        var start = new Vector3[cats.Length];
+        for (int i = 0; i < cats.Length; i++) start[i] = ((Component)cats[i]).transform.position;
+        Time.timeScale = 4f;
+        float moved = 0f, t0 = Time.realtimeSinceStartup;
+        while (moved < 1f && Time.realtimeSinceStartup - t0 < 30f)
+        {
+            for (int i = 0; i < cats.Length; i++) moved = Mathf.Max(moved, Vector3.Distance(start[i], ((Component)cats[i]).transform.position));
+            yield return null;
+        }
+        Time.timeScale = 1f;
+        foreach (UnityEngine.Object c in cats)
+        {
+            Vector3 p = ((Component)c).transform.position;
+            Assert.IsTrue(UnityEngine.AI.NavMesh.SamplePosition(p, out UnityEngine.AI.NavMeshHit _, 0.4f, UnityEngine.AI.NavMesh.AllAreas), "a cat left the walkable area: " + p);
+        }
+        Call(cats[0], "Interact", Find("RaycastAim"));
+        object life = Get(T("StatsSystem"), "Life");
+        Debug.Log($"[TEST] cats: furthest walk {moved:0.0} m, petted {Get(life, "catsPetted")}");
+        Assert.Greater(moved, 1f, "the cats never move");
+        Assert.AreEqual(1, (int)Get(life, "catsPetted"));
+    }
+
+    // After dark vehicles light the road; on a wet night lamps, signs and headlights reflect on the asphalt
+    [UnityTest, Timeout(60000)]
+    public IEnumerator NightHeadlightsAndWetReflections()
+    {
+        yield return LoadScene();
+        Component weather = Find("WeatherSystem");
+        try
+        {
+            Component spawner = Find("TrafficSpawner");
+            GameObject taxi = null;
+            foreach (GameObject p in (GameObject[])Get(spawner, "vehiclePrefabs")) if (p.name.Contains("Taxi")) taxi = p;
+            Assert.IsNotNull(taxi.GetComponent(T("VehicleLights")), "vehicles have no lights");
+            var heads = (Vector3[])Get(taxi.GetComponent(T("VehicleLights")), "headlights");
+            Assert.AreEqual(2, heads.Length, "taxi headlights not found on the model");
+            GameObject car = UnityEngine.Object.Instantiate(taxi, new Vector3(0f, 0f, 5.8f), Quaternion.Euler(0f, 90f, 0f));
+            Call(Find("TimeCyc"), "SetTime", 21, 0);
+            Call(weather, "Force", 1f, 1f, false);
+            for (int i = 0; i < 5; i++) yield return null;
+            Component lights = car.GetComponent(T("VehicleLights"));
+            Assert.IsTrue(((Renderer)Get(lights, "pool")).enabled, "no light pool on the road at night");
+            var streaks = (Renderer[])Get(lights, "streaks");
+            Assert.IsTrue(streaks.Length > 0 && streaks[0].enabled, "no headlight reflections on the wet road");
+            Component refl = Find("NightReflections");
+            var lampStreaks = (Renderer[])Get(refl, "streaks");
+            int on = 0;
+            foreach (Renderer r in lampStreaks) if (r != null && r.enabled) on++;
+            Assert.Greater(on, 4, "lamps and signs don't reflect on the wet street");
+            Call(Find("TimeCyc"), "SetTime", 12, 0);
+            Call(weather, "Force", 0f, 0f, false);
+            for (int i = 0; i < 5; i++) yield return null;
+            Assert.IsFalse(((Renderer)Get(lights, "pool")).enabled, "headlights still on at noon");
+            Debug.Log($"[TEST] night: {lampStreaks.Length} reflection sources, {on} lit on the wet night");
+            UnityEngine.Object.Destroy(car);
+        }
+        finally { Call(weather, "Force", -1f, -1f, false); }
+    }
+
+    // Story: chapters advance on their goals, the rival arrives in chapter 3, the ending opens branch 2; it's saved
+    [UnityTest, Timeout(60000)]
+    public IEnumerator StoryChaptersToTheSecondBranch()
+    {
+        yield return LoadScene();
+        Component story = Inst("StoryMode");
+        Assert.AreEqual(0, (int)Get(story, "ChapterIndex"), "a new game should start the story at chapter 1");
+        Component gm = Find("GameManager");
+        Component sp = Find("ShopProgress");
+        object st = Get(story, "S");
+        Set(st, "served", 40);
+        Set(st, "profit", 2000);
+        Set(sp, "reputation", 3.6f);
+        int money = (int)Get(gm, "money");
+        yield return new WaitForSecondsRealtime(1.5f);
+        Assert.AreEqual(1, (int)Get(story, "ChapterIndex"), "chapter 1 did not complete");
+        Assert.AreEqual(money + 300, (int)Get(gm, "money"), "no chapter reward");
+
+        Type stateT = T("StoryMode").GetNestedType("State");
+        object s2 = Activator.CreateInstance(stateT);
+        Set(s2, "chapter", 2);
+        Set(s2, "seenIntro", true);
+        Call(story, "Load", s2);
+        yield return new WaitForSecondsRealtime(1.5f);
+        Assert.IsTrue((bool)Get(Inst("RivalShop"), "Open"), "chapter 3 should bring the rival");
+
+        object s4 = Activator.CreateInstance(stateT);
+        Set(s4, "chapter", 4);
+        Set(s4, "seenIntro", true);
+        Call(story, "Load", s4);
+        Set(gm, "money", 16000);
+        Assert.IsTrue((bool)Get(story, "CanOpenBranch"), "can't open branch 2 with the money saved");
+        Assert.IsTrue((bool)Call(story, "OpenBranch"));
+        Assert.IsTrue(((GameObject)Get(Inst("RivalShop"), "branchFront")).activeInHierarchy, "branch 2 doesn't appear across the street");
+        yield return new WaitForSecondsRealtime(1.5f);
+        Assert.IsTrue((bool)Get(story, "Finished"), "the story didn't end after opening branch 2");
+        Call(story, "ShowPanel");
+        yield return null;
+        Assert.IsTrue((bool)Get(T("StoryMode"), "PanelOpen"));
+        Assert.IsNotEmpty(((TMPro.TMP_Text)Get(story, "titleText")).text);
+        Call(story, "ClosePanel");
+
+        // saved with the game
+        Call(T("SaveSystem"), "SaveGame");
+        Call(story, "Load", Activator.CreateInstance(stateT));
+        Call(T("SaveSystem"), "LoadGame");
+        Assert.IsTrue((bool)Get(story, "Finished"), "story progress not saved");
+        Assert.IsTrue((bool)Get(Inst("RivalShop"), "BranchOpen"), "branch 2 not saved");
+        Assert.AreEqual(1, (int)Get(Get(T("StatsSystem"), "Life"), "storyDone"));
+    }
+
+    // Lifetime stats + medals, and the page that shows them
+    [UnityTest, Timeout(60000)]
+    public IEnumerator StatsAndMedalsPage()
+    {
+        yield return LoadScene();
+        Call(Find("ShopProgress"), "RegisterServe", null, Result("Perfect"), 45, 5);
+        object life = Get(T("StatsSystem"), "Life");
+        Assert.AreEqual(1, (int)Get(life, "served"));
+        Assert.IsTrue((bool)Call(T("StatsSystem"), "Has", "first_cup"), "no medal for the first cup");
+        Component menus = Inst("GameMenus");
+        Call(menus, "OpenStats");
+        yield return null;
+        Transform grid = (Transform)Get(menus, "medalGrid");
+        int cells = 0;
+        foreach (Transform t in grid) if (t.gameObject.activeSelf) cells++;
+        int medals = ((Array)Get(T("StatsSystem"), "Medals")).Length;
+        string text = ((TMPro.TMP_Text)Get(menus, "statsText")).text;
+        Debug.Log($"[TEST] stats: {cells} medal cells of {medals}; page text {text.Length} chars");
+        Assert.AreEqual(medals, cells, "not every medal is listed");
+        StringAssert.Contains("เสิร์ฟ", text);
+        Call(menus, "Back");
+    }
+
+    // Arrange mode: a plant can't go on the queue line, can go on free footpath, and the layout is saved
+    [UnityTest, Timeout(60000)]
+    public IEnumerator ArrangeDecorationsAndSaveTheLayout()
+    {
+        yield return LoadScene();
+        Component dp = Inst("DecorPlacement");
+        object plant = Call(dp, "Find", "plant_l");
+        Assert.IsNotNull(plant, "the potted plant is not movable");
+        var line = (Vector3[])Get(T("CustomerController"), "Slots");
+        Assert.IsFalse((bool)Call(dp, "IsValid", plant, line[3]), "a plant may be put on the queue line");
+        Vector3 free = new Vector3(-5.6f, line[0].y, 2.0f);                      // footpath right of the neighbour's stall
+        Assert.IsTrue((bool)Call(dp, "IsValid", plant, free), "free footpath refused: " + free);
+        Call(dp, "Begin");
+        Assert.IsTrue((bool)Get(T("DecorPlacement"), "Active"));
+        Call(dp, "End");
+        Type placedT = T("DecorPlacement").GetNestedType("Placed");
+        Array layout = Array.CreateInstance(placedT, 1);
+        object pl = Activator.CreateInstance(placedT);
+        Set(pl, "id", "plant_l"); Set(pl, "x", free.x); Set(pl, "z", free.z); Set(pl, "yaw", 30f);
+        layout.SetValue(pl, 0);
+        Call(dp, "Load", layout);
+        Transform root = (Transform)Get(plant, "root");
+        Assert.Less(Vector3.Distance(new Vector3(root.position.x, 0, root.position.z), new Vector3(free.x, 0, free.z)), 0.01f);
+        Call(T("SaveSystem"), "SaveGame");
+        Call(dp, "Load", new object[] { null });
+        Assert.Greater(Vector3.Distance(root.position, new Vector3(free.x, root.position.y, free.z)), 0.5f, "Load(null) should reset the layout");
+        Call(T("SaveSystem"), "LoadGame");
+        Assert.Less(Vector3.Distance(new Vector3(root.position.x, 0, root.position.z), new Vector3(free.x, 0, free.z)), 0.01f, "layout not saved");
     }
 }

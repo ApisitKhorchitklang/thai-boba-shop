@@ -74,8 +74,9 @@ public class DesktopPlayerInput : MonoBehaviour
 
         if (!menu && aim != null && pc)
         {
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetMouseButtonDown(0)) aim.Interact();
-            if (Input.GetKeyDown(KeyCode.Q) || Input.GetMouseButtonDown(1)) aim.Throw();
+            bool arranging = DecorPlacement.Active;
+            if (Input.GetKeyDown(KeyCode.E) || Input.GetMouseButtonDown(0)) { if (arranging) DecorPlacement.Instance.Use(); else aim.Interact(); }
+            if (Input.GetKeyDown(KeyCode.Q) || Input.GetMouseButtonDown(1)) { if (arranging) DecorPlacement.Instance.Cancel(); else aim.Throw(); }
         }
 
         // footsteps
@@ -95,11 +96,17 @@ public class DesktopPlayerInput : MonoBehaviour
     // On-screen buttons
     public void InteractButton()
     {
+        if (DecorPlacement.Active) { DecorPlacement.Instance.Use(); return; }
         if (aim != null && !GameMenus.IsOpen) aim.Interact();
     }
 
     public void ThrowButton()
     {
+        if (DecorPlacement.Active) { DecorPlacement.Instance.Cancel(); return; }
         if (aim != null && !GameMenus.IsOpen) aim.Throw();
     }
+
+    // placement mode's own on-screen buttons
+    public void RotateButton() { if (DecorPlacement.Active) DecorPlacement.Instance.Rotate(45f); }
+    public void DoneArrangingButton() { if (DecorPlacement.Active) DecorPlacement.Instance.End(); }
 }

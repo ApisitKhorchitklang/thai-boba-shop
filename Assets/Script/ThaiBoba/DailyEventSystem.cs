@@ -6,7 +6,12 @@ public class DailyEventSystem : MonoBehaviour
 {
     public static DailyEventSystem Instance { get; private set; }
 
-    public enum EventType { Normal, HeatWave, HeavyRain, Payday, Songkran, SchoolHoliday, InfluencerVisit, NightMarket, LoyKrathong }
+    public enum EventType { Normal, HeatWave, HeavyRain, Payday, Songkran, SchoolHoliday, InfluencerVisit, NightMarket, LoyKrathong,
+                            ChineseNewYear, MothersDay, Vegetarian }
+
+    // festivals count for the "festival goer" medal and get the festival icon
+    public static bool IsFestival(EventType t) => t == EventType.Songkran || t == EventType.LoyKrathong || t == EventType.NightMarket ||
+                                                 t == EventType.ChineseNewYear || t == EventType.MothersDay || t == EventType.Vegetarian;
 
     [Serializable]
     public class DayEvent
@@ -25,6 +30,9 @@ public class DailyEventSystem : MonoBehaviour
         public float studentMultiplier = 1f;
         public float officeMultiplier = 1f;
         public float touristMultiplier = 1f;
+        public float auntieMultiplier = 1f;
+        [Tooltip("Share of customers who eat vegetarian (เจ): no cheese foam, no pudding")]
+        public float vegetarianChance;
     }
 
     [Tooltip("Optional: enabled only on rainy days (rain particles, puddles...)")]
@@ -35,6 +43,12 @@ public class DailyEventSystem : MonoBehaviour
     public GameObject nightMarketDecor;
     [Tooltip("Optional: enabled only on Loy Krathong (lanterns, sky lanterns after dark)")]
     public GameObject loyKrathongDecor;
+    [Tooltip("Optional: red lanterns for Chinese New Year")]
+    public GameObject chineseNewYearDecor;
+    [Tooltip("Optional: light blue flags and jasmine garlands for Mother's Day")]
+    public GameObject mothersDayDecor;
+    [Tooltip("Optional: yellow เจ flags for the vegetarian festival")]
+    public GameObject vegetarianDecor;
 
     public DayEvent Current { get; private set; } = Make(EventType.Normal);
     public static event Action<DayEvent> OnEventStarted;
@@ -69,6 +83,9 @@ public class DailyEventSystem : MonoBehaviour
         if (day <= 1) type = EventType.Normal;                  // calm first day to learn
         else if (day % 30 == 10) type = EventType.Songkran;          // end of the hot season (April)
         else if (day % 30 == 27) type = EventType.LoyKrathong;       // cool season full moon (November)
+        else if (day % 30 == 29) type = EventType.ChineseNewYear;    // end of the cool season (January / February)
+        else if (day % 30 == 17) type = EventType.MothersDay;        // rainy season (12 August)
+        else if (day % 30 == 19) type = EventType.Vegetarian;        // end of the rainy season (October)
         else if (day % 15 == 0 || day % 30 == 25) type = EventType.Payday;
         else
         {
@@ -89,6 +106,9 @@ public class DailyEventSystem : MonoBehaviour
         if (songkranDecor != null) songkranDecor.SetActive(type == EventType.Songkran);
         if (nightMarketDecor != null) nightMarketDecor.SetActive(type == EventType.NightMarket);
         if (loyKrathongDecor != null) loyKrathongDecor.SetActive(type == EventType.LoyKrathong);
+        if (chineseNewYearDecor != null) chineseNewYearDecor.SetActive(type == EventType.ChineseNewYear);
+        if (mothersDayDecor != null) mothersDayDecor.SetActive(type == EventType.MothersDay);
+        if (vegetarianDecor != null) vegetarianDecor.SetActive(type == EventType.Vegetarian);
         // first day of a season: tell the player what is on the seasonal menu
         if (day > 1 && (day - 1) % 10 == 0)
         {
@@ -152,6 +172,18 @@ public class DailyEventSystem : MonoBehaviour
                 return new DayEvent { type = t, titleTH = "คืนลอยกระทง", descriptionTH = "หลัง 18:00 คนออกมาเที่ยวเต็มซอย โคมลอยเต็มฟ้า ชาไทยท็อปโฟมขายดี",
                     titleEN = "Loy Krathong night", descriptionEN = "After 18:00 the soi fills up, lanterns float up and Thai tea with cheese foam sells out",
                     tipMultiplier = 1.3f, touristMultiplier = 2f };
+            case EventType.ChineseNewYear:
+                return new DayEvent { type = t, titleTH = "ตรุษจีน", descriptionTH = "โคมแดงเต็มซอย ลูกค้าอารมณ์ดีแจกอั่งเปา ทิปเพิ่ม มีจุดประทัดเช้า-เย็น",
+                    titleEN = "Chinese New Year", descriptionEN = "Red lanterns everywhere, cheerful customers hand out ang pao, better tips, firecrackers morning and evening",
+                    spawnMultiplier = 1.3f, tipMultiplier = 1.5f, officeMultiplier = 1.3f };
+            case EventType.MothersDay:
+                return new DayEvent { type = t, titleTH = "วันแม่", descriptionTH = "คนซื้อชาไปฝากแม่ คุณป้าคุณแม่มาเยอะ ใจดี รอได้นาน",
+                    titleEN = "Mother's Day", descriptionEN = "People buy tea for their mums; lots of mothers and aunties come by, patient and kind",
+                    spawnMultiplier = 1.2f, tipMultiplier = 1.3f, patienceMultiplier = 1.15f, auntieMultiplier = 3f };
+            case EventType.Vegetarian:
+                return new DayEvent { type = t, titleTH = "เทศกาลกินเจ", descriptionTH = "ธงเหลืองเต็มซอย ลูกค้าที่กินเจ (เจ) ห้ามใส่ชีสโฟม/พุดดิ้ง ดูป้ายเจที่ออเดอร์ให้ดี",
+                    titleEN = "Vegetarian Festival", descriptionEN = "Yellow flags all over the soi; vegetarian customers (marked) take no cheese foam and no pudding",
+                    spawnMultiplier = 1.1f, vegetarianChance = 0.6f };
             case EventType.NightMarket:
                 return new DayEvent { type = t, titleTH = "ตลาดนัดหน้าร้าน", descriptionTH = "หลัง 17:00 คนเดินตลาดแวะซื้อเพียบ",
                     titleEN = "Night market", descriptionEN = "After 17:00 market crowds stop by for drinks",

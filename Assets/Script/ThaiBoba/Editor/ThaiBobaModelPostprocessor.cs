@@ -14,6 +14,8 @@ public class ThaiBobaModelPostprocessor : AssetPostprocessor
         { "M_ice", 0.55f },
         { "M_seal_film", 0.6f },
         { "M_fan_blue", 0.8f },
+        { "M_konjac", 0.78f },
+        { "M_jelly_green", 0.78f },
     };
 
     const string CharacterDir = "Assets/Models/ThaiBobaShop/Characters/";
@@ -35,7 +37,7 @@ public class ThaiBobaModelPostprocessor : AssetPostprocessor
 
     public override uint GetVersion()
     {
-        return 3;
+        return 4;
     }
 
     // Rigged NPCs: Generic rig, looping clips named "Walk" / "Idle"

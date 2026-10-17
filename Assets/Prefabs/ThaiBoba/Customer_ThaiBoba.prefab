@@ -466,6 +466,8 @@ MonoBehaviour:
     wantsFoam: 0
     blended: 0
     marshmallow: 0
+    topping: 
+    vegetarian: 0
   payment: 10
   customerType: 0
   maxPatience: 60

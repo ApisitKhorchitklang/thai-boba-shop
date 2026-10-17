@@ -153,6 +153,7 @@ MonoBehaviour:
   blended: 0
   marshmallow: 0
   watered: 0
+  topping: 
 --- !u!114 &6586134416265292200
 MonoBehaviour:
   m_ObjectHideFlags: 0

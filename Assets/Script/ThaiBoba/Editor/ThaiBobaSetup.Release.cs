@@ -358,7 +358,7 @@ public static partial class ThaiBobaSetup
     {
         ("SYSTEMS", new[] { "GameManager", "ThaiBobaSystems", "GameAudio", "GraphicsQuality", "EventSystem" }),
         ("LIGHT & WORLD", new[] { "Sun (TimeCyc)", "PostFX Volume", "ThaiBobaStreet" }),
-        ("PLAYER & PEOPLE", new[] { "Player", "MenuCamera", "CustomerSpawner", "FarSidePedestrians" }),
+        ("PLAYER & PEOPLE", new[] { "Player", "MenuCamera", "CustomerSpawner", "FarSidePedestrians", "LivingSoi" }),
         ("UI", new[] { "ThaiBobaHUD", "ThaiBobaMenus" }),
     };
 

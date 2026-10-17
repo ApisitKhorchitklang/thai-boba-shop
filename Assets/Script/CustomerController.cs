@@ -50,6 +50,7 @@ public class CustomerController : MonoBehaviour
     public static CustomerController Front => Queue.Count > 0 ? Queue[0] : null;
     // Tutorial: nobody gets impatient while the player is learning
     public static bool PatienceFrozen;
+    [System.NonSerialized] public BaristaStaff claimedBy;          // the barista is making this customer's drink
 
     public float Patience { get; private set; }
     public float PatienceNormalized => maxPatience > 0 ? Mathf.Clamp01(Patience / maxPatience) : 1f;
@@ -311,7 +312,9 @@ public class CustomerController : MonoBehaviour
         if (slot == 0 && !greeted)
         {
             greeted = true;
-            Say(regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.Greeting(regular, order) : CustomerProfiles.Line(Profile.greet, order), 4f);
+            string festive = regular == null ? CustomerProfiles.FestivalGreeting(order) : null;
+            Say(regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.Greeting(regular, order)
+                : festive ?? CustomerProfiles.Line(Profile.greet, order), 4f);
             if (regular != null) { Emote(CustomerEmote.Kind.Happy); Gesture(NPCAnimDriver.Gesture.Wave, 1.8f); }   // a familiar face waves hello
         }
     }
@@ -516,11 +519,30 @@ public class CustomerController : MonoBehaviour
             return false;
         }
 
+        if (claimedBy != null) claimedBy.CustomerServedByPlayer(this);       // the owner got there first
+        Accept(result, 1f);
+        return true;
+    }
+
+    // The barista hands this customer their drink (they were waiting further back in line)
+    public void ServedByStaff(ServeQuality quality)
+    {
+        claimedBy = null;
+        ServeResult result = new ServeResult { quality = quality };
+        if (quality != ServeQuality.Perfect) result.mistakes.Add(Loc.T("พนักงานทำไม่เป๊ะ", "the barista's drink was a bit off"));
+        if (ShopProgress.Instance != null) ShopProgress.Instance.today.staffDrinks++;
+        StatsSystem.Add(StatsSystem.Stat.StaffDrink);
+        Accept(result, 0.8f);
+    }
+
+    // pay + tip, thanks, a sip and off they go
+    void Accept(ServeResult result, float tipScale)
+    {
         if (ShopProgress.Instance != null)
         {
             int pay = Mathf.RoundToInt(order.Price * Profile.payMultiplier);
             int tip = result.quality == ServeQuality.Perfect
-                ? Mathf.RoundToInt(Profile.tipBase * (0.5f + PatienceNormalized) * (regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.TipMultiplier(regular) : 1f))
+                ? Mathf.RoundToInt(Profile.tipBase * tipScale * (0.5f + PatienceNormalized) * (regular != null && RegularsSystem.Instance != null ? RegularsSystem.Instance.TipMultiplier(regular) : 1f))
                 : 0;
             ShopProgress.Instance.RegisterServe(this, result, pay, tip);
         }
@@ -546,6 +568,5 @@ public class CustomerController : MonoBehaviour
             Say(CustomerProfiles.Line(result.quality == ServeQuality.Perfect ? Profile.thanks : Profile.okay, order), 3f);
         Debug.Log("Order completed: " + result.quality);
         GoToExitArea();
-        return true;
     }
 }

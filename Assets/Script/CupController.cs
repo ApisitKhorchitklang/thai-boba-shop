@@ -16,6 +16,7 @@ public class CupController : MonoBehaviour
     public bool blended = false;       // frappe (blender, needs tea + ice)
     public bool marshmallow = false;
     public bool watered = false;       // hit by a Songkran water splash while open
+    public string topping = "";        // Konjac / Jelly / Pudding from the topping bar
 
     // Fired whenever the cup contents change (CupVisual listens to this)
     public event System.Action<CupController> OnChanged;
@@ -29,6 +30,15 @@ public class CupController : MonoBehaviour
     public bool CanAddFoam => Open && !hasFoam && !string.IsNullOrEmpty(flavor);
     public bool CanBlend => Open && !blended && !string.IsNullOrEmpty(flavor) && hasIce;
     public bool CanAddMarshmallow => Open && !marshmallow && !string.IsNullOrEmpty(flavor);
+    public bool CanAddTopping => Open && string.IsNullOrEmpty(topping);
+
+    public bool AddTopping(string id)
+    {
+        if (!CanAddTopping || string.IsNullOrEmpty(id)) return false;
+        topping = id;
+        Changed();
+        return true;
+    }
 
     public bool Blend()
     {
@@ -154,6 +164,7 @@ public class CupController : MonoBehaviour
         hasFoam = false;
         stalePearls = false;
         blended = marshmallow = watered = false;
+        topping = "";
         Changed();
     }
 
@@ -165,6 +176,7 @@ public class CupController : MonoBehaviour
 
     public bool MatchesOrder(Order order)
     {
-        return order != null && MatchesOrder(order.bobaCount, order.wantsIce, order.flavor) && sweetness == order.sweetness && hasFoam == order.wantsFoam && blended == order.blended && marshmallow == order.marshmallow && !watered;
+        return order != null && MatchesOrder(order.bobaCount, order.wantsIce, order.flavor) && sweetness == order.sweetness && hasFoam == order.wantsFoam && blended == order.blended && marshmallow == order.marshmallow && !watered &&
+               (topping ?? "") == (order.topping ?? "");
     }
 }

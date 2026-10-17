@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7396122628274130654}
   - component: {fileID: 3364185738796674563}
   - component: {fileID: 6315393310141505409}
+  - component: {fileID: 6548298783041950221}
   - component: {fileID: 2710401204721451963}
   m_Layer: 0
   m_Name: Traffic_Traffic_Scooter
@@ -65,6 +66,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 828a678f3c1e74440a10e0836af2b47f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelSpin
+--- !u!114 &6548298783041950221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7559995196932307229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd116cae883ce3e449ab78d18573cbb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleLights
+  glowMaterial: {fileID: 2100000, guid: 4568b36a31854034387fd5e06f3d3213, type: 2}
+  headlights:
+  - {x: 0, y: 0.9549999, z: 0.63499993}
+  taillights:
+  - {x: 4.1392115e-10, y: 0.7450001, z: -0.8499999}
+  poolLength: 4.5
+  poolWidth: 1.8
+  headColor: {r: 1, g: 0.92, b: 0.75, a: 1}
+  tailColor: {r: 1, g: 0.08, b: 0.05, a: 1}
 --- !u!114 &2710401204721451963
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -81,7 +103,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 7658e9b343a98304a96158fac3551faf, type: 3}
   - {fileID: 8300000, guid: 697e27c0d079c2f4e938a1540253f5e3, type: 3}
   horns:
-  - {fileID: 8300000, guid: e46810712b2ad3e48ba0598de44e0c19, type: 3}
+  - {fileID: 8300000, guid: f341fae1a1342f9449eb3884abd1566d, type: 3}
   volume: 0.8
   hornChance: 0.1
   pitch: 1

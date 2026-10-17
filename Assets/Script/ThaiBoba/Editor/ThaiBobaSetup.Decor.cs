@@ -28,21 +28,22 @@ public static partial class ThaiBobaSetup
     {
         // potted plants either side of the counter opening
         GameObject plants = DecorGroup(r, shop, "plants");
+        int pk = 0;
         foreach (float x in new[] { -1.35f, 1.35f })
-            Obstacle(Place("SM_PottedPlant", x, -0.35f, 0, 0, plants.transform, Col.None), new Vector3(0.6f, 1.2f, 0.6f));
+            Obstacle(r.Movable("plants_" + pk++, Place("SM_PottedPlant", x, -0.35f, 0, 0, plants.transform, Col.None), 0.32f), new Vector3(0.6f, 1.2f, 0.6f));
 
         // bunting along the front edge of the awning, fairy lights under it
         Place("SM_Bunting", 0, -1.5f, 2.66f, 0, DecorGroup(r, shop, "bunting").transform, Col.None);
         Place("SM_FairyLights", 0, -0.3f, 2.62f, 0, DecorGroup(r, shop, "lights").transform, Col.None);
 
-        // lucky cat at the right end of the counter, waving at customers
-        Place("SM_LuckyCat", 1.07f, 1.3f, 1.0f, 0, DecorGroup(r, shop, "cat").transform, Col.None);
+        // lucky cat at the left end of the counter, next to the till, waving at customers
+        Place("SM_LuckyCat", -1.1f, 1.25f, 1.0f, 15, DecorGroup(r, shop, "cat").transform, Col.None);      // beside the till (the right end holds the delivery rack)
 
         // mural on the right-hand inner wall, between the fan and the ice cooler
         Place("SM_Mural", 2.07f, 4.1f, 0, -90, DecorGroup(r, shop, "mural").transform, Col.None);
 
         // bench out front, left of the counter
-        Obstacle(Place("SM_FrontBench", -2.3f, -0.45f, 0, 0, DecorGroup(r, shop, "bench").transform, Col.None), new Vector3(1.3f, 1f, 0.5f));
+        Obstacle(r.Movable("bench", Place("SM_FrontBench", -2.3f, -0.45f, 0, 0, DecorGroup(r, shop, "bench").transform, Col.None), 0.65f), new Vector3(1.3f, 1f, 0.5f));
 
         // the helper: stands at the back counter beside the pearl pot (idle animation)
         GameObject helper = DecorGroup(r, shop, "helper");

@@ -198,12 +198,14 @@ public static partial class ThaiBobaSetup
         SetupLods(body, 0.14f, 0.008f);
         root.AddComponent<TrafficCar>();
         root.AddComponent<WheelSpin>();                                    // wheels roll with the speed
+        AddVehicleLights(root, model);                                     // headlights, tail lights, wet-road reflections
         // pass-by + horn: two-wheelers and tuk-tuks get the motorbike recordings, the rest the car one
         VehicleSound vs = root.AddComponent<VehicleSound>();
-        bool twoStroke = model.Contains("Scooter") || model.Contains("TukTuk");
-        vs.passBy = twoStroke ? new[] { Clip("sfx_moto_pass"), Clip("sfx_moto_pass2") } : new[] { Clip("sfx_car_pass") };
-        vs.horns = twoStroke ? new[] { Clip("sfx_horn_short") } : new[] { Clip("sfx_horn_car"), Clip("sfx_horn_short") };
-        vs.pitch = model.Contains("Bus") ? 0.72f : model.Contains("TukTuk") ? 1.12f : model.Contains("Songthaew") || model.Contains("Pickup") ? 0.9f : 1f;
+        // tuk-tuks: their own putt-putt pass-by and the tinny two-beep horn; scooters: a small meep; cars: real horns
+        bool tuk = model.Contains("TukTuk"), scooter = model.Contains("Scooter");
+        vs.passBy = tuk ? new[] { Clip("sfx_tuk_pass") } : scooter ? new[] { Clip("sfx_moto_pass"), Clip("sfx_moto_pass2") } : new[] { Clip("sfx_car_pass") };
+        vs.horns = tuk ? new[] { Clip("sfx_horn_tuk"), Clip("sfx_horn_tuk2") } : scooter ? new[] { Clip("sfx_horn_moto") } : new[] { Clip("sfx_horn_car"), Clip("sfx_horn_short") };
+        vs.pitch = model.Contains("Bus") ? 0.72f : model.Contains("Songthaew") || model.Contains("Pickup") ? 0.9f : 1f;
         vs.hornChance = model.Contains("TukTuk") || model.Contains("Taxi") ? 0.2f : 0.1f;
         vs.volume = model.Contains("Bus") ? 0.95f : 0.8f;
         if (currentFx != null && currentFx.exhaust != null)
@@ -402,7 +404,7 @@ public static partial class ThaiBobaSetup
         return go;
     }
 
-    static readonly string[] NearRow = { "SM_Shop_ChickenRice", "SM_Shophouse_Closed", "SM_Shop_Salon", "SM_Shop_Mart",
+    static readonly string[] NearRow = { "SM_Shop_ChickenRiceHome", "SM_Shophouse_Closed", "SM_Shop_Salon", "SM_Shop_Mart",
                                          "SM_Shop_ClosedPlain", "SM_Shop_Coffee", "SM_Shop_Phone", "SM_Shop_Pharmacy" };
     static readonly string[] NearRowLeft = { "SM_Shop_Pharmacy", "SM_Shop_Phone", "SM_Shop_ClosedPlain", "SM_Shop_Coffee",
                                              "SM_Shop_Mart", "SM_Shophouse_Closed", "SM_Shop_Salon", "SM_Shop_ChickenRice" };
@@ -496,6 +498,13 @@ public static partial class ThaiBobaSetup
         public GameObject neighbourLeft;                                   // replaced by the expansion when bought
         public Dictionary<string, GameObject> decor = new Dictionary<string, GameObject>();
         public Dictionary<string, List<GameObject>> upgradeShow = new Dictionary<string, List<GameObject>>();   // shown once that upgrade is bought
+        public List<DecorPlacement.Movable> movables = new List<DecorPlacement.Movable>();                     // the player can move these
+
+        public GameObject Movable(string id, GameObject go, float radius)
+        {
+            if (go != null) movables.Add(new DecorPlacement.Movable { id = id, root = go.transform, radius = radius });
+            return go;
+        }
 
         public void Upgrade(string id, GameObject go)
         {
@@ -595,6 +604,29 @@ public static partial class ThaiBobaSetup
                 }
             }
         }
+        // topping bar against the right wall (konjac / pandan jelly / pudding, unlocked with the shop level)
+        GameObject toppingBar = Place("SM_ToppingBar", 1.78f, 4.15f, 0, -90, shop, Col.None);
+        foreach (Transform t in toppingBar.GetComponentsInChildren<Transform>())
+        {
+            if (t.name.StartsWith("Tub_"))
+            {
+                t.gameObject.AddComponent<BoxCollider>();
+                IngredientStation s = t.gameObject.AddComponent<IngredientStation>();
+                s.kind = IngredientStation.Kind.Topping;
+                s.flavorId = t.name.Substring(4).Split('.')[0];
+            }
+            else if (t.name.StartsWith("Bar_Body"))
+            {
+                BoxCollider bc = t.gameObject.AddComponent<BoxCollider>();           // table only, the tubs take the E press
+                MeshFilter mf = t.GetComponent<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    Bounds b = mf.sharedMesh.bounds;
+                    bc.size = new Vector3(b.size.x, 0.82f, b.size.z);
+                    bc.center = new Vector3(b.center.x, b.min.y + 0.41f, b.center.z);
+                }
+            }
+        }
         BuildDecor(r, shop, env);                                          // decorations / helper / expansion (hidden until bought)
         // the shop computer for ordering supplies: left wall beside the counter, screen facing into the shop
         Place("SM_OrderComputer", -1.8f, 2.75f, 0, 90, shop, Col.Box).AddComponent<SupplyComputer>();
@@ -617,13 +649,13 @@ public static partial class ThaiBobaSetup
         }
 
         // street life
-        Obstacle(Place("SM_PottedPlant", -1.8f, -0.4f, 0, 0, props, Col.None), new Vector3(0.5f, 1f, 0.5f));
-        Obstacle(Place("SM_PottedPlant", 1.8f, -0.4f, 0, 40, props, Col.None), new Vector3(0.5f, 1f, 0.5f));
-        Obstacle(Place("SM_PromoSign", -0.8f, 0.0f, 0, 12, props, Col.None), new Vector3(0.65f, 1f, 0.45f));
+        Obstacle(r.Movable("plant_l", Place("SM_PottedPlant", -1.8f, -0.4f, 0, 0, props, Col.None), 0.3f), new Vector3(0.5f, 1f, 0.5f));
+        Obstacle(r.Movable("plant_r", Place("SM_PottedPlant", 1.8f, -0.4f, 0, 40, props, Col.None), 0.3f), new Vector3(0.5f, 1f, 0.5f));
+        Obstacle(r.Movable("promo", Place("SM_PromoSign", -0.8f, 0.0f, 0, 12, props, Col.None), 0.35f), new Vector3(0.65f, 1f, 0.45f));
         GameObject spirit = Place("SM_SpiritHouse", -4.0f, -1.0f, 0, 10, props, Col.Box);
         spirit.AddComponent<SpiritHouseOffering>();
         Obstacle(spirit, new Vector3(0.7f, 1.5f, 0.7f));
-        Obstacle(Place("SM_DragonJar", -5.2f, -0.6f, 0, 0, props, Col.Box), new Vector3(0.75f, 1f, 0.75f));
+        Obstacle(r.Movable("dragon_jar", Place("SM_DragonJar", -5.2f, -0.6f, 0, 0, props, Col.Box), 0.4f), new Vector3(0.75f, 1f, 0.75f));
         Place("SM_PalmTree", -6.6f, -1.2f, 0, 40, props, Col.None);
         r.seating.Add(Place("SM_SteelTable", 2.6f, -1.7f, 0, 0, props, Col.Box));
         r.seating.Add(Place("SM_PlasticStool", 2.0f, -1.9f, 0, 0, props, Col.Box));
@@ -632,6 +664,12 @@ public static partial class ThaiBobaSetup
         foreach (GameObject g in r.seating) Obstacle(g, new Vector3(0.45f, 1f, 0.45f));            // bought later: carve at runtime
         r.seating[0].GetComponent<UnityEngine.AI.NavMeshObstacle>().size = new Vector3(0.85f, 1f, 0.85f);
         r.seating.Add(Place("SM_MarketUmbrella", 2.6f, -1.7f, 0, 0, props, Col.None));
+        // the table set moves as one piece in arrange mode
+        GameObject seatingSet = new GameObject("SeatingSet");
+        seatingSet.transform.SetParent(props, false);
+        seatingSet.transform.localPosition = P(2.6f, -1.7f, 0);
+        foreach (GameObject g in r.seating) if (g != null) g.transform.SetParent(seatingSet.transform, true);
+        r.Movable("seating", seatingSet, 0.9f);
         // Keep the near footpath clear: the cart goes on the far side, the bin stands right at the curb
         Place("SM_StreetCart", 3.0f, -12.4f, 0, 0, props, Col.Box);
         Place("SM_TrashBin", 7.4f, -2.75f, 0, 0, props, Col.Box);
@@ -806,6 +844,7 @@ public static partial class ThaiBobaSetup
         AddEffects(refs, cam, fx);
         BuildWeather(refs, fx);
         BuildShopGlow(refs);
+        BuildLivingSoi(refs, GameObject.Find("ThaiBobaSystems"), fx);
 
         ShopHUD hud = CreateHUD();
         hud.player = aim;

@@ -10,13 +10,21 @@ public class GameMenus : MonoBehaviour
     public static GameMenus Instance { get; private set; }
     // False while the main menu is up: customers don't come and the clock doesn't run
     public static bool GameRunning { get; private set; } = true;
-    public static bool IsOpen => Instance != null && Instance.AnyOpen || ShopHUD.SummaryOpen || OrderPanel.IsOpen;
+    public static bool IsOpen => Instance != null && Instance.AnyOpen || ShopHUD.SummaryOpen || OrderPanel.IsOpen || StoryMode.PanelOpen;
 
     [Header("Panels")]
     public GameObject mainMenu;
     public GameObject pausePanel;
     public GameObject settingsPanel;
     public GameObject loadPanel;
+    public GameObject statsPanel;
+
+    [Header("Stats & medals")]
+    public TMP_Text statsText, medalCountText;
+    public Transform medalGrid;
+    public GameObject medalTemplate;
+    public string[] medalIconNames = new string[0];
+    public Sprite[] medalIconSprites = new Sprite[0];
     [Tooltip("HUD objects hidden while the main menu shows")]
     public GameObject[] gameplayUI;
 
@@ -45,7 +53,8 @@ public class GameMenus : MonoBehaviour
     public int startingMoney = 100;
 
     bool AnyOpen => (mainMenu != null && mainMenu.activeSelf) || (pausePanel != null && pausePanel.activeSelf) ||
-                    (settingsPanel != null && settingsPanel.activeSelf) || (loadPanel != null && loadPanel.activeSelf);
+                    (settingsPanel != null && settingsPanel.activeSelf) || (loadPanel != null && loadPanel.activeSelf) ||
+                    (statsPanel != null && statsPanel.activeSelf);
 
     GameObject settingsReturn;
     bool confirmNew;
@@ -76,7 +85,9 @@ public class GameMenus : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (OrderPanel.IsOpen) { OrderPanel.Instance.Close(); return; }
-            if (settingsPanel.activeSelf || loadPanel.activeSelf) Back();
+            if (StoryMode.PanelOpen) { StoryMode.Instance.ClosePanel(); return; }
+            if (DecorPlacement.Active) { DecorPlacement.Instance.End(); return; }
+            if (settingsPanel.activeSelf || loadPanel.activeSelf || statsPanel != null && statsPanel.activeSelf) Back();
             else if (GameRunning && !ShopHUD.SummaryOpen) TogglePause();
         }
     }
@@ -252,6 +263,48 @@ public class GameMenus : MonoBehaviour
         }
     }
 
+    // ---------------------------------------------------------------- stats & medals
+    public void OpenStats()
+    {
+        GameAudio.Play(Sfx.Open);
+        settingsReturn = mainMenu.activeSelf ? mainMenu : pausePanel;
+        Show(statsPanel);
+        StatsSystem.EnsureLoaded();
+        if (statsText != null) statsText.text = StatsSystem.Describe();
+        if (medalCountText != null)
+            medalCountText.text = Loc.T($"เหรียญรางวัล {StatsSystem.EarnedCount}/{StatsSystem.Medals.Length}", $"Medals {StatsSystem.EarnedCount}/{StatsSystem.Medals.Length}");
+        if (medalGrid == null || medalTemplate == null) return;
+        medalTemplate.SetActive(false);
+        foreach (Transform t in medalGrid)
+            if (t.gameObject != medalTemplate) Destroy(t.gameObject);
+        foreach (StatsSystem.Medal m in StatsSystem.Medals)
+        {
+            GameObject cell = Instantiate(medalTemplate, medalGrid);
+            cell.SetActive(true);
+            bool got = StatsSystem.Has(m.id);
+            float prog = m.progress(StatsSystem.Life);
+            Image icon = cell.transform.Find("Icon") != null ? cell.transform.Find("Icon").GetComponent<Image>() : null;
+            if (icon != null)
+            {
+                int k = System.Array.IndexOf(medalIconNames, m.icon);
+                if (k >= 0 && k < medalIconSprites.Length) icon.sprite = medalIconSprites[k];
+                icon.color = got ? Color.white : new Color(0.3f, 0.3f, 0.3f, 0.45f);
+            }
+            Image bg = cell.GetComponent<Image>();
+            if (bg != null) bg.color = got ? Color.white : new Color(1f, 1f, 1f, 0.55f);
+            TMP_Text label = cell.transform.Find("Label") != null ? cell.transform.Find("Label").GetComponent<TMP_Text>() : null;
+            if (label != null)
+                label.text = $"<b>{m.Name}</b>\n<size=72%>{m.Desc}" + (got ? "" : $"  ({prog * 100f:0}%)") + "</size>";
+        }
+    }
+
+    // pause menu: the story so far
+    public void StoryButton()
+    {
+        ResumeButton();
+        if (StoryMode.Instance != null) StoryMode.Instance.ShowPanel();
+    }
+
     // ---------------------------------------------------------------- settings
     public void OpenSettings()
     {
@@ -316,7 +369,7 @@ public class GameMenus : MonoBehaviour
     // ---------------------------------------------------------------- helpers
     void Show(GameObject panel)
     {
-        foreach (GameObject p in new[] { mainMenu, pausePanel, settingsPanel, loadPanel })
+        foreach (GameObject p in new[] { mainMenu, pausePanel, settingsPanel, loadPanel, statsPanel })
             if (p != null) p.SetActive(p == panel);
     }
 

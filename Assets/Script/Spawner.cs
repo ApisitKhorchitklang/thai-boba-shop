@@ -159,6 +159,8 @@ public class Spawner : MonoBehaviour
                 customerController.customerType = regular.type;
                 customerController.order = RegularsSystem.Instance.FavoriteOrder(regular);
             }
+            RivalShop rival = RivalShop.Instance;
+            if (rival != null && rival.Open) rival.CountLost(0.4f * rival.pull / Mathf.Max(0.2f, 1f - 0.4f * rival.pull));   // went across instead
             customerController.AssignSpawnPoint(spawn);
             customerController.AssignEnterArea(enterArea);
             customerController.AssignOrderArea(orderArea);

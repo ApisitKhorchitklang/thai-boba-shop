@@ -13,6 +13,7 @@ public class CupVisual : MonoBehaviour
     private GameObject ice, seal, straw, foam, frappe, marsh;
     private readonly GameObject[] pearls = new GameObject[3];     // Cup_Pearls, Cup_Pearls2, Cup_Pearls3: one per scoop
     private readonly Dictionary<string, GameObject> liquids = new Dictionary<string, GameObject>();
+    private readonly Dictionary<string, GameObject> toppings = new Dictionary<string, GameObject>();   // Cup_Konjac / Cup_Jelly / Cup_Pudding
     private readonly Dictionary<Transform, Vector3> restPos = new Dictionary<Transform, Vector3>();
     private readonly Dictionary<Transform, Vector3> restScale = new Dictionary<Transform, Vector3>();
 
@@ -21,6 +22,7 @@ public class CupVisual : MonoBehaviour
     string lastFlavor = "";
     int lastBoba;
     bool lastIce, lastFoam, lastSealed, lastBlended, lastMarsh;
+    string lastTopping = "";
 
     LiquidSlosh slosh;
     GameObject stream;
@@ -45,6 +47,7 @@ public class CupVisual : MonoBehaviour
             else if (n == "Cup_Marshmallow") marsh = t.gameObject;
             else if (n == "Cup_SealFilm") seal = t.gameObject;
             else if (n == "Cup_Straw") straw = t.gameObject;
+            else if (n == "Cup_Konjac" || n == "Cup_Jelly" || n == "Cup_Pudding") toppings[n.Substring(4)] = t.gameObject;
             else continue;
             restPos[t] = t.localPosition;
             restScale[t] = t.localScale;
@@ -67,6 +70,8 @@ public class CupVisual : MonoBehaviour
         if (foam != null) foam.SetActive(c.hasFoam);
         if (frappe != null) frappe.SetActive(c.blended);
         if (marsh != null) marsh.SetActive(c.marshmallow);
+        foreach (KeyValuePair<string, GameObject> kv in toppings)
+            kv.Value.SetActive(kv.Key == c.topping);
 
         bool filled = c.State == CupController.CupState.Filled || c.State == CupController.CupState.LidClosed;
         foreach (KeyValuePair<string, GameObject> kv in liquids)
@@ -85,6 +90,8 @@ public class CupVisual : MonoBehaviour
             if (c.hasFoam && !lastFoam && foam != null) StartCoroutine(Puff(foam.transform));
             if (c.blended && !lastBlended && frappe != null) StartCoroutine(Puff(frappe.transform));
             if (c.marshmallow && !lastMarsh && marsh != null) StartCoroutine(Drop(marsh.transform, 0.1f, 0.3f));
+            if (!string.IsNullOrEmpty(c.topping) && c.topping != lastTopping && toppings.TryGetValue(c.topping, out GameObject tg))
+                StartCoroutine(Drop(tg.transform, 0.1f, 0.32f));
             if (sealedCup && !lastSealed)
             {
                 if (seal != null) StartCoroutine(Press(seal.transform));
@@ -97,6 +104,7 @@ public class CupVisual : MonoBehaviour
         lastFoam = c.hasFoam;
         lastBlended = c.blended;
         lastMarsh = c.marshmallow;
+        lastTopping = c.topping ?? "";
         lastSealed = sealedCup;
     }
 

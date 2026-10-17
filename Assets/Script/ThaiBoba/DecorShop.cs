@@ -27,6 +27,9 @@ public class DecorShop : MonoBehaviour
     }
 
     public int helperWage = 120;
+    public int baristaWage = 150;                   // + 30 per skill level
+    [Range(1, 3)] public int baristaLevel = 1;
+    public static readonly int[] TrainCost = { 0, 1200, 2400 };      // to reach level 2, 3
     public List<Item> items = Defaults();
 
     public static event Action OnChanged;
@@ -41,6 +44,8 @@ public class DecorShop : MonoBehaviour
         new Item { id = "bench", nameTH = "ม้านั่งรอหน้าร้าน", nameEN = "Waiting bench", descTH = "ลูกค้าใจเย็นขึ้น", descEN = "Customers wait longer", price = 450, beauty = 1 },
         new Item { id = "helper", kind = Kind.Helper, nameTH = "จ้างพนักงาน", nameEN = "Hire a helper",
                    descTH = "ต้มไข่มุก + สั่งของให้อัตโนมัติ · ค่าแรง 120 ฿/วัน", descEN = "Cooks pearls + reorders stock · wage 120 ฿/day", price = 1500 },
+        new Item { id = "barista", kind = Kind.Helper, nameTH = "จ้างพนักงานชงชา", nameEN = "Hire a barista",
+                   descTH = "ชงให้ลูกค้าคนที่ 2 ในคิว · ค่าแรง 180 ฿/วัน", descEN = "Serves the 2nd customer in line · wage 180 ฿/day", price = 2500 },
         new Item { id = "expand", kind = Kind.Expansion, nameTH = "ขยายร้านไปตึกข้างๆ", nameEN = "Expand next door",
                    descTH = "มีที่นั่งเพิ่ม · ลูกค้า +30% · ต่อคิวได้ยาวขึ้น", descEN = "More seats · +30% customers · longer queue", price = 5000, beauty = 2 },
     };
@@ -96,12 +101,35 @@ public class DecorShop : MonoBehaviour
     void ApplyAll() { foreach (Item it in items) Apply(it); }
 
     // end of day: the helper gets paid (called by ShopProgress before the summary)
+    public int BaristaWage => baristaWage + 30 * baristaLevel;
+
     public void PayWages()
     {
-        if (!Has("helper")) return;
+        int wage = (Has("helper") ? helperWage : 0) + (Has("barista") ? BaristaWage : 0);
+        if (wage <= 0) return;
         GameManager gm = GameManager.Instance;
-        if (gm != null) gm.money -= helperWage;
-        if (ShopProgress.Instance != null) ShopProgress.Instance.RegisterExpense(helperWage);
+        if (gm != null) gm.money -= wage;
+        if (ShopProgress.Instance != null) ShopProgress.Instance.RegisterExpense(wage);
+    }
+
+    // barista training at the computer: faster and more often perfect (wage +30 per level)
+    public bool TrainBarista()
+    {
+        if (!Has("barista") || baristaLevel >= 3) return false;
+        int cost = TrainCost[baristaLevel];
+        GameManager gm = GameManager.Instance;
+        if (gm != null && !gm.TrySpend(cost))
+        {
+            GameAudio.Play(Sfx.Error);
+            ShopHUD.ToastNow(Loc.T($"เงินไม่พอส่งพนักงานไปฝึก ({cost} ฿)", $"Not enough money for training ({cost} ฿)"));
+            return false;
+        }
+        if (ShopProgress.Instance != null) ShopProgress.Instance.RegisterExpense(cost);
+        baristaLevel++;
+        GameAudio.Play(Sfx.LevelUp);
+        ShopHUD.ToastNow(Loc.T($"พนักงานฝีมือเลเวล {baristaLevel} แล้ว! ชงไวขึ้นและเป๊ะขึ้น", $"Barista is now skill level {baristaLevel}: faster and more precise!"), 2.2f);
+        OnChanged?.Invoke();
+        return true;
     }
 
     // ---------------------------------------------------------------- save / load
@@ -112,8 +140,9 @@ public class DecorShop : MonoBehaviour
         return l.ToArray();
     }
 
-    public void LoadOwned(string[] ids)
+    public void LoadOwned(string[] ids, int barista = 1)
     {
+        baristaLevel = Mathf.Clamp(barista, 1, 3);
         foreach (Item it in items) it.owned = ids != null && Array.IndexOf(ids, it.id) >= 0;
         ApplyAll();
         OnChanged?.Invoke();

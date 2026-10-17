@@ -39,6 +39,36 @@ public static class DrinkMenu
         new Drink("ButterflyPea", "อัญชันมะนาว", "Butterfly Pea Lime", 55, 99, new Color(0.33f, 0.36f, 0.92f)),
     };
 
+    // Toppings from the topping bar (one per cup), unlocked with the shop level. Pudding has egg: not for vegetarians.
+    public class Topping
+    {
+        public readonly string id, nameTH, nameEN;
+        public readonly int price, unlockLevel;
+        public readonly bool vegetarian;
+        public string Name => Loc.T(nameTH, nameEN);
+
+        public Topping(string id, string nameTH, string nameEN, int price, int unlockLevel, bool vegetarian)
+        {
+            this.id = id; this.nameTH = nameTH; this.nameEN = nameEN; this.price = price; this.unlockLevel = unlockLevel; this.vegetarian = vegetarian;
+        }
+    }
+
+    public static readonly Topping[] Toppings =
+    {
+        new Topping("Konjac", "บุก", "konjac jelly", 10, 2, true),
+        new Topping("Jelly", "วุ้นใบเตย", "pandan jelly", 10, 3, true),
+        new Topping("Pudding", "พุดดิ้ง", "pudding", 15, 4, false),
+    };
+
+    public static Topping GetTopping(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        foreach (Topping t in Toppings) if (t.id == id) return t;
+        return null;
+    }
+
+    public static bool ToppingUnlocked(Topping t, int shopLevel) => t != null && t.unlockLevel <= shopLevel;
+
     // ระดับความหวาน (sweetness %) — Thai customers are picky about this!
     public static readonly int[] SweetLevels = { 0, 25, 50, 100, 120 };
 

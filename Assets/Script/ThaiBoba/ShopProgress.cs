@@ -20,6 +20,7 @@ public class ShopProgress : MonoBehaviour
         public int served, perfect, okay, rejected, angry;
         public int revenue, tips, expenses, bonus;
         public int bestCombo;
+        public int toppings, deliveries, deliveriesLate, staffDrinks, angPao;
         public int[] soldByDrink = new int[16];     // index = DrinkMenu.All order
         public int[] servedByHour = new int[24];
         public int Profit => revenue + tips + bonus - expenses;
@@ -63,6 +64,7 @@ public class ShopProgress : MonoBehaviour
             if (DailyEventSystem.Instance != null) m *= DailyEventSystem.Instance.Current.spawnMultiplier;
             if (UpgradeShop.Instance != null) m *= UpgradeShop.Instance.SpawnMultiplier;
             if (DecorShop.Instance != null) m *= DecorShop.Instance.SpawnMultiplier;
+            if (RivalShop.Instance != null) m *= RivalShop.Instance.SpawnMultiplier;
             return m;
         }
     }
@@ -153,6 +155,7 @@ public class ShopProgress : MonoBehaviour
         {
             int di = Array.FindIndex(DrinkMenu.All, d => d.id == customer.order.flavor);
             if (di >= 0 && di < today.soldByDrink.Length) today.soldByDrink[di]++;
+            if (!string.IsNullOrEmpty(customer.order.topping)) today.toppings++;
         }
         TimeCyc clk = FindFirstObjectByType<TimeCyc>();
         if (clk != null) today.servedByHour[Mathf.Clamp(clk.Hours, 0, 23)]++;

@@ -184,7 +184,7 @@ public static partial class ThaiBobaSetup
         foreach (Transform stall in refs.steamSpots)
             AddChildFx(fx.steam, stall, P(-0.4f, 0, 1.22f));
         foreach (Transform t in root.GetComponentsInChildren<Transform>())
-            if (t.name.StartsWith("SM_Shop_ChickenRice"))
+            if (t.name.StartsWith("SM_Shop_ChickenRice") && !t.name.StartsWith("SM_Shop_ChickenRiceHome"))   // next door: its stall steams
                 AddChildFx(fx.steam, t, P(-1.6f, -0.55f, 1.25f));
 
         // sale sparkle + confetti

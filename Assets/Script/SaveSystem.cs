@@ -29,6 +29,10 @@ public static class SaveSystem
         public int[] regularHearts = new int[0];
         public bool secretDrink;
         public string[] decor = new string[0];
+        public int baristaLevel = 1;
+        public RivalShop.State rival;
+        public StoryMode.State story;
+        public DecorPlacement.Placed[] layout = new DecorPlacement.Placed[0];
         public string savedAt = "";
     }
 
@@ -73,7 +77,13 @@ public static class SaveSystem
             data.secretDrink = RegularsSystem.SecretUnlocked;
         }
         if (DecorShop.Instance != null)
+        {
             data.decor = DecorShop.Instance.OwnedIds();
+            data.baristaLevel = DecorShop.Instance.baristaLevel;
+        }
+        if (RivalShop.Instance != null) data.rival = RivalShop.Instance.Capture();
+        if (StoryMode.Instance != null) data.story = StoryMode.Instance.S;
+        if (DecorPlacement.Instance != null) data.layout = DecorPlacement.Instance.Capture();
         data.savedAt = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         return data;
     }
@@ -182,7 +192,11 @@ public static class SaveSystem
         if (RegularsSystem.Instance != null)
             RegularsSystem.Instance.Load(data.regularHearts, data.secretDrink);
         if (DecorShop.Instance != null)
-            DecorShop.Instance.LoadOwned(data.decor);
+            DecorShop.Instance.LoadOwned(data.decor, data.baristaLevel);
+        if (RivalShop.Instance != null) RivalShop.Instance.Load(data.rival);
+        if (StoryMode.Instance != null) StoryMode.Instance.Load(data.story);
+        if (DecorPlacement.Instance != null) DecorPlacement.Instance.Load(data.layout);
+        if (DeliverySystem.Instance != null) DeliverySystem.Instance.Cancel(false);
 
         TimeCyc tc = Object.FindFirstObjectByType<TimeCyc>();
         if (tc != null && data.day > 0)

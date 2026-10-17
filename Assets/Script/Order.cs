@@ -10,6 +10,8 @@ public class Order
     public bool wantsFoam;      // cheese foam topping (+10 baht), from the fridge
     public bool blended;        // hot season: frappe from the blender (+10 baht, needs ice)
     public bool marshmallow;    // cool season: marshmallows on a hot drink (+10 baht)
+    public string topping = ""; // topping bar: Konjac / Jelly / Pudding ("" = none)
+    public bool vegetarian;     // vegetarian festival (เทศกาลกินเจ): no cheese foam, no pudding
 
     public Order() { }
 
@@ -32,7 +34,8 @@ public class Order
         {
             DrinkMenu.Drink d = DrinkMenu.Get(flavor);
             int basePrice = d != null ? d.price : 40;
-            return basePrice + (bobaCount > 0 ? 5 : 0) + (wantsFoam ? 10 : 0) + (blended ? 10 : 0) + (marshmallow ? 10 : 0);
+            DrinkMenu.Topping t = DrinkMenu.GetTopping(topping);
+            return basePrice + (bobaCount > 0 ? 5 : 0) + (wantsFoam ? 10 : 0) + (blended ? 10 : 0) + (marshmallow ? 10 : 0) + (t != null ? t.price : 0);
         }
     }
 
@@ -51,11 +54,14 @@ public class Order
         string ice = wantsIce ? Loc.T("ใส่น้ำแข็ง", "iced") : Loc.T("ร้อน (ไม่ใส่น้ำแข็ง)", "hot (no ice)");
         string foam = (wantsFoam ? Loc.T(" · ท็อปชีสโฟม", " · cheese foam") : "") + (blended ? Loc.T(" · ปั่น", " · blended") : "") +
                       (marshmallow ? Loc.T(" · มาร์ชเมลโลว์", " · marshmallows") : "");
-        return $"{DrinkNameTH} {DrinkMenu.SweetTH(sweetness)}\n{boba} · {ice}{foam}";
+        DrinkMenu.Topping t = DrinkMenu.GetTopping(topping);
+        if (t != null) foam += " · +" + t.Name;
+        string jay = vegetarian ? Loc.T(" <color=#D4A017>(เจ)</color>", " <color=#D4A017>(vegetarian)</color>") : "";
+        return $"{DrinkNameTH} {DrinkMenu.SweetTH(sweetness)}{jay}\n{boba} · {ice}{foam}";
     }
 
     public override string ToString()
     {
-        return $"Order: {bobaCount} boba, ice:{wantsIce}, flavor:{flavor}, sweet:{sweetness}%, foam:{wantsFoam}";
+        return $"Order: {bobaCount} boba, ice:{wantsIce}, flavor:{flavor}, sweet:{sweetness}%, foam:{wantsFoam}, topping:{topping}";
     }
 }

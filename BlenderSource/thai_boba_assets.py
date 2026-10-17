@@ -366,7 +366,8 @@ def build_shophouse(name, facade, open_front=True, style=None):
       front    'boba' | 'closed' | 'open' | 'glass'
       sign     (thai, english, bg, fg) or None
       awning   (colour1, colour2) or None
-      extras   set of: tank, dish, laundry, plants, blade_cross, goods, tables, steam_pot, lights, rent, gold
+      extras   set of: tank, dish, laundry, plants, blade_cross, goods, tables, steam_pot, lights, rent, gold,
+               kiosk (drink counter + lit menu), balloons (grand opening)
     """
     st = dict(floors=2, front="boba" if open_front else "closed", sign=None, awning=None, extras=set())
     if style:
@@ -538,6 +539,10 @@ def build_shophouse(name, facade, open_front=True, style=None):
             a.cyl(0.25, 0.35, (-1.6, -0.55, 1.07), "steel", seg=16)
             a.cyl(0.22, 0.35, (-1.0, -0.55, 1.07), "steel", seg=16)
             a.bmm(-2.0, -0.6, -0.92, -0.88, 0.9, 1.6, "glass")
+        if "kiosk" in ex:
+            add_kiosk(a, rnd, st["sign"][2] if st["sign"] else "sign_pink")
+        if "balloons" in ex:
+            add_balloons(a, rnd, hw)
         if "blade_cross" in ex:
             a.bmm(hw - 0.5, hw - 0.45, -1.0, -0.1, z1 + 0.6, z1 + 1.5, "white", bevel=0.02)
             for (dy, dz, sy, sz) in [(0, 0, 0.18, 0.6), (0, 0, 0.6, 0.18)]:
@@ -1061,7 +1066,8 @@ def add_cup_pearls(a, rnd, cx, cy, z0, layers_per_scoop=2, scoops=3, groups=True
 
 
 def build_cup_modular():
-    """Gameplay cup. Children: Cup_Body, Liquid_<Flavor> x7, Cup_Pearls/2/3 (one per scoop), Cup_Ice, Cup_SealFilm, Cup_Straw."""
+    """Gameplay cup. Children: Cup_Body, Liquid_<Flavor> x8, Cup_Pearls/2/3 (one per scoop), Cup_Ice, Cup_Foam, Cup_Frappe,
+    Cup_Marshmallow, Cup_Konjac, Cup_Jelly, Cup_Pudding, Cup_SealFilm, Cup_Straw."""
     a = Asset("Cup_Modular")
     a.cyl(0.033, 0.16, (0, 0, 0.08), "plastic_clear", r2=0.045, seg=20, g="Cup_Body")
     for d in DRINKS:
@@ -1084,6 +1090,7 @@ def build_cup_modular():
         ang = i / 7 * 6.283
         a.box((0.013, 0.013, 0.012), (math.cos(ang) * 0.022, math.sin(ang) * 0.022, 0.138), "white" if i % 2 else "marsh_pink",
               rot=(0, 0, i * 25), bevel=0.003, g="Cup_Marshmallow")
+    add_cup_toppings(a)                                                              # konjac / jelly / pudding
     a.cyl(0.046, 0.003, (0, 0, 0.1615), "seal_film", seg=20, g="Cup_SealFilm")
     a.tube((0.008, 0.004, 0.02), (0.022, 0.012, 0.25), 0.0055, "straw", seg=8, g="Cup_Straw")
     return a.build()
@@ -1890,6 +1897,8 @@ SHOP_STYLES = {
 }
 # realistic vehicles (replace the primitive ones above): taxi, pickup, songthaew, bus, tuk-tuk, scooter
 exec(compile(open(os.path.join(SRC_DIR, "thai_vehicles.py"), encoding="utf-8").read(), "thai_vehicles.py", "exec"))
+# living soi: toppings, delivery rack, stray cats, festival decor, rival / branch shops, the neighbour's stall
+exec(compile(open(os.path.join(SRC_DIR, "thai_extras.py"), encoding="utf-8").read(), "thai_extras.py", "exec"))
 
 BUILDERS = [
     lambda: build_shophouse("SM_Shophouse_BobaShop", "facade_mint", True),
@@ -1915,6 +1924,7 @@ BUILDERS = [
     build_street_cart, build_market_umbrella, build_power_pole, build_soi_sign, build_trash_bin,
     build_potted_plant, build_palm_tree, build_dragon_jar, build_aframe_sign, build_coin,
     build_sidewalk, build_road,
+    *EXTRA_BUILDERS,
 ]
 ASSETS = {}
 for fn in BUILDERS:
