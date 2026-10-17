@@ -1333,8 +1333,42 @@ def build_rig(name, J):
     return arm
 
 
-def skin_weights(ob, J, rigid):
-    """Nearest bone segment with blending at the joints. rigid: vertex index -> bone (head, hands, feet parts)."""
+GROUP_BONES = {
+    "torso": ("Hips", "Spine", "Chest", "Shoulder.L", "Shoulder.R"),
+    "neck": ("Chest", "Neck", "Head"),
+    "lower": ("Hips", "Spine", "UpperLeg.L", "UpperLeg.R", "LowerLeg.L", "LowerLeg.R"),
+}
+for _s in ("L", "R"):
+    GROUP_BONES["arm" + _s] = ("Chest", "Shoulder." + _s, "UpperArm." + _s, "LowerArm." + _s, "Hand." + _s)
+    GROUP_BONES["leg" + _s] = ("Hips", "UpperLeg." + _s, "LowerLeg." + _s, "Foot." + _s)
+
+
+def body_group(N, E, p):
+    """Which limb a body vertex belongs to: nearest limb SURFACE (capsule of the skin graph), so a thigh next
+    to a hanging hand stays on the leg."""
+    best = None
+    for a, b in E:
+        d, t = seg_closest(p, N[a][0], N[b][0])
+        ra = (N[a][1] + N[a][2]) / 2
+        rb = (N[b][1] + N[b][2]) / 2
+        d -= ra + (rb - ra) * t
+        if best is None or d < best[0]:
+            best = (d, a, b)
+    _, a, b = best
+    part = edge_part(a, b)
+    side = (a + b).split(".")[-1][0] if "." in a + b else ""
+    if part.startswith(("ua", "fa")) or part == "shoulder":
+        return "arm" + side
+    if part in ("hip", "th1", "th2", "th3", "sh1", "sh2", "sh3", "sh4"):
+        return "leg" + side
+    if part == "neck":
+        return "neck"
+    return "torso"
+
+
+def skin_weights(ob, J, rigid, N=None, E=None, groups_of=None):
+    """Nearest bone segment with blending at the joints, but only among the bones of the vertex's own limb
+    (groups_of: vertex index -> group; body vertices are classified by the skin graph). rigid: vertex -> bone."""
     children = {}
     for bn, h, t, par in BONES:
         if par:
@@ -1346,8 +1380,14 @@ def skin_weights(ob, J, rigid):
             groups[rigid[v.index]].add([v.index], 1.0, 'REPLACE')
             continue
         p = v.co
+        grp = groups_of.get(v.index) if groups_of else None
+        if grp == "body" and N is not None:
+            grp = body_group(N, E, p)
+        allowed = GROUP_BONES.get(grp) if grp else None
         best = None
         for bn, (a, b, par) in segs.items():
+            if allowed is not None and bn not in allowed:
+                continue
             if bn.startswith("Shoulder") and abs(p.x) < 0.12:
                 continue
             if bn == "Head" and p.z < J["headbase"].z:
@@ -1358,9 +1398,10 @@ def skin_weights(ob, J, rigid):
         _, bn, t = best
         w = {bn: 1.0}
         par = segs[bn][2]
-        if t < 0.25 and par:
+        if t < 0.25 and par and (allowed is None or par in allowed):
             w[par] = (0.25 - t) / 0.5
-        kids = [k for k in children.get(bn, []) if not k.startswith(("Shoulder", "UpperLeg")) or bn not in ("Chest", "Hips")]
+        kids = [k for k in children.get(bn, []) if (not k.startswith(("Shoulder", "UpperLeg")) or bn not in ("Chest", "Hips"))
+                and (allowed is None or k in allowed)]
         if t > 0.75 and kids:
             w[kids[0]] = (t - 0.75) / 0.5
         tot = sum(w.values())
@@ -1388,58 +1429,315 @@ def key_pose(arm, frame, angles, hips=(0.0, 0.0, 0.0)):
             pb.keyframe_insert("location", frame=frame)
 
 
-def animate(arm, spec):
-    """Walk: 24 frames per two steps (~1.3 m/s). Hip flexion, knee double bump, heel-toe ankle roll,
-    pelvis bob / sway / twist with counter-rotating chest, arms swinging with a soft elbow. Idle: breathing,
-    weight shift, small head turns."""
+def leg_ik(J, sd, hip_pos, ankle):
+    """Two-bone leg IK in the side (YZ) plane, knee forward. Returns X angles (thigh, knee) relative to the rest
+    pose, the thigh roll (Y) that keeps the foot under its rest x, and the change of the shin's pitch."""
+    hip, knee, ank = J["hip." + sd], J["knee." + sd], J["ankle." + sd]
+    L1, L2 = (knee - hip).length, (ank - knee).length
+    a1 = math.atan2(knee.y - hip.y, hip.z - knee.z)
+    a2 = math.atan2(ank.y - knee.y, knee.z - ank.z)
+    dy, dz = ankle.y - hip_pos.y, hip_pos.z - ankle.z
+    d = max(abs(L1 - L2) + 1e-4, min(math.hypot(dy, dz), (L1 + L2) * 0.9995))
+    gamma = math.atan2(dy, dz)
+    delta = math.acos(max(-1.0, min(1.0, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))))
+    beta = math.pi - math.acos(max(-1.0, min(1.0, (L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2))))
+    th1 = gamma - delta
+    th2 = th1 + beta
+    roll = -math.degrees(math.atan2((ankle.x - hip_pos.x) - (ank.x - hip.x), L1 + L2))
+    return math.degrees(th1 - a1), math.degrees(beta - (a2 - a1)), roll, math.degrees(th2 - a2)
+
+
+def planted_legs(J, a, hips, feet_y=None, feet_lift=None, foot_pitch=None, hip_rot=(0.0, 0.0)):
+    """Fill leg angles in pose dict `a` so the ankles land on their targets (rest by default) while the
+    pelvis is offset by `hips` (x, y, z)."""
+    for sd in ("L", "R"):
+        hp = J["hip." + sd] + Vector(hips)
+        tgt = J["ankle." + sd].copy()
+        if feet_y:
+            tgt.y = hp.y + feet_y[sd]
+        if feet_lift:
+            tgt.z += feet_lift[sd]
+        th, kn, roll, shin = leg_ik(J, sd, hp, tgt)
+        a["UpperLeg." + sd] = (th, -hip_rot[0], roll - hip_rot[1])      # cancel the pelvis twist / tilt
+        a["LowerLeg." + sd] = (kn, 0.0, 0.0)
+        a["Foot." + sd] = ((foot_pitch[sd] if foot_pitch else 0.0) - shin, 0.0, 0.0)
+
+
+def _smooth(t):
+    t = max(0.0, min(1.0, t))
+    return t * t * (3 - 2 * t)
+
+
+def animate(arm, spec, J):
+    """Walk: the feet follow a real gait (stance foot planted and sliding back at walking speed, swing foot
+    lifted forward), the legs are solved with IK to those feet and the pelvis rides as high as the stance leg
+    allows (natural bob). Calibrated to 1.3 m/s, so NPCAnimDriver can match the agent speed without sliding.
+    Arms swing against the legs, pelvis twists / drops, chest counter-rotates.
+    Idle: feet planted, weight shift, breathing, looking around. Gestures (upper body, played on a layer in
+    Unity): Phone, Watch, Sip, Angry, Wave, Chop, Shake - hands placed with IK and baked."""
     arm.animation_data_create()
+    made = {}
     st = spec.get("stride", 1.0)
-    sh = spec["height"] / BASE_H
+    s = spec["height"] / BASE_H
+    v = 1.3
+    n = max(16, int(round(24 * st)))
+    T = n / 24.0
+    S = v * T
+    duty = 0.6
+    y_front, y_back = -duty * S * 0.46, duty * S * 0.54
+    foot_len = abs(J["toe.L"].y - J["ankle.L"].y)
+    hip_rest_z = J["hip.L"].z
+    L = {sd: ((J["knee." + sd] - J["hip." + sd]).length + (J["ankle." + sd] - J["knee." + sd]).length) * 0.99 for sd in ("L", "R")}
+
+    def foot_state(u):
+        """(y relative to the hip, lift, pitch deg, stance?) for gait phase u (0 = heel strike)."""
+        u %= 1.0
+        if u < duty:
+            q = u / duty
+            y = y_front + (y_back - y_front) * q
+            pitch, lift = 0.0, 0.0
+            if q < 0.12:
+                pitch = -14 * (1 - q / 0.12)                     # heel strike, toes up
+            if q > 0.78:
+                pitch = 24 * (q - 0.78) / 0.22                    # heel peels off, rolling over the toes
+                lift = foot_len * math.sin(R(pitch)) * 0.9
+            return y, lift, pitch, True
+        w = (u - duty) / (1 - duty)
+        y = y_back + (y_front - y_back) * _smooth(w)
+        lift = 0.085 * s * math.sin(math.pi * w) + foot_len * math.sin(R(24)) * 0.9 * max(0.0, 1 - w / 0.25)
+        pitch = 24 * (1 - w) ** 2 - 14 * _smooth((w - 0.5) / 0.5)
+        return y, lift, pitch, False
+
     walk = bpy.data.actions.new("Walk")
     walk.use_fake_user = True
+    made["Walk"] = walk
     arm.animation_data.action = walk
-    for fr in range(0, 25):
-        ph = 2 * math.pi * fr / 24
-        a = {}
-        for side, off in (("L", 0.0), ("R", math.pi)):
-            q = ph + off
-            hip = -(18 * math.cos(q) + 4) * st                    # flex forward at heel strike (negative X = forward)
-            g = (q % (2 * math.pi)) / (2 * math.pi)                # 0 = heel strike
-            knee = 6 + 14 * math.exp(-((g - 0.12) / 0.07) ** 2) + 58 * math.exp(-((g - 0.72) / 0.12) ** 2) * st
-            ank = 8 * math.exp(-((g - 0.02) / 0.04) ** 2) - 16 * math.exp(-((g - 0.6) / 0.06) ** 2) + 4 * math.exp(-((g - 0.35) / 0.1) ** 2)
-            a["UpperLeg." + side] = (hip, 0)
-            a["LowerLeg." + side] = (knee, 0)
-            a["Foot." + side] = (-ank, 0)
-            arm_sw = 20 * math.cos(q + math.pi) * st
-            a["UpperArm." + side] = (arm_sw, -4 if side == "L" else 4)
-            a["LowerArm." + side] = (-(14 + 16 * max(0.0, -math.cos(q + math.pi))), 0)
-            a["Hand." + side] = (-6, 0)
-        a["Hips"] = (2, 5 * math.cos(ph), 3 * math.sin(ph))
-        a["Spine"] = (2, -3 * math.cos(ph), -1.5 * math.sin(ph))
-        a["Chest"] = (-2, -5 * math.cos(ph), 0)
-        a["Neck"] = (0, 1.5 * math.cos(ph), 0)
-        a["Head"] = (2, 1.5 * math.cos(ph), -1.5 * math.sin(ph))
-        bob = (0.012 * math.cos(2 * ph) - 0.006) * sh
-        sway = 0.012 * math.sin(ph) * sh
-        key_pose(arm, fr, a, hips=(sway, 0.0, bob))
+    raw = []
+    for fr in range(n + 1):
+        u = fr / n
+        fs = {"L": foot_state(u), "R": foot_state(u + 0.5)}
+        sway = 0.014 * s * math.sin(2 * math.pi * (u - 0.05))
+        zmax = hip_rest_z
+        for sd in ("L", "R"):
+            y, lift, pitch, stance = fs[sd]
+            if stance:
+                zmax = min(zmax, J["ankle." + sd].z + lift + math.sqrt(max(0.0, L[sd] ** 2 - y * y)))
+        raw.append((u, fs, sway, zmax))
+    zs = [r[3] for r in raw]
+    zs_s = [(zs[(i - 1) % n] + 2 * zs[i % n] + zs[(i + 1) % n]) / 4 for i in range(n + 1)]
+    for fr, (u, fs, sway, _) in enumerate(raw):
+        dz = zs_s[fr] - hip_rest_z
+        c = math.cos(2 * math.pi * u)
+        a = {"Hips": (1.5, -3.5 * c, -2.2 * math.sin(2 * math.pi * u)),
+             "Spine": (1.5, 3.0 * c, 1.2 * math.sin(2 * math.pi * u)),
+             "Chest": (-1.0, 3.0 * c, 0.0),
+             "Neck": (0.0, -1.0 * c, 0.0),
+             "Head": (1.5, -1.5 * c, 0.0)}
+        planted_legs(J, a, (sway, 0.0, dz), feet_y={sd: fs[sd][0] for sd in fs},
+                     feet_lift={sd: fs[sd][1] for sd in fs}, foot_pitch={sd: fs[sd][2] for sd in fs},
+                     hip_rot=(a["Hips"][1], a["Hips"][2]))
+        for sd, sg, ph in (("L", 1, 0.0), ("R", -1, 0.5)):
+            ca = math.cos(2 * math.pi * (u + ph))
+            a["UpperArm." + sd] = (15 * ca * st ** 0.5, 0.0, -sg * 6)
+            a["LowerArm." + sd] = (-(10 + 16 * max(0.0, -ca)), 0.0, 0.0)
+            a["Hand." + sd] = (-8, 0.0, 0.0)
+        key_pose(arm, fr, a, hips=(sway, 0.0, dz))
+
+    def idle_pose(t, extra=None, period=None):
+        """Standing pose at time t (s): weight shift on planted feet, breathing, relaxed arms.
+        With period (clip length, s) every oscillation is fitted to whole cycles so the clip loops cleanly."""
+        def P(base):
+            return base if period is None else period / max(1, round(period / base))
+        sh = math.sin(2 * math.pi * t / P(4.0))
+        br = math.sin(2 * math.pi * t / P(2.0))
+        hips = (0.011 * s * sh, 0.0, -0.006 * s - 0.004 * s * abs(sh))
+        a = {"Hips": (0.0, 0.0, -1.6 * sh), "Spine": (0.0, 0.0, 1.0 * sh), "Chest": (-1.0 * br, 0.0, 0.6 * sh),
+             "Neck": (0.0, 0.0, 0.0), "Head": (1.2 * math.sin(2 * math.pi * t / P(3.0)), 7 * math.sin(2 * math.pi * t / P(8.0) + 0.7), 0.0)}
+        planted_legs(J, a, hips, hip_rot=(a["Hips"][1], a["Hips"][2]))
+        for sd, sg in (("L", 1), ("R", -1)):
+            a["UpperArm." + sd] = (1.2 * br, 0.0, -sg * 5.5)
+            a["LowerArm." + sd] = (-9, 0.0, 0.0)
+            a["Hand." + sd] = (-6, 0.0, 0.0)
+        if extra:
+            a.update(extra)
+        return a, hips
+
     idle = bpy.data.actions.new("Idle")
     idle.use_fake_user = True
+    made["Idle"] = idle
     arm.animation_data.action = idle
-    for fr in range(0, 97, 4):
-        th = 2 * math.pi * fr / 96
-        br = math.sin(th * 2)
-        shift = math.sin(th)
-        a = {"Chest": (-1.2 * br, 0, 0), "Spine": (0, 0, 1.2 * shift), "Hips": (0, 0, -1.5 * shift),
-             "Head": (1.5 * math.sin(th * 1.5), 6 * math.sin(th * 0.5 + 0.7), 0),
-             "UpperArm.L": (1.5 * br, -3, 0), "UpperArm.R": (1.5 * br, 3, 0),
-             "LowerArm.L": (-10, 0, 0), "LowerArm.R": (-10, 0, 0),
-             "UpperLeg.L": (0, 0, -1.5 * shift), "UpperLeg.R": (0, 0, -1.5 * shift),
-             "LowerLeg.L": (2 + 2 * max(0.0, -shift), 0), "LowerLeg.R": (2 + 2 * max(0.0, shift), 0)}
-        key_pose(arm, fr, a, hips=(0.008 * shift * sh, 0, -0.003 * abs(shift) * sh))
-    arm.animation_data.action = walk
+    for fr in range(0, 193, 2):                              # 8 s, every oscillation in whole cycles (seamless loop)
+        a, hips = idle_pose(fr / 24.0, period=8.0)
+        key_pose(arm, fr, a, hips=hips)
+
+    # ---- gestures: hands driven by IK toward animated targets, then baked
+    H, C = J["head"], J["chest"]
+
+    def calibrate_pole(c, sd, pob, frame):
+        """The IK pole angle that really points the elbow at the pole object (depends on the bone roll):
+        search for the angle whose elbow sits on the pole's side of the shoulder-hand line."""
+        def miss(angle):
+            c.pole_angle = R(angle)
+            SC.frame_set(frame)
+            m = arm.matrix_world
+            sh = m @ arm.pose.bones["UpperArm." + sd].head
+            el = m @ arm.pose.bones["LowerArm." + sd].head
+            hd = m @ arm.pose.bones["LowerArm." + sd].tail
+            ax = (hd - sh).normalized()
+            e = (el - sh) - ax * (el - sh).dot(ax)
+            q = (pob.location - sh) - ax * (pob.location - sh).dot(ax)
+            if e.length < 1e-5 or q.length < 1e-5:
+                return 180.0
+            return math.degrees(e.angle(q))
+        best = min(range(-180, 180, 15), key=miss)
+        best = min((best + d for d in (-10, -5, 0, 5, 10)), key=miss)
+        return R(best)
+
+    def gesture(name, frames, upper, hands, pole=(0.35, 0.3, -0.25)):
+        """upper(t) -> dict of extra rotations (spine / head); hands(t) -> {"L"/"R": target Vector or None};
+        pole = elbow pull direction (outward, back, down) for the arm IK."""
+        tmp = bpy.data.actions.new(name + "_src")
+        arm.animation_data.action = tmp
+        empties, used = {}, set()
+        for fr in range(frames + 1):
+            t = fr / 24.0
+            a, hips = idle_pose(t, upper(t), period=frames / 24.0)
+            key_pose(arm, fr, a, hips=hips)
+            for sd, p in hands(t).items():
+                if p is None:
+                    continue
+                used.add(sd)
+                if sd not in empties:
+                    e = bpy.data.objects.new(f"ik_{sd}", None)
+                    SC.collection.objects.link(e)
+                    empties[sd] = e
+                empties[sd].location = p
+                empties[sd].keyframe_insert("location", frame=fr)
+        poles = []
+        for sd in used:
+            sg = 1 if sd == "L" else -1
+            pob = bpy.data.objects.new(f"pole_{sd}", None)
+            SC.collection.objects.link(pob)
+            pob.location = J["elbow." + sd] + Vector((sg * pole[0], pole[1], pole[2])) * s
+            poles.append(pob)
+            c = arm.pose.bones["LowerArm." + sd].constraints.new('IK')
+            c.target = empties[sd]
+            c.pole_target = pob
+            c.pole_angle = 0.0
+            c.chain_count = 2
+            c.pole_angle = calibrate_pole(c, sd, pob, frames // 2)
+        for o in bpy.context.view_layer.objects:
+            o.select_set(o is arm)
+        bpy.context.view_layer.objects.active = arm
+        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.nla.bake(frame_start=0, frame_end=frames, step=1, only_selected=False, visual_keying=True,
+                         clear_constraints=True, use_current_action=False, bake_types={'POSE'})
+        bpy.ops.object.mode_set(mode='OBJECT')
+        act = arm.animation_data.action
+        act.name = name
+        act.use_fake_user = True
+        bpy.data.actions.remove(tmp)
+        for o in list(empties.values()) + poles:
+            bpy.data.objects.remove(o)
+        for orphan in [x for x in bpy.data.actions if x.users == 0 and not x.use_fake_user]:
+            bpy.data.actions.remove(orphan)                     # the IK targets' own keyframes
+        made[name] = act
+        return act
+
+    look_down = lambda t: {"Neck": (10, 0, 0), "Head": (20 + 2 * math.sin(t * 2 * math.pi / 1.5), 0, 0)}
+    gesture("Phone", 72, look_down,
+            lambda t: {"R": C + Vector((-0.06, -0.3 + 0.006 * math.sin(t * 2 * math.pi * 4 / 3), 0.03 + 0.004 * math.sin(t * 2 * math.pi * 2))) * s})
+    gesture("Watch", 48, lambda t: {"Neck": (8, 6, 0), "Head": (18, 8, 0)},
+            lambda t: {"L": C + Vector((0.03, -0.26, 0.0)) * s, "R": None})
+
+    def sip_hand(t):
+        k = (t % 2.5) / 2.5
+        up = _smooth(k / 0.3) * (1 - _smooth((k - 0.65) / 0.25))
+        low = C + Vector((-0.12, -0.2, -0.12)) * s
+        mouth = H + Vector((-0.035, -0.14, -0.075)) * s
+        return {"R": low.lerp(mouth, up)}
+    gesture("Sip", 60, lambda t: {"Head": (-8 * _smooth(((t % 2.5) / 2.5 - 0.2) / 0.2) * (1 - _smooth(((t % 2.5) / 2.5 - 0.65) / 0.2)), 0, 0)}, sip_hand)
+    gesture("Angry", 48, lambda t: {"Chest": (-6, 0, 0), "Head": (-4, 14 * math.sin(t * 2 * math.pi * 2.5), 0)},
+            lambda t: {"L": C + Vector((0.24, -0.18, -0.12 + 0.03 * math.sin(t * 2 * math.pi * 1.5))) * s,
+                       "R": C + Vector((-0.24, -0.18, -0.12 + 0.03 * math.sin(t * 2 * math.pi * 1.5 + 1))) * s})
+    gesture("Wave", 48, lambda t: {"Head": (0, 0, 4)},
+            lambda t: {"R": H + Vector((-0.27 + 0.06 * math.sin(t * 2 * math.pi * 2), -0.08, 0.06)) * s})
+
+    # Chop: cleaver in the right hand comes down on a board at counter height, left hand holds the food
+    def chop_hand(t):
+        k = (t * 2.0) % 1.0                                  # two chops a second
+        up = _smooth(k / 0.55) if k < 0.55 else 1 - _smooth((k - 0.55) / 0.12) if k < 0.67 else 0.0
+        return {"R": C + Vector((-0.14, -0.3, -0.3 + 0.2 * up)) * s,
+                "L": C + Vector((0.08, -0.3, -0.33 + 0.004 * math.sin(t * 2 * math.pi * 2))) * s}
+    gesture("Chop", 48, lambda t: {"Neck": (12, 0, 0), "Head": (16, -4, 0), "Chest": (6, -4, 0)}, chop_hand)
+    # Shake: both hands round a shaker in front of the chest, pumping up and down
+    def shake_hands(t):
+        dz = 0.06 * math.sin(t * 2 * math.pi * 3)
+        return {"R": C + Vector((-0.1, -0.25, -0.02 + dz)) * s, "L": C + Vector((-0.03, -0.26, -0.16 + dz)) * s}
+    gesture("Shake", 48, lambda t: {"Chest": (0, 0, 2 * math.sin(t * 2 * math.pi * 3)), "Head": (6, 0, 0)}, shake_hands,
+            pole=(0.1, 0.2, -0.5))
+    # each clip -> its own (muted) NLA track; exported per character in NLA mode
+    arm.animation_data.action = None
+    for name, act in made.items():
+        tr = arm.animation_data.nla_tracks.new()
+        tr.name = name
+        strip = tr.strips.new(name, 0, act)
+        strip.name = name
+        tr.mute = True
+    return made
+
+
+CLIPSETS = {}          # rig name -> {clip name: action}
+LODS = {}              # rig name -> LOD1 mesh object
+
+
+def make_lod(body, arm, ratio=0.32):
+    """Decimated copy of the skinned body (keeps UVs, material and vertex weights) for distance LOD."""
+    lod = body.copy()
+    lod.data = body.data.copy()
+    lod.name = body.name + "_LOD1"
+    lod.data.name = lod.name
+    SC.collection.objects.link(lod)
+    for m in list(lod.modifiers):
+        lod.modifiers.remove(m)
+    dec = lod.modifiers.new("dec", 'DECIMATE')
+    dec.ratio = ratio
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(lod.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+    lod.modifiers.remove(dec)
+    old = lod.data
+    lod.data = me
+    me.name = lod.name
+    bpy.data.meshes.remove(old)
+    lod.parent = arm
+    mod = lod.modifiers.new("Armature", 'ARMATURE')
+    mod.object = arm
+    return lod
 
 
 # ----------------------------------------------------------------------------- bake
+def save_png(img, path):
+    """Write next to the target, then swap it in. Windows (antivirus / indexer) sometimes holds a freshly
+    written PNG for a moment, which makes a direct overwrite fail with 'Invalid argument'."""
+    import time
+    tmp = path[:-4] + ".tmp.png"
+    img.filepath_raw = tmp
+    img.file_format = 'PNG'
+    for attempt in range(12):
+        try:
+            img.save()
+            break
+        except RuntimeError:
+            time.sleep(0.5)
+    for attempt in range(20):
+        try:
+            os.replace(tmp, path)
+            break
+        except OSError:
+            time.sleep(0.5)
+    img.filepath_raw = path
+
+
 def bake_texture(ob, name):
     SC.render.engine = 'CYCLES'
     SC.cycles.device = 'CPU'
@@ -1475,9 +1773,7 @@ def bake_texture(ob, name):
     col[:, :3] = np.clip(col[:, :3] * shade, 0, 1)
     final = bpy.data.images.new(f"{name}_albedo", TEX_SIZE, TEX_SIZE)
     final.pixels[:] = col.ravel()
-    final.filepath_raw = os.path.join(TEX, f"{name}_albedo.png")
-    final.file_format = 'PNG'
-    final.save()
+    save_png(final, os.path.join(TEX, f"{name}_albedo.png"))
     m = bpy.data.materials.new("M_" + name)
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
@@ -1608,13 +1904,27 @@ def build_character(spec):
         if bone:
             vg = ob.vertex_groups.new(name="RIGID_" + bone)
             vg.add(list(range(len(ob.data.vertices))), 1.0, 'REPLACE')
+    vgb = body.vertex_groups.new(name="PART_body")
+    vgb.add(list(range(len(body.data.vertices))), 1.0, 'REPLACE')
+    for ob, mk, bone in parts:
+        if not bone:
+            vg = ob.vertex_groups.new(name="PART_lower" if ob.name.startswith(("skirt", "sarong", "apron", "strap")) else "PART_torso")
+            vg.add(list(range(len(ob.data.vertices))), 1.0, 'REPLACE')
     objs = [body] + [o for o, _, _ in parts]
     with bpy.context.temp_override(active_object=body, selected_editable_objects=objs, object=body):
         bpy.ops.object.join()
     body.name = name
     body.data.name = name
     bake_texture(body, name)
-    rigid = {}
+    rigid, groups_of = {}, {}
+    for vg in list(body.vertex_groups):
+        if vg.name.startswith("PART_"):
+            gi = vg.index
+            for v in body.data.vertices:
+                for gg in v.groups:
+                    if gg.group == gi and gg.weight > 0.5:
+                        groups_of[v.index] = vg.name[5:]
+            body.vertex_groups.remove(vg)
     for vg in list(body.vertex_groups):
         if vg.name.startswith("RIGID_"):
             bone = vg.name[6:]
@@ -1625,11 +1935,13 @@ def build_character(spec):
                         rigid[v.index] = bone
             body.vertex_groups.remove(vg)
     arm = build_rig(name, J)
-    skin_weights(body, J, rigid)
+    skin_weights(body, J, rigid, N, E, groups_of)
     body.parent = arm
     mod = body.modifiers.new("Armature", 'ARMATURE')
     mod.object = arm
-    animate(arm, spec)
+    CLIPSETS[arm.name] = animate(arm, spec, J)
+    LODS[arm.name] = make_lod(body, arm)
+    LODS[arm.name].hide_render = True
     tri = sum(len(p.vertices) - 2 for p in body.data.polygons)
     print(f"BUILT {name}: {tri} tris")
     # keep finished characters out of the next ones' AO bake
@@ -1686,8 +1998,37 @@ def seated_variant(seat_name, arm, body, J, spec, pose):
     set_pose(arm, {})
     for e in empties:
         bpy.data.objects.remove(e)
-    arm.animation_data.action = bpy.data.actions.get("Walk")
+    arm.animation_data.action = None
     return ob
+
+
+# ----------------------------------------------------------------------------- export
+def export_fbx(path, **kw):
+    """Export to a fresh temp file next to the target, then swap it in. Overwriting an FBX that another
+    process (indexer / antivirus / VCS watcher) has mapped for a moment fails on Windows with
+    'Invalid argument', so the write never touches the old file and the swap is retried."""
+    import time
+    tmp = path + ".tmp"
+    for attempt in range(8):
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            bpy.ops.export_scene.fbx(filepath=tmp, **kw)
+            break
+        except (OSError, RuntimeError) as e:
+            print("export retry", os.path.basename(path), e)
+            time.sleep(1.0)
+    else:
+        raise RuntimeError("could not write " + tmp)
+    for attempt in range(60):
+        try:
+            os.replace(tmp, path)
+            return
+        except OSError as e:
+            if attempt % 10 == 9:
+                print("replace retry", os.path.basename(path), e)
+            time.sleep(0.5)
+    raise RuntimeError("could not replace " + path)
 
 
 # ----------------------------------------------------------------------------- main
@@ -1708,20 +2049,26 @@ def main():
                 o.select_set(False)
             arm.select_set(True)
             body.select_set(True)
+            LODS[arm.name].select_set(True)
             bpy.context.view_layer.objects.active = arm
-            bpy.ops.export_scene.fbx(
-                filepath=os.path.join(OUT, spec["name"] + ".fbx"), use_selection=True, object_types={'ARMATURE', 'MESH'},
+            arm.animation_data.action = None
+            for tr in arm.animation_data.nla_tracks:
+                tr.mute = False                       # only this rig's clips, one take each
+            export_fbx(
+                os.path.join(OUT, spec["name"] + ".fbx"), use_selection=True, object_types={'ARMATURE', 'MESH'},
                 apply_unit_scale=True, apply_scale_options='FBX_SCALE_ALL', axis_forward='-Z', axis_up='Y',
-                add_leaf_bones=False, bake_anim=True, bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
+                add_leaf_bones=False, bake_anim=True, bake_anim_use_all_actions=False, bake_anim_use_nla_strips=True,
                 bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, mesh_smooth_type='OFF',
                 path_mode='RELATIVE')
+            for tr in arm.animation_data.nla_tracks:
+                tr.mute = True
         for seat_name, ob in seated:
             for o in bpy.context.view_layer.objects:
                 o.select_set(False)
             ob.select_set(True)
             bpy.context.view_layer.objects.active = ob
-            bpy.ops.export_scene.fbx(
-                filepath=os.path.join(OUT, seat_name + ".fbx"), use_selection=True, object_types={'MESH'},
+            export_fbx(
+                os.path.join(OUT, seat_name + ".fbx"), use_selection=True, object_types={'MESH'},
                 apply_unit_scale=True, apply_scale_options='FBX_SCALE_ALL', axis_forward='-Z', axis_up='Y',
                 bake_space_transform=True, mesh_smooth_type='OFF', path_mode='RELATIVE', bake_anim=False)
         print("EXPORTED", len(built), "characters and", len(seated), "seated variants to", OUT)
@@ -1732,6 +2079,7 @@ def main():
         body.hide_render = False
     for i, (arm, body, J, spec) in enumerate(built):
         arm.location = ((i - (len(built) - 1) / 2) * 0.62, 0, 0)
+        arm.animation_data.action = CLIPSETS[arm.name]["Walk"]
     for i, (seat_name, ob) in enumerate(seated):
         ob.location = ((i - (len(seated) - 1) / 2) * 0.9, 3.0, 0.6)
     SC.frame_set(5)
@@ -1760,7 +2108,7 @@ def main():
     bpy.ops.render.render(write_still=True)
     SC.frame_set(0)
     for arm, body, J, spec in built:
-        arm.animation_data.action = bpy.data.actions["Idle"]
+        arm.animation_data.action = CLIPSETS[arm.name]["Idle"]
     SC.render.resolution_x, SC.render.resolution_y = 1400, 800
     for i, (arm, body, J, spec) in enumerate(built[:4]):
         cam.data.lens = 85

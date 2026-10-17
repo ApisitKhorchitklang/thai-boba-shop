@@ -30,6 +30,10 @@ public class PedestrianWalker : MonoBehaviour
 
         agent.SetDestination(target.transform.position + Vector3.right * Random.Range(-0.4f, 0.4f));
         started = true;
+        // some people walk along looking at their phone (not with an umbrella up)
+        NPCAnimDriver anim = GetComponentInChildren<NPCAnimDriver>();
+        bool raining = WeatherSystem.Instance != null && WeatherSystem.Instance.IsRaining;
+        if (anim != null && !raining && Random.value < 0.18f) anim.Play(NPCAnimDriver.Gesture.Phone);
     }
 
     float Dist(PedestrianEnd e)

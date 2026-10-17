@@ -495,6 +495,29 @@ def wheel(a, g, c, r, w, side, style="alloy", segs=18):
                   "chrome", rot=(0, 90, 0), seg=5, g=g)
 
 
+def add_lod(root, ratio=0.35):
+    """Body_LOD1: a decimated copy of the body child (wheels and riders stay in both LODs)."""
+    body = next((c for c in root.children if c.type == 'MESH' and c.name.startswith("Body")), None)
+    if body is None:
+        return root
+    lod = body.copy()
+    lod.data = body.data.copy()
+    lod.name = "Body_LOD1"
+    SCENE.collection.objects.link(lod)
+    dec = lod.modifiers.new("dec", 'DECIMATE')
+    dec.ratio = ratio
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(lod.evaluated_get(dg))
+    lod.modifiers.remove(dec)
+    old = lod.data
+    lod.data = me
+    bpy.data.meshes.remove(old)
+    lod.parent = root
+    lod.matrix_parent_inverse = body.matrix_parent_inverse.copy()
+    lod.hide_render = True
+    return root
+
+
 def seat(root, name, loc, rz=0.0):
     """Empty marking where a seated character goes (front -Y)."""
     e = bpy.data.objects.new(name, None)
@@ -603,7 +626,7 @@ def build_taxi(name, scheme):
     xw = 0.765
     for nm, (x, y) in {"Wheel_FL": (xw, yfa), "Wheel_FR": (-xw, yfa), "Wheel_RL": (xw, yra), "Wheel_RR": (-xw, yra)}.items():
         wheel(a, nm, (x, y, r), r, 0.2, 1 if x > 0 else -1, "alloy")
-    return a.build()
+    return add_lod(a.build())
 
 
 # ----------------------------------------------------------------------------- pickup (+ songthaew)
@@ -697,7 +720,7 @@ def build_pickup():
     for i, (x, y, rot) in enumerate([(-0.35, 1.2, 5), (0.3, 1.3, -8), (-0.1, 1.95, 12)]):
         a.box((0.5, 0.36, 0.22), (x, y, zf + 0.11), "cardboard" if i == 2 else "white", rot=(0, 0, rot), bevel=0.06, g=g)
     a.box((0.55, 0.45, 0.3), (0.35, 2.2, zf + 0.15), "blue_plastic", bevel=0.02, g=g)
-    return a.build()
+    return add_lod(a.build())
 
 
 def build_songthaew():
@@ -724,7 +747,7 @@ def build_songthaew():
     a.box((1.0, 0.32, 0.05), (0, yr + 0.2, 0.55), "steel", bevel=0.01, g=g)
     for s in (1, -1):
         a.tube((s * 0.55, yr + 0.02, 1.2), (s * 0.55, yr + 0.02, 1.95), 0.018, "chrome", g=g)
-    root = a.build()
+    root = add_lod(a.build())
     for k, (x, y) in enumerate([(0.42, 1.2), (-0.42, 1.65), (0.42, 2.15)]):
         seat(root, f"Seat_Passenger{k}", (x, y, zf + 0.42), 90 if x > 0 else -90)
     return root
@@ -804,7 +827,7 @@ def build_bus():
     xw = 1.0
     for nm, (x, y) in {"Wheel_FL": (xw, yfa), "Wheel_FR": (-xw, yfa), "Wheel_RL": (xw, yra), "Wheel_RR": (-xw, yra)}.items():
         wheel(a, nm, (x, y, r), r, 0.3, 1 if x > 0 else -1, "bus")
-    return a.build()
+    return add_lod(a.build())
 
 
 # ----------------------------------------------------------------------------- tuk-tuk
@@ -913,7 +936,7 @@ def build_tuktuk(name="SM_TukTuk", driver=False):
     wheel(a, "Wheel_F", (0, -1.15, 0.24), 0.24, 0.13, 1, "steel", segs=16)
     for nm, x in (("Wheel_RL", 0.585), ("Wheel_RR", -0.585)):
         wheel(a, nm, (x, 0.72, 0.24), 0.24, 0.14, 1 if x > 0 else -1, "steel", segs=16)
-    root = a.build()
+    root = add_lod(a.build())
     if driver:
         seat(root, "Seat_Driver", (0, -0.32, 0.76))
     return root
@@ -995,7 +1018,7 @@ def build_scooter(name="SM_Scooter", rider=False):
         a.tube((0.08, 0.06, 0.26), (0.24, 0.16, 0.01), 0.012, "steel_dark", g=g)      # side stand
     wheel(a, "Wheel_F", (0, yf_, r), r, 0.085, 1, "moto", segs=18)
     wheel(a, "Wheel_R", (0, yr_, r), r, 0.095, 1, "moto", segs=18)
-    root = a.build()
+    root = add_lod(a.build(), 0.45)
     if rider:
         seat(root, "Seat_Driver", (0, 0.1, 0.86))
     return root

@@ -51,6 +51,7 @@ public static partial class ThaiBobaSetup
         {
             GameObject h = (GameObject)PrefabUtility.InstantiatePrefab(npc, helper.transform);
             h.name = "Helper_NPC_Vendor";
+            SetupLods(h, 0.11f, 0.012f);
             h.transform.localPosition = P(1.2f, 5.85f, 0);
             h.transform.localRotation = Quaternion.Euler(0, 180f, 0);                 // facing the back counter, working
             Animator anim = h.GetComponent<Animator>();

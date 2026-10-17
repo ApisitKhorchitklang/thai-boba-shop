@@ -1111,6 +1111,102 @@ public class ThaiBobaLoopTest
         Assert.IsFalse(summary.isTextOverflowing, "day summary runs out of its box");
     }
 
+    // Busy shop: the line fills up (nobody serving), then a bot serves for a while. Nobody may stand in the road,
+    // clump together, or be stuck walking; everyone in line reaches a spot; served customers walk away.
+    [UnityTest, Timeout(300000)]
+    public IEnumerator CustomersQueueWithoutPilingUp()
+    {
+        yield return LoadScene();
+        Type cc = T("CustomerController");
+        var slots = (Vector3[])cc.GetField("Slots").GetValue(null);
+        Assert.IsNotNull(slots, "no queue line in the scene");
+        foreach (Vector3 sl in slots)
+            Assert.IsTrue(UnityEngine.AI.NavMesh.SamplePosition(sl, out UnityEngine.AI.NavMeshHit _, 0.25f, UnityEngine.AI.NavMesh.AllAreas), "queue spot off the walkable area: " + sl);
+        Component spawner = Find("Spawner");
+        spawner.GetType().GetField("spawnInterval").SetValue(spawner, 1.5f);
+        PropertyInfo stateP = cc.GetProperty("StateName"), arrivedP = cc.GetProperty("ArrivedInLine"), inLineP = cc.GetProperty("InLine");
+        var problems = new System.Collections.Generic.List<string>();
+        var waitingSince = new System.Collections.Generic.Dictionary<UnityEngine.Object, float>();
+        var stillSince = new System.Collections.Generic.Dictionary<UnityEngine.Object, float>();
+        int maxQueue = 0, maxClump = 0, left = 0;
+        cc.GetField("Hops").SetValue(null, 0);
+        var seen = new System.Collections.Generic.HashSet<int>();
+        var alive = new System.Collections.Generic.HashSet<int>();
+
+        IEnumerator Watch(float gameSeconds, string phase)
+        {
+            float t0 = Time.time;
+            while (Time.time - t0 < gameSeconds)
+            {
+                var all = UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None);
+                var now = new System.Collections.Generic.HashSet<int>();
+                foreach (UnityEngine.Object o in all)
+                {
+                    Component c = (Component)o;
+                    now.Add(c.GetInstanceID());
+                    seen.Add(c.GetInstanceID());
+                    Vector3 p = c.transform.position;
+                    string st = (string)stateP.GetValue(c);
+                    bool inLine = (bool)inLineP.GetValue(c), arrived = (bool)arrivedP.GetValue(c);
+                    if (p.z > 3.05f && problems.Count < 12) problems.Add($"{phase}: customer in the road at {p} ({st})");
+                    if (inLine && !arrived)
+                    {
+                        if (!waitingSince.ContainsKey(c)) waitingSince[c] = Time.time;
+                        else if (Time.time - waitingSince[c] > 12f && problems.Count < 12) { problems.Add($"{phase}: never reached its spot in line ({p})"); waitingSince[c] = 1e9f; }
+                    }
+                    else waitingSince.Remove(c);
+                    var ag = c.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                    bool moving = ag != null && ag.velocity.sqrMagnitude > 0.02f;
+                    bool shouldMove = st == "GoingToEnter" || st == "GoingToExit" || st == "GoingToWaypoints" || (inLine && !arrived);
+                    if (shouldMove && !moving)
+                    {
+                        if (!stillSince.ContainsKey(c)) stillSince[c] = Time.time;
+                        else if (Time.time - stillSince[c] > 3.5f && problems.Count < 12) { problems.Add($"{phase}: stuck while {st} at {p}"); stillSince[c] = 1e9f; }
+                    }
+                    else stillSince.Remove(c);
+                    int near = 0;
+                    foreach (UnityEngine.Object o2 in all)
+                        if (o2 != o && Vector3.Distance(((Component)o2).transform.position, p) < 0.9f) near++;
+                    maxClump = Mathf.Max(maxClump, near);
+                }
+                foreach (int id in alive) if (!now.Contains(id)) left++;
+                alive = now;
+                if (Time.frameCount % 600 == 0)
+                {
+                    var sb = new System.Text.StringBuilder($"[Q] t={Time.time - t0:0} {phase}:");
+                    var qlist = (System.Collections.IList)cc.GetField("Queue").GetValue(null);
+                    foreach (UnityEngine.Object o in all)
+                    {
+                        Component c = (Component)o;
+                        var ag = c.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                        sb.Append($" | id{c.GetInstanceID() % 10000} #{qlist.IndexOf(c)} {stateP.GetValue(c)} arr={arrivedP.GetValue(c)} pos=({c.transform.position.x:0.00},{c.transform.position.z:0.00}) " +
+                                  $"dest=({ag.destination.x:0.00},{ag.destination.z:0.00}) v={ag.velocity.magnitude:0.00} rem={ag.remainingDistance:0.00} prio={ag.avoidancePriority}");
+                    }
+                    Debug.Log(sb.ToString());
+                }
+                maxQueue = Mathf.Max(maxQueue, ((System.Collections.IList)cc.GetField("Queue").GetValue(null)).Count);
+                yield return null;
+            }
+        }
+        Time.timeScale = 3f;
+        yield return Watch(110f, "filling up");
+        int leftBefore = left;
+        Type bot = Type.GetType("ThaiBobaAutoPlayer, Assembly-CSharp");
+        Component b = new GameObject("AutoPlayer").AddComponent(bot);
+        bot.GetField("customersToServe").SetValue(b, 50);
+        bot.GetField("endDayWhenDone").SetValue(b, false);
+        bot.GetField("speedUp").SetValue(b, 3f);
+        yield return Watch(120f, "serving");
+        UnityEngine.Object.Destroy(b);
+        Time.timeScale = 1f;
+        Debug.Log($"[TEST] queue: hops {cc.GetField("Hops").GetValue(null)}, customers {seen.Count}, longest line {maxQueue}, most neighbours within 0.9 m {maxClump}, " +
+                  $"walked off {left} ({left - leftBefore} while serving), problems [{string.Join(" | ", problems)}]");
+        Assert.IsEmpty(problems);
+        Assert.GreaterOrEqual(maxQueue, 4, "the line never filled up (test did not stress the queue)");
+        Assert.LessOrEqual(maxClump, 3, "customers clumped together");
+        Assert.Greater(left - leftBefore, 2, "served customers did not walk away");
+    }
+
     [UnityTest, Timeout(90000)]
     public IEnumerator VehiclesRollAndCarryPeople()
     {

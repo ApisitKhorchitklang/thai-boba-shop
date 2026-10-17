@@ -186,6 +186,7 @@ public static partial class ThaiBobaSetup
             GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(CharDir + p.model + ".fbx");
             if (asset == null) continue;
             GameObject go = (GameObject)Object.Instantiate(asset, P(p.bx, p.by, 0), Quaternion.Euler(0, p.yaw, 0));
+            SetupLods(go, 0.11f, 0.012f);
             bool queue = p.yaw > 170f && p.yaw < 190f;
             foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(CharDir + p.model + ".fbx"))
                 if (o is AnimationClip clip && clip.name == (queue ? "Idle" : "Walk")) clip.SampleAnimation(go, p.t);

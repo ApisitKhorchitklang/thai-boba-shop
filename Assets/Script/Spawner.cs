@@ -11,6 +11,8 @@ public class Spawner : MonoBehaviour
     public Transform orderArea;
     public Transform exitArea;
     public Transform[] customerWaypoints;
+    [Tooltip("Queue_0 (at the counter) ... along the shopfront; shared with CustomerController.Slots")]
+    public Transform[] queueSlots;
 
     public int maxCharacters = 20;
     private int currentCharacters;
@@ -37,6 +39,8 @@ public class Spawner : MonoBehaviour
             timeCyc = FindFirstObjectByType<TimeCyc>();
 
         started = true;
+        CustomerController.Incoming = 0;                 // fresh scene: nobody is on the way yet
+        ApplyQueueLine();
         StartCoroutine(SpawnLoop());
         if (timeCyc != null) timeCyc.OnNewDay += NewDay;
         ShopProgress.OnDaySummary += ClosingTime;
@@ -56,7 +60,15 @@ public class Spawner : MonoBehaviour
     // start the loop again so customers keep coming.
     private void OnEnable()
     {
-        if (started) StartCoroutine(SpawnLoop());
+        if (started) { ApplyQueueLine(); StartCoroutine(SpawnLoop()); }
+    }
+
+    void ApplyQueueLine()
+    {
+        if (queueSlots == null || queueSlots.Length == 0) return;
+        var pts = new System.Collections.Generic.List<Vector3>();
+        foreach (Transform t in queueSlots) if (t != null) pts.Add(t.position);
+        CustomerController.Slots = pts.ToArray();
     }
 
     IEnumerator SpawnLoop()
@@ -112,7 +124,7 @@ public class Spawner : MonoBehaviour
         GameObject prefab = npcPrefab;
 
         // 60% chance to spawn a customer prefab if available (and the queue isn't full)
-        bool queueFull = CustomerController.Queue.Count >= maxQueue + (DecorShop.Instance != null ? DecorShop.Instance.ExtraQueue : 0);
+        bool queueFull = CustomerController.Queue.Count + CustomerController.Incoming >= maxQueue + (DecorShop.Instance != null ? DecorShop.Instance.ExtraQueue : 0);
         bool tutorialCustomer = false;
         RegularsSystem.Regular regular = null;
         if (!TutorialActive && customerPrefab != null && !queueFull && RegularsSystem.Instance != null)

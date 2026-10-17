@@ -74,9 +74,10 @@ public static partial class ThaiBobaSetup
         cc.radius = 0.3f;
         cc.height = 1.7f;
         NavMeshAgent agent = root.AddComponent<NavMeshAgent>();
-        agent.radius = 0.3f;
+        agent.radius = 0.25f;
         agent.height = 1.7f;
-        agent.speed = 2.2f;
+        agent.speed = 1.7f;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         CustomerController controller = root.AddComponent<CustomerController>();
         EnsureUISprites();                                                      // new Illustrator PNGs must be Sprites before we load them
         CustomerEmote emote = root.AddComponent<CustomerEmote>();               // emote bubbles over their heads
@@ -132,6 +133,33 @@ public static partial class ThaiBobaSetup
 
     static FxSet currentFx;
 
+    // A model that carries "<part>_LOD1" renderers (decimated copies from the Blender scripts) gets a LODGroup:
+    // LOD0 = full detail, LOD1 = the decimated part + everything it does not replace (wheels, riders), then culled.
+    static void SetupLods(GameObject go, float lod1At, float cullAt)
+    {
+        if (go == null) return;
+        Renderer[] all = go.GetComponentsInChildren<Renderer>(true);
+        var low = new List<Renderer>();
+        var replaced = new HashSet<string>();
+        foreach (Renderer r in all)
+        {
+            string b = r.name.Split('.')[0];
+            if (b.EndsWith("_LOD1")) { low.Add(r); replaced.Add(b.Substring(0, b.Length - 5)); }
+        }
+        if (low.Count == 0) return;
+        var high = new List<Renderer>();
+        foreach (Renderer r in all)
+        {
+            if (r is ParticleSystemRenderer || low.Contains(r)) continue;
+            high.Add(r);
+            if (!replaced.Contains(r.name.Split('.')[0])) low.Add(r);
+        }
+        LODGroup g = go.GetComponent<LODGroup>();
+        if (g == null) g = go.AddComponent<LODGroup>();
+        g.SetLODs(new[] { new LOD(lod1At, high.ToArray()), new LOD(cullAt, low.ToArray()) });
+        g.RecalculateBounds();
+    }
+
     // seated characters (SEAT_*.fbx from thai_npc.py) for the vehicles' Seat_* markers
     static readonly Dictionary<string, string[]> SeatedRiders = new Dictionary<string, string[]>
     {
@@ -167,6 +195,7 @@ public static partial class ThaiBobaSetup
         GameObject root = new GameObject("Traffic_" + model.Replace("SM_", ""));
         GameObject body = (GameObject)PrefabUtility.InstantiatePrefab(asset, root.transform);
         SeatRiders(body, model);
+        SetupLods(body, 0.14f, 0.008f);
         root.AddComponent<TrafficCar>();
         root.AddComponent<WheelSpin>();                                    // wheels roll with the speed
         // pass-by + horn: two-wheelers and tuk-tuks get the motorbike recordings, the rest the car one
@@ -209,21 +238,29 @@ public static partial class ThaiBobaSetup
         return spawner;
     }
 
-    // Idle <-> Walk controller using the clips inside the character's own FBX
+    static readonly string[] GestureClips = { "Phone", "Watch", "Sip", "Angry", "Wave", "Chop", "Shake" };   // Gesture = index + 1
+    static readonly HashSet<string> UpperBodyBones = new HashSet<string>
+        { "Spine", "Chest", "Neck", "Head", "Shoulder.L", "Shoulder.R", "UpperArm.L", "UpperArm.R", "LowerArm.L", "LowerArm.R", "Hand.L", "Hand.R" };
+
+    // Idle <-> Walk (Speed) on the base layer, upper-body gestures (Gesture int) on a masked second layer,
+    // all from the clips inside the character's own FBX
     static UnityEditor.Animations.AnimatorController NpcController(string model)
     {
         Directory.CreateDirectory(AnimDir);
         string path = AnimDir + model + ".controller";
         AssetDatabase.DeleteAsset(path);
         AnimationClip walk = null, idle = null;
+        var gestures = new Dictionary<string, AnimationClip>();
         foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(CharDir + model + ".fbx"))
             if (o is AnimationClip clip && !clip.name.StartsWith("__preview__"))
             {
-                if (clip.name.Contains("Walk")) walk = clip;
-                else if (clip.name.Contains("Idle")) idle = clip;
+                if (clip.name == "Walk") walk = clip;
+                else if (clip.name == "Idle") idle = clip;
+                else gestures[clip.name] = clip;
             }
         var ctrl = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath(path);
         ctrl.AddParameter("Speed", AnimatorControllerParameterType.Float);
+        ctrl.AddParameter("Gesture", AnimatorControllerParameterType.Int);
         var sm = ctrl.layers[0].stateMachine;
         var idleState = sm.AddState("Idle");
         idleState.motion = idle;
@@ -239,6 +276,43 @@ public static partial class ThaiBobaSetup
         toIdle.hasExitTime = false;
         toIdle.duration = 0.2f;
         if (walk == null || idle == null) Debug.LogWarning("Missing Walk/Idle clip in " + model);
+
+        // gesture layer: weight driven by NPCAnimDriver (0 when no gesture, so the empty state never overrides)
+        GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(CharDir + model + ".fbx");
+        var mask = new AvatarMask { name = model + "_Upper" };
+        Transform[] all = asset.GetComponentsInChildren<Transform>(true);
+        mask.transformCount = all.Length;
+        for (int i = 0; i < all.Length; i++)
+        {
+            mask.SetTransformPath(i, AnimationUtility.CalculateTransformPath(all[i], asset.transform));
+            mask.SetTransformActive(i, UpperBodyBones.Contains(all[i].name));
+        }
+        AssetDatabase.AddObjectToAsset(mask, ctrl);
+        var gsm = new UnityEditor.Animations.AnimatorStateMachine { name = "Gestures", hideFlags = HideFlags.HideInHierarchy };
+        AssetDatabase.AddObjectToAsset(gsm, ctrl);
+        var none = gsm.AddState("None");
+        gsm.defaultState = none;
+        for (int k = 0; k < GestureClips.Length; k++)
+        {
+            if (!gestures.TryGetValue(GestureClips[k], out AnimationClip clip)) continue;
+            var st = gsm.AddState(GestureClips[k]);
+            st.motion = clip;
+            var go = gsm.AddAnyStateTransition(st);
+            go.AddCondition(UnityEditor.Animations.AnimatorConditionMode.Equals, k + 1, "Gesture");
+            go.hasExitTime = false;
+            go.duration = 0.2f;
+            go.canTransitionToSelf = false;
+            var back = st.AddTransition(none);
+            back.AddCondition(UnityEditor.Animations.AnimatorConditionMode.NotEqual, k + 1, "Gesture");
+            back.hasExitTime = false;
+            back.duration = 0.25f;
+        }
+        ctrl.AddLayer(new UnityEditor.Animations.AnimatorControllerLayer
+        {
+            name = "Gestures", stateMachine = gsm, avatarMask = mask, defaultWeight = 0f,
+            blendingMode = UnityEditor.Animations.AnimatorLayerBlendingMode.Override
+        });
+        AssetDatabase.SaveAssets();
         return ctrl;
     }
 
@@ -258,6 +332,7 @@ public static partial class ThaiBobaSetup
             anim.runtimeAnimatorController = NpcController(m);
             anim.applyRootMotion = false;
             anim.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+            SetupLods(inst, 0.11f, 0.012f);
         }
         visual.AddComponent<CustomerAppearance>();
         visual.AddComponent<NPCAnimDriver>();
@@ -270,7 +345,7 @@ public static partial class ThaiBobaSetup
         Directory.CreateDirectory(PrefabDir);
         GameObject root = new GameObject("Pedestrian_ThaiBoba");
         NavMeshAgent agent = root.AddComponent<NavMeshAgent>();
-        agent.radius = 0.3f;
+        agent.radius = 0.25f;
         agent.height = 1.7f;
         agent.avoidancePriority = 70;
         root.AddComponent<PedestrianWalker>();
@@ -295,6 +370,7 @@ public static partial class ThaiBobaSetup
         GameObject go = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
         go.transform.localPosition = P(bx, by, bz);
         go.transform.localRotation = Quaternion.Euler(0, -rz, 0);
+        SetupLods(go, 0.14f, 0.008f);
         foreach (MeshFilter mf in go.GetComponentsInChildren<MeshFilter>(true))
         {
             if (col == Col.Mesh) mf.gameObject.AddComponent<MeshCollider>();
@@ -412,7 +488,8 @@ public static partial class ThaiBobaSetup
         public Transform[] farEnds;
         public GameObject root;
         public ServeStation serve;
-        public Transform orderPoint, enterPoint;
+        public Transform orderPoint, enterPoint, exitPoint;
+        public Transform[] queueSlots;
         public Transform[] spawnPoints, exitWaypoints;
         public GameObject fan;
         public List<GameObject> seating = new List<GameObject>();
@@ -540,16 +617,20 @@ public static partial class ThaiBobaSetup
         }
 
         // street life
-        Place("SM_PottedPlant", -1.8f, -0.4f, 0, 0, props, Col.None);
-        Place("SM_PottedPlant", 1.8f, -0.4f, 0, 40, props, Col.None);
-        Place("SM_PromoSign", 1.0f, -1.0f, 0, -15, props, Col.None);
-        Place("SM_SpiritHouse", -4.0f, -1.0f, 0, 10, props, Col.Box).AddComponent<SpiritHouseOffering>();
-        Place("SM_DragonJar", -5.2f, -0.6f, 0, 0, props, Col.Box);
+        Obstacle(Place("SM_PottedPlant", -1.8f, -0.4f, 0, 0, props, Col.None), new Vector3(0.5f, 1f, 0.5f));
+        Obstacle(Place("SM_PottedPlant", 1.8f, -0.4f, 0, 40, props, Col.None), new Vector3(0.5f, 1f, 0.5f));
+        Obstacle(Place("SM_PromoSign", -0.8f, 0.0f, 0, 12, props, Col.None), new Vector3(0.65f, 1f, 0.45f));
+        GameObject spirit = Place("SM_SpiritHouse", -4.0f, -1.0f, 0, 10, props, Col.Box);
+        spirit.AddComponent<SpiritHouseOffering>();
+        Obstacle(spirit, new Vector3(0.7f, 1.5f, 0.7f));
+        Obstacle(Place("SM_DragonJar", -5.2f, -0.6f, 0, 0, props, Col.Box), new Vector3(0.75f, 1f, 0.75f));
         Place("SM_PalmTree", -6.6f, -1.2f, 0, 40, props, Col.None);
         r.seating.Add(Place("SM_SteelTable", 2.6f, -1.7f, 0, 0, props, Col.Box));
         r.seating.Add(Place("SM_PlasticStool", 2.0f, -1.9f, 0, 0, props, Col.Box));
         r.seating.Add(Place("SM_PlasticStool", 3.2f, -1.6f, 0, 30, props, Col.Box));
         r.seating.Add(Place("SM_PlasticStool", 2.6f, -1.0f, 0, 10, props, Col.Box));
+        foreach (GameObject g in r.seating) Obstacle(g, new Vector3(0.45f, 1f, 0.45f));            // bought later: carve at runtime
+        r.seating[0].GetComponent<UnityEngine.AI.NavMeshObstacle>().size = new Vector3(0.85f, 1f, 0.85f);
         r.seating.Add(Place("SM_MarketUmbrella", 2.6f, -1.7f, 0, 0, props, Col.None));
         // Keep the near footpath clear: the cart goes on the far side, the bin stands right at the curb
         Place("SM_StreetCart", 3.0f, -12.4f, 0, 0, props, Col.Box);
@@ -561,9 +642,17 @@ public static partial class ThaiBobaSetup
         markers.SetParent(root.transform, false);
         r.orderPoint = Marker("OrderPoint", markers, 0, 0.55f, 180);
         r.enterPoint = Marker("EnterPoint", markers, 0, -2.2f, 0);
+        // the line: at the counter, one step back, then along the shopfront to the left (clear of the road,
+        // the footpath lane and the way out); customers leave to the right
+        var q = new List<Transform> { r.orderPoint };
+        foreach (var (qx, qy) in new[] { (-0.12f, -0.32f), (-0.72f, -1.02f), (-1.43f, -1.07f), (-2.18f, -1.1f), (-2.93f, -1.13f),
+                                         (-3.55f, -1.72f), (-4.3f, -1.95f), (-5.05f, -1.95f) })
+            q.Add(Marker("Queue_" + q.Count, markers, qx, qy, 0));
+        r.queueSlots = q.ToArray();
+        r.exitPoint = Marker("Exit_1", markers, 1.62f, -1.05f, 0);
         r.spawnPoints = new[] { Marker("Spawn_Left", markers, -39.5f, -2.0f, 0), Marker("Spawn_Right", markers, 39.5f, -2.0f, 0) };   // ends of the soi
         foreach (Transform sp in r.spawnPoints) sp.gameObject.AddComponent<PedestrianEnd>();
-        r.exitWaypoints = new[] { Marker("Leave_1", markers, 5f, -2.0f, 0), Marker("Leave_2", markers, 39.5f, -2.0f, 0) };   // walk off to the end of the soi
+        r.exitWaypoints = new[] { Marker("Leave_1", markers, 2.0f, -2.55f, 0), Marker("Leave_2", markers, 39.5f, -2.3f, 0) };   // walk off to the end of the soi
 
         NavMeshSurface surface = root.AddComponent<NavMeshSurface>();
         surface.collectObjects = CollectObjects.Children;
@@ -700,8 +789,9 @@ public static partial class ThaiBobaSetup
         spawner.spawnPoints = refs.spawnPoints;
         spawner.enterArea = refs.enterPoint;
         spawner.orderArea = refs.orderPoint;
-        spawner.exitArea = refs.enterPoint;
+        spawner.exitArea = refs.exitPoint;
         spawner.customerWaypoints = refs.exitWaypoints;
+        spawner.queueSlots = refs.queueSlots;
         spawner.timeCyc = timeCyc;
         spawner.spawnInterval = 6f;
         spawner.openHour = 7;
