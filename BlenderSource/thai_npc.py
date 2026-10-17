@@ -1817,10 +1817,10 @@ CHARS = [
          bottom=dict(type="sarong", color=(0.35, 0.17, 0.1), pattern="batik", color2=(0.75, 0.55, 0.2)),
          footwear="flipflop", shoes=(0.75, 0.1, 0.1), sole=(0.8, 0.15, 0.15), extras=[("bag", (0.8, 0.12, 0.15))], stride=0.75),
     dict(name="NPC_Rider", sex="m", height=1.7, build=1.03, skin=SKIN_TH, lips=LIPS, brow=(0.04, 0.03, 0.03), age=0.35,
-         hair="helmet", hair_color=(0.03, 0.03, 0.03), helmet=(0.95, 0.95, 0.95), stubble=True,
-         top=dict(color=(0.95, 0.42, 0.07), sleeve="long", pattern="reflective", untucked=True),
+         hair="helmet", hair_color=(0.03, 0.03, 0.03), helmet=(0.06, 0.55, 0.28), stubble=True,     # delivery-app green
+         top=dict(color=(0.04, 0.58, 0.27), sleeve="long", pattern="reflective", untucked=True),
          bottom=dict(type="pants", color=(0.17, 0.26, 0.45), denim=True), footwear="sneaker", shoes=(0.12, 0.12, 0.13),
-         sole=(0.2, 0.2, 0.2), extras=[("deliverybox", (0.95, 0.42, 0.07))]),
+         sole=(0.2, 0.2, 0.2), extras=[("deliverybox", (0.05, 0.62, 0.3))]),
     dict(name="NPC_Influencer", sex="f", height=1.64, build=0.94, skin=SKIN_LIGHT, lips=(0.82, 0.3, 0.4), age=0.2,
          brow=(0.1, 0.07, 0.06), hair="long", hair_color=(0.12, 0.07, 0.05),
          top=dict(color=(0.95, 0.5, 0.68), vneck=True, sleeve="short"), bottom=dict(type="pants", color=(0.95, 0.94, 0.92)),
@@ -2123,7 +2123,8 @@ def main():
         cam.rotation_euler = look.to_track_quat('-Z', 'Y').to_euler()
         SC.render.filepath = os.path.join(REN, "npc_seated.png")
         bpy.ops.render.render(write_still=True)
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT, "BlenderSource", "ThaiNPC.blend"))
+    if not ONLY:                                     # a partial run (-- NPC_X) must not replace the full showcase file
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT, "BlenderSource", "ThaiNPC.blend"))
     print("DONE")
 
 
