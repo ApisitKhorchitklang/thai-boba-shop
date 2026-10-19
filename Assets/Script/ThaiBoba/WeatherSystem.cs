@@ -21,8 +21,8 @@ public class WeatherSystem : MonoBehaviour
     [Header("Effects (optional)")]
     public ParticleSystem rain;
     public ParticleSystem rainSplash;
-    public float maxRainRate = 1100f;
-    public float maxSplashRate = 260f;
+    public float maxRainRate = 1900f;
+    public float maxSplashRate = 450f;
     public Light lightning;
     public float lightningIntensity = 3.5f;
 

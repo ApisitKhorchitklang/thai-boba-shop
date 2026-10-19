@@ -136,6 +136,7 @@ public class ThaiBobaShotsTest
         tex = new Texture2D(1600, 900, TextureFormat.RGB24, false);
         shot.targetTexture = rt;                                     // keeps the shot's aspect for the wet-street reflection too
         T("PlanarReflection").GetField("ViewOverride").SetValue(null, shot);
+        T("RainFollow").GetField("ViewOverride").SetValue(null, shot);
         Component clock = Find("TimeCyc"), weather = Find("WeatherSystem");
 
         // noon: the neighbour open with riders waiting, cats, the topping bar, the rival across the street
@@ -247,6 +248,7 @@ public class ThaiBobaShotsTest
         Call(dp, "End");
 
         T("PlanarReflection").GetField("ViewOverride").SetValue(null, null);
+        T("RainFollow").GetField("ViewOverride").SetValue(null, null);
         UnityEngine.Object.Destroy(camGo);
         T("StoryMode").GetField("AutoPopups").SetValue(null, true);
         T("StatsSystem").GetMethod("EndTests").Invoke(null, null);

@@ -34,6 +34,8 @@ public class PedestrianWalker : MonoBehaviour
         NPCAnimDriver anim = GetComponentInChildren<NPCAnimDriver>();
         bool raining = WeatherSystem.Instance != null && WeatherSystem.Instance.IsRaining;
         if (anim != null && !raining && Random.value < 0.18f) anim.Play(NPCAnimDriver.Gesture.Phone);
+        // festival days: water guns, krathongs, lanterns, garlands... in hand (shown whenever the phone is away)
+        if (anim != null) anim.Carry(FestivalActivities.PickCarry());
     }
 
     float Dist(PedestrianEnd e)

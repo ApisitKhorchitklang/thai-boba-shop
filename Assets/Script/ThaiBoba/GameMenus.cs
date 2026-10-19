@@ -40,7 +40,7 @@ public class GameMenus : MonoBehaviour
     public TMP_Text loadEmptyText;
 
     [Header("Settings")]
-    public Slider masterSlider, musicSlider, sfxSlider, mouseSlider;
+    public Slider masterSlider, musicSlider, sfxSlider, mouseSlider, uiScaleSlider;
     public TMP_Text controlsLabel, qualityLabel, fullscreenLabel;
     [Tooltip("Language button labels (settings + main menu)")]
     public TMP_Text languageLabel, mainLanguageLabel;
@@ -327,6 +327,8 @@ public class GameMenus : MonoBehaviour
         Bind(musicSlider, GameSettings.Music, v => GameSettings.Music = v);
         Bind(sfxSlider, GameSettings.Sfx, v => GameSettings.Sfx = v);
         Bind(mouseSlider, GameSettings.MouseSensitivity, v => GameSettings.MouseSensitivity = v);
+        Bind(uiScaleSlider, GameSettings.UIScale, v => GameSettings.UIScale = v);
+        GameSettings.ApplyUIScale();
         if (fullscreenRow != null) fullscreenRow.SetActive(!Application.isMobilePlatform);
     }
 

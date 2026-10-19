@@ -188,11 +188,18 @@ public class ShopHUD : MonoBehaviour
         if (goalsText != null && DailyGoals.Instance != null)
             goalsText.text = DailyGoals.Instance.Describe().Replace(Loc.T("ภารกิจวันนี้\n", "Today's goals\n"), "");
 
-        CustomerController c = CustomerController.Front;
+        CustomerController c = CustomerController.PlayerFront;
         bool hasCustomer = c != null && c.Profile != null;
         if (orderTitle != null) orderTitle.text = hasCustomer ? c.DisplayName : Loc.T("ออเดอร์", "Order");
         if (orderText != null)
-            orderText.text = hasCustomer ? c.order.ToThaiString() : Loc.T("รอลูกค้า...", "Waiting for customers...");
+        {
+            string order = hasCustomer ? c.order.ToThaiString() : Loc.T("รอลูกค้า...", "Waiting for customers...");
+            BaristaStaff b = BaristaStaff.Instance;
+            if (b != null && b.Working != null)        // say plainly who the barista has, so nobody makes that drink twice
+                order += Loc.T($"\n<size=78%><color=#2E8B57>พนักงานดูแล: {b.Working.order.DrinkNameTH} ({b.Progress01 * 100f:0}%) ไม่ต้องทำแก้วนี้</color></size>",
+                               $"\n<size=78%><color=#2E8B57>Barista has: {b.Working.order.DrinkNameTH} ({b.Progress01 * 100f:0}%), skip it</color></size>");
+            orderText.text = order;
+        }
         if (patienceFill != null)
         {
             float p = hasCustomer ? c.PatienceNormalized : 0f;

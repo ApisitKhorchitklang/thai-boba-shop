@@ -2,8 +2,8 @@ using TMPro;
 using UnityEngine;
 
 // The second staff member (พนักงานชงชา, hired at the shop computer): stands at the left end of the counter and
-// takes the order of the next customer in line while you serve the one at the front, then shakes it up and hands
-// it over. With only one customer waiting, they also help the front one if you aren't making anything.
+// takes the order of the next customer in line while you serve yours (never yours: the HUD and the counter follow
+// the first customer the barista hasn't taken), then shakes it up and hands it over.
 // Skill level 1-3 (training at the computer): faster and more often perfect. Paid a daily wage.
 public class BaristaStaff : MonoBehaviour, IInteractable
 {
@@ -13,12 +13,10 @@ public class BaristaStaff : MonoBehaviour, IInteractable
     public TMP_Text speech;                    // world-space label above the head
     public float[] secondsPerLevel = { 24f, 17f, 12f };
     public float[] perfectPerLevel = { 0.75f, 0.88f, 0.96f };
-    [Tooltip("Seconds the front customer waits with an idle owner before the barista helps them too")]
-    public float helpFrontAfter = 6f;
 
     CustomerController working;
     bool hasWork;
-    float progress, needed, shakeTimer, idleFront, chatTimer;
+    float progress, needed, shakeTimer, chatTimer;
     NPCAnimDriver anim;
     RaycastAim player;
     TimeCyc clock;
@@ -61,17 +59,12 @@ public class BaristaStaff : MonoBehaviour, IInteractable
 
     void PickCustomer()
     {
-        var q = CustomerController.Queue;
-        CustomerController pick = null;
-        if (q.Count >= 2 && q[1] != null && q[1].ArrivedInLine && q[1].claimedBy == null) pick = q[1];
-        else if (q.Count == 1 && q[0] != null && q[0].AtCounter && q[0].claimedBy == null)
-        {
-            bool ownerBusy = player != null && player.HeldCup != null;
-            idleFront = ownerBusy ? 0f : idleFront + Time.deltaTime;
-            if (idleFront >= helpFrontAfter) pick = q[0];
-        }
+        // Never the player's customer (the first one not taken): only the next one in line. One clear rule beats
+        // "sometimes the barista grabs the front one too", which had players making the same drink twice.
+        CustomerController mine = CustomerController.PlayerFront, pick = null;
+        foreach (CustomerController c in CustomerController.Queue)
+            if (c != null && c != mine && c.claimedBy == null && c.ArrivedInLine) { pick = c; break; }
         if (pick == null) return;
-        idleFront = 0f;
         working = pick;
         hasWork = true;
         working.claimedBy = this;

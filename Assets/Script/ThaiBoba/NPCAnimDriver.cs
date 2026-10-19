@@ -67,13 +67,40 @@ public class NPCAnimDriver : MonoBehaviour
     }
 
     // ---------------------------------------------------------------- props in the right hand
+    // Something carried while no gesture needs the hand: a festival prop (FestivalActivities.MakeProp)
+    string carry;
+    bool carryShown;
+
+    public string Carrying => carry;
+
+    public void Carry(string kind)
+    {
+        if (carry == kind) return;
+        carry = kind;
+        if (prop != null && carryShown) { Destroy(prop); prop = null; }
+    }
+
     void UpdateProp()
     {
         Gesture want = gesture == Gesture.Phone || gesture == Gesture.Sip || gesture == Gesture.Chop || gesture == Gesture.Shake ? gesture : Gesture.None;
-        if (prop != null && propFor != want) { Destroy(prop); prop = null; }
-        if (want == Gesture.None || prop != null || animator == null) return;
+        bool wantCarry = want == Gesture.None && !string.IsNullOrEmpty(carry);
+        if (prop != null && (propFor != want || carryShown != wantCarry)) { Destroy(prop); prop = null; }
+        if ((want == Gesture.None && !wantCarry) || prop != null || animator == null) return;
         Transform hand = Find(animator.transform, "Hand.R"), fore = Find(animator.transform, "LowerArm.R");
         if (hand == null || fore == null) return;
+        if (wantCarry)
+        {
+            prop = FestivalActivities.MakeProp(carry);
+            if (prop == null) { carry = null; return; }
+            propFor = Gesture.None;
+            carryShown = true;
+            Vector3 d = (hand.position - fore.position).normalized;
+            prop.transform.SetParent(hand, true);
+            prop.transform.position = hand.position + d * 0.07f;
+            prop.transform.rotation = animator.transform.rotation;
+            return;
+        }
+        carryShown = false;
         prop = want == Gesture.Phone ? MakePhone() : want == Gesture.Chop ? MakeCleaver() : want == Gesture.Shake ? MakeShaker() : MakeCup(cupColor);
         propFor = want;
         Vector3 dir = (hand.position - fore.position).normalized;
@@ -93,7 +120,7 @@ public class NPCAnimDriver : MonoBehaviour
         return null;
     }
 
-    static Material Mat(ref Material m, Color c, float smooth)
+    public static Material Mat(ref Material m, Color c, float smooth)
     {
         if (m != null) return m;
         Shader sh = Shader.Find("Universal Render Pipeline/Lit");
@@ -105,7 +132,7 @@ public class NPCAnimDriver : MonoBehaviour
         return m;
     }
 
-    static GameObject Part(PrimitiveType type, Transform parent, Vector3 pos, Vector3 scale, Material mat)
+    public static GameObject Part(PrimitiveType type, Transform parent, Vector3 pos, Vector3 scale, Material mat)
     {
         GameObject g = GameObject.CreatePrimitive(type);
         Destroy(g.GetComponent<Collider>());

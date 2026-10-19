@@ -78,6 +78,7 @@ public static partial class ThaiBobaSetup
         ["เพลง"] = "Music",
         ["เอฟเฟกต์"] = "Effects",
         ["ความไวเมาส์"] = "Mouse sensitivity",
+        ["ขนาด UI"] = "UI size",
         ["กลับ"] = "Back",
         ["ท้าทายรายวัน"] = "Daily challenge",
         ["สั่งของ · คอมพิวเตอร์ร้าน"] = "Order supplies · Shop PC",
@@ -641,7 +642,7 @@ public static partial class ThaiBobaSetup
 
         // ----- settings
         GameObject settings = Overlay("SettingsMenu", 0.6f);
-        Image scard = Img(settings.transform, "Card", "panel", C, C, Vector2.zero, new Vector2(980, 980));
+        Image scard = Img(settings.transform, "Card", "panel", C, C, Vector2.zero, new Vector2(980, 1060));
         Image sr = Img(scard.transform, "Ribbon", "button_pink", new Vector2(0.5f, 1), C, new Vector2(0, -6), new Vector2(460, 100));
         FillLabel(sr.transform, "ตั้งค่า", 40, Color.white, TextAlignmentOptions.Midline, 10, 10, true).margin = new Vector4(0, 0, 0, 10);
         Slider SliderRow(string label, string icon, float y)
@@ -656,12 +657,15 @@ public static partial class ThaiBobaSetup
         menus.mouseSlider = SliderRow("ความไวเมาส์", "icon_gear", -420);
         menus.mouseSlider.minValue = 0.2f;
         menus.mouseSlider.maxValue = 3f;
-        menus.controlsLabel = Btn(scard.transform, "Controls", "button_cream", "การควบคุม", null, new Vector2(0.5f, 1), new Vector2(0, -520), new Vector2(760, 84), 28, Brown, menus.CycleControls).GetComponentInChildren<TMP_Text>();
-        menus.qualityLabel = Btn(scard.transform, "Quality", "button_cream", "กราฟิก", null, new Vector2(0.5f, 1), new Vector2(-195, -620), new Vector2(370, 84), 28, Brown, menus.CycleQuality).GetComponentInChildren<TMP_Text>();
-        Button fs = Btn(scard.transform, "Fullscreen", "button_cream", "เต็มจอ", null, new Vector2(0.5f, 1), new Vector2(195, -620), new Vector2(370, 84), 28, Brown, menus.ToggleFullscreen);
+        menus.uiScaleSlider = SliderRow("ขนาด UI", "icon_star", -510);
+        menus.uiScaleSlider.minValue = GameSettings.UIScaleMin;
+        menus.uiScaleSlider.maxValue = GameSettings.UIScaleMax;
+        menus.controlsLabel = Btn(scard.transform, "Controls", "button_cream", "การควบคุม", null, new Vector2(0.5f, 1), new Vector2(0, -605), new Vector2(760, 84), 28, Brown, menus.CycleControls).GetComponentInChildren<TMP_Text>();
+        menus.qualityLabel = Btn(scard.transform, "Quality", "button_cream", "กราฟิก", null, new Vector2(0.5f, 1), new Vector2(-195, -700), new Vector2(370, 84), 28, Brown, menus.CycleQuality).GetComponentInChildren<TMP_Text>();
+        Button fs = Btn(scard.transform, "Fullscreen", "button_cream", "เต็มจอ", null, new Vector2(0.5f, 1), new Vector2(195, -700), new Vector2(370, 84), 28, Brown, menus.ToggleFullscreen);
         menus.fullscreenLabel = fs.GetComponentInChildren<TMP_Text>();
         menus.fullscreenRow = fs.gameObject;
-        menus.languageLabel = Btn(scard.transform, "Language", "button_cream", "ภาษา", null, new Vector2(0.5f, 1), new Vector2(0, -720),
+        menus.languageLabel = Btn(scard.transform, "Language", "button_cream", "ภาษา", null, new Vector2(0.5f, 1), new Vector2(0, -795),
                                   new Vector2(760, 84), 28, Brown, menus.CycleLanguage).GetComponentInChildren<TMP_Text>();
         Btn(scard.transform, "Back", "button_pink", "กลับ", "icon_home", new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(360, 100), 34, Color.white, menus.Back);
 

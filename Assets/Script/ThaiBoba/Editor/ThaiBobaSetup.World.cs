@@ -148,12 +148,26 @@ public static partial class ThaiBobaSetup
         Transform wx = new GameObject("Weather").transform;
         wx.SetParent(root, false);
 
-        // rain falls over the open street (awning edge of our row, z 1.2, to the far row's awnings, z 12.2);
-        // the shops and the covered footpath stay dry. Splashes hit the same strip.
+        // rain falls everywhere around the camera (RainFollow); the dry zones kill drops inside the shophouse rows
+        // (and under their awnings, which reach z 1.2 on our side and z 12.2 on the far side) and inside the tunnels
         GameObject rain = (GameObject)PrefabUtility.InstantiatePrefab(fx.rain, wx);
         rain.transform.localPosition = new Vector3(0, 16f, 6.7f);
+        RainFollow rainFollow = rain.AddComponent<RainFollow>();
         GameObject splash = (GameObject)PrefabUtility.InstantiatePrefab(fx.rainSplash, wx);
         splash.transform.localPosition = new Vector3(0, 0.02f, 6.7f);
+        RainFollow splashFollow = splash.AddComponent<RainFollow>();
+        splashFollow.groundLevel = true;
+        // (world x, z) min/max: our row, the far row, the four tunnel mouths on the side roads (x = -/+45.5);
+        // from below the ground to well above where the drops start
+        var zones = new (float x0, float x1, float z0, float z1)[]
+        {
+            (-41.4f, 41.4f, -40f, 1.2f), (-41.4f, 41.4f, 12.2f, 60f),
+            (-50f, -41f, -70f, -18f), (-50f, -41f, 30f, 70f), (41f, 50f, -70f, -18f), (41f, 50f, 30f, 70f),
+        };
+        var bounds = new List<Bounds>();
+        foreach (var z in zones)
+            bounds.Add(new Bounds(new Vector3((z.x0 + z.x1) * 0.5f, 19f, (z.z0 + z.z1) * 0.5f), new Vector3(z.x1 - z.x0, 42f, z.z1 - z.z0)));
+        rainFollow.dryZones = splashFollow.dryZones = bounds.ToArray();
 
         // lightning: a cold directional flash
         GameObject lg = new GameObject("LightningFlash");

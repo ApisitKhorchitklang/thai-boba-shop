@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
-// Player options, stored in PlayerPrefs: volumes, controls (touch / PC), mouse sensitivity, graphics, fullscreen.
+// Player options, stored in PlayerPrefs: volumes, controls (touch / PC), mouse sensitivity, UI size, graphics, fullscreen.
 public static class GameSettings
 {
     public enum ControlMode { Auto, Touch, PC }
@@ -15,6 +17,9 @@ public static class GameSettings
     public static ControlMode Controls { get => (ControlMode)PlayerPrefs.GetInt("tb_controls", 0); set { PlayerPrefs.SetInt("tb_controls", (int)value); Apply(); } }
     // 0 = low (no post-processing, no shadows), 1 = medium, 2 = high
     public static int Quality { get => PlayerPrefs.GetInt("tb_quality", Application.isMobilePlatform ? 1 : 2); set { PlayerPrefs.SetInt("tb_quality", Mathf.Clamp(value, 0, 2)); Apply(); } }
+    // UI size: 1 = as designed; bigger shrinks the canvases' reference resolution so every screen-space panel grows
+    public const float UIScaleMin = 0.75f, UIScaleMax = 1.4f;
+    public static float UIScale { get => Mathf.Clamp(PlayerPrefs.GetFloat("tb_uiscale", 1f), UIScaleMin, UIScaleMax); set { PlayerPrefs.SetFloat("tb_uiscale", Mathf.Clamp(value, UIScaleMin, UIScaleMax)); Apply(); } }
     public static bool Fullscreen { get => PlayerPrefs.GetInt("tb_fullscreen", 1) == 1; set { PlayerPrefs.SetInt("tb_fullscreen", value ? 1 : 0); Apply(); } }
 
     // What the game actually uses after resolving "Auto"
@@ -52,6 +57,22 @@ public static class GameSettings
         AudioListener.volume = Master;
         if (!Application.isMobilePlatform && !Application.isEditor && Screen.fullScreen != Fullscreen)
             Screen.fullScreen = Fullscreen;
+        ApplyUIScale();
         Changed?.Invoke();
+    }
+
+    static readonly Dictionary<CanvasScaler, Vector2> designResolution = new Dictionary<CanvasScaler, Vector2>();
+
+    // HUD, menus and on-screen controls (screen-space canvases); world-space labels above heads keep their size
+    public static void ApplyUIScale()
+    {
+        float k = UIScale;
+        foreach (CanvasScaler cs in UnityEngine.Object.FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            Canvas c = cs.GetComponent<Canvas>();
+            if (c == null || c.renderMode == RenderMode.WorldSpace || cs.uiScaleMode != CanvasScaler.ScaleMode.ScaleWithScreenSize) continue;
+            if (!designResolution.TryGetValue(cs, out Vector2 res)) designResolution[cs] = res = cs.referenceResolution;
+            cs.referenceResolution = res / k;
+        }
     }
 }

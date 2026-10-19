@@ -12,7 +12,7 @@ public class ServeStation : MonoBehaviour, IInteractable
     {
         get
         {
-            CustomerController front = CustomerController.Front;
+            CustomerController front = CustomerController.PlayerFront;
             if (front != null && front.IsWaitingAtCounter) return front;
             return currentCustomer;
         }

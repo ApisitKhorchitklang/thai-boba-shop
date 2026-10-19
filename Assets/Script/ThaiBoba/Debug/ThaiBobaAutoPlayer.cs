@@ -41,7 +41,7 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
         if (aim == null || gm == null) return;
         if (moneyAtStart < 0 && Time.time > 1f) moneyAtStart = gm.money;
 
-        CustomerController c = CustomerController.Front;
+        CustomerController c = CustomerController.PlayerFront;
         if (Time.time > nextDiag)
         {
             nextDiag = Time.time + 4f;
@@ -88,6 +88,14 @@ public class ThaiBobaAutoPlayer : MonoBehaviour
         {
             if (!pot.IsCooking) { Use(aim, Station(IngredientStation.Kind.Boba)); return; }      // one action per step, like a player
             if (cup.CanFill) Use(aim, Station(IngredientStation.Kind.Flavor, o.flavor));          // prep while it boils
+            return;
+        }
+        // a cup sealed for someone who has since left the line doesn't fit this order: bin it, like a player would
+        if (cup.State == CupController.CupState.LidClosed && !cup.MatchesOrder(o))
+        {
+            Use(aim, FindFirstObjectByType<TrashStation>());
+            cup = null;
+            Debug.Log("[BOT] binned a cup made for a customer who left");
             return;
         }
         // Tea first, then pearls/ice/sweetness: checks that ingredients can be added in any order before sealing

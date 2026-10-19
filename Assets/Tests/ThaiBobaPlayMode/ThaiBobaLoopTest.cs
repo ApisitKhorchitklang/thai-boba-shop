@@ -1559,9 +1559,12 @@ public class ThaiBobaLoopTest
         float t0 = Time.realtimeSinceStartup;
         while ((int)Get(today, "staffDrinks") < 1 && Time.realtimeSinceStartup - t0 < 100f)
         {
-            if (Get(barista, "Working") != null)
+            object working = Get(barista, "Working");
+            if (working != null)
             {
                 sawWork = true;
+                object mine = T("CustomerController").GetProperty("PlayerFront").GetValue(null);
+                Assert.AreNotSame(working, mine, "the barista took the player's own customer (the one on the order card)");
                 Component drv = ((Component)barista).GetComponentInChildren(T("NPCAnimDriver"), true);
                 if (drv != null && Get(drv, "Current").ToString() == "Shake") sawShake = true;
             }
@@ -1851,21 +1854,41 @@ public class ThaiBobaLoopTest
             Call(weather, "Force", 1f, 1f, false);
             ParticleSystem rain = (ParticleSystem)Get(weather, "rain");
             var parts = new ParticleSystem.Particle[4000];
-            int total = 0, overShops = 0;
+            int total = 0, overShops = 0, onFootpath = 0, atJunction = 0;
             Vector3 worst = Vector3.zero;
-            float t0 = Time.realtimeSinceStartup;
-            while (Time.realtimeSinceStartup - t0 < 4f)
+            // rain follows the camera: look from the middle of the soi, then from the junction at the street end
+            Type follow = T("RainFollow");
+            GameObject probe = new GameObject("RainProbeCam");
+            Camera probeCam = probe.AddComponent<Camera>();
+            probeCam.enabled = false;
+            follow.GetField("ViewOverride").SetValue(null, probeCam);
+            foreach (Vector3 at in new[] { new Vector3(0f, 1.6f, 6f), new Vector3(-45.5f, 1.6f, 6f) })
             {
-                int n = rain.GetParticles(parts);
-                bool local = rain.main.simulationSpace == ParticleSystemSimulationSpace.Local;
-                for (int i = 0; i < n; i++)
+                probe.transform.position = at;
+                rain.Clear();
+                float t0 = Time.realtimeSinceStartup;
+                while (Time.realtimeSinceStartup - t0 < 3f)
                 {
-                    Vector3 w = local ? rain.transform.TransformPoint(parts[i].position) : parts[i].position;
-                    total++;
-                    if (w.z < 1.0f || w.z > 12.5f) { overShops++; worst = w; }       // our row (z < 1) / the far row (z > 12.5)
+                    int n = rain.GetParticles(parts);
+                    bool local = rain.main.simulationSpace == ParticleSystemSimulationSpace.Local;
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (parts[i].startLifetime - parts[i].remainingLifetime < 0.1f) continue;   // just born: the trigger kills it next update
+                        Vector3 w = local ? rain.transform.TransformPoint(parts[i].position) : parts[i].position;
+                        total++;
+                        bool inRows = Mathf.Abs(w.x) < 41.4f && (w.z < 1.0f || w.z > 12.5f);   // our row (z < 1) / the far row (z > 12.5)
+                        if (inRows) { overShops++; worst = w; }
+                        if (Mathf.Abs(w.x) < 30f && w.z > 1.3f && w.z < 2.9f) onFootpath++;   // our footpath, past the awning
+                        if (w.x < -41.6f && w.x > -49.6f && w.z > 0f && w.z < 12f) atJunction++;
+                    }
+                    yield return null;
                 }
-                yield return null;
             }
+            follow.GetField("ViewOverride").SetValue(null, null);
+            UnityEngine.Object.Destroy(probe);
+            Debug.Log($"[TEST] rain coverage: footpath {onFootpath}, junction {atJunction}");
+            Assert.Greater(onFootpath, 50, "no rain on the open footpath");
+            Assert.Greater(atJunction, 50, "no rain at the junction at the street end");
             Component planar = Find("PlanarReflection");
             Assert.IsNotNull(planar, "no planar reflection in the scene");
             bool gpu = SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null;
@@ -1918,5 +1941,72 @@ public class ThaiBobaLoopTest
         Time.timeScale = 1f;
         Debug.Log($"[TEST] cat: head drift from the body {drift * 100f:0.0} cm");
         Assert.Less(drift, 0.06f, "the cat's head drifts away from its body");
+    }
+
+    // Festival days: passers-by carry the festival's things and small groups celebrate on the far footpath
+    [UnityTest, Timeout(90000)]
+    public IEnumerator FestivalCrowdsCelebrate()
+    {
+        yield return LoadScene();
+        Component ev = Inst("DailyEventSystem");
+        Component clock = Find("TimeCyc");
+        Call(clock, "SetTime", 12, 0);
+        Call(ev, "RollForDay", 10);                                           // Songkran
+        Assert.AreEqual("Songkran", Get(Get(ev, "Current"), "type").ToString());
+        yield return null;
+        yield return null;
+        Component crowds = Inst("FestivalActivities");
+        Assert.IsNotNull(crowds, "no festival crowds in the scene");
+        int people = (int)Get(crowds, "PeopleOut");
+        Debug.Log($"[TEST] festival: {people} people celebrating");
+        Assert.GreaterOrEqual(people, 4, "nobody gathers for the festival");
+        // they hold water guns / bowls and splash each other
+        int carrying = 0;
+        foreach (Component d in ((Component)crowds).GetComponentsInChildren(T("NPCAnimDriver")))
+        {
+            string c = (string)Get(d, "Carrying");
+            if (c == "watergun" || c == "bowl") carrying++;
+        }
+        Assert.GreaterOrEqual(carrying, 4, "festival goers carry nothing");
+        bool waved = false;
+        float t0 = Time.realtimeSinceStartup;
+        while (!waved && Time.realtimeSinceStartup - t0 < 8f)
+        {
+            foreach (Component d in ((Component)crowds).GetComponentsInChildren(T("NPCAnimDriver")))
+                if (Get(d, "Current").ToString() == "Wave") waved = true;
+            yield return null;
+        }
+        Assert.IsTrue(waved, "nobody splashes water");
+        Assert.IsNotNull(Call(T("FestivalActivities"), "MakeProp", "krathong"), "no krathong prop");
+        // passers-by pick festival props too
+        int picked = 0;
+        for (int i = 0; i < 50; i++) if (Call(T("FestivalActivities"), "PickCarry") != null) picked++;
+        Assert.Greater(picked, 10, "passers-by never carry festival things");
+        // an ordinary day: everyone goes home
+        for (int day = 2; day < 9; day++)
+        {
+            Call(ev, "RollForDay", day);
+            if (!(bool)Call(T("DailyEventSystem"), "IsFestival", Get(Get(ev, "Current"), "type"))) break;
+        }
+        yield return null;
+        yield return null;
+        Assert.AreEqual(0, (int)Get(crowds, "PeopleOut"), "festival crowd stays after the festival");
+
+        // UI size setting: bigger UI = smaller reference resolution on the screen-space canvases
+        Type gs = T("GameSettings");
+        float before = (float)gs.GetProperty("UIScale").GetValue(null);
+        try
+        {
+            gs.GetProperty("UIScale").SetValue(null, 1f);
+            UnityEngine.UI.CanvasScaler hud = null;
+            foreach (UnityEngine.UI.CanvasScaler cs in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.CanvasScaler>(FindObjectsSortMode.None))
+                if (cs.GetComponent<Canvas>().renderMode != RenderMode.WorldSpace) { hud = cs; break; }
+            Assert.IsNotNull(hud, "no screen canvas");
+            Vector2 baseRes = hud.referenceResolution;
+            gs.GetProperty("UIScale").SetValue(null, 1.25f);
+            Assert.AreEqual(baseRes.x / 1.25f, hud.referenceResolution.x, 1f, "UI size setting does not scale the HUD");
+            Assert.IsNotNull(Get(Find("GameMenus"), "uiScaleSlider"), "no UI size slider in the settings");
+        }
+        finally { gs.GetProperty("UIScale").SetValue(null, before); }
     }
 }

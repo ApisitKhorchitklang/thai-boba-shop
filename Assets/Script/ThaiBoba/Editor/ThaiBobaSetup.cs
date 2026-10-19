@@ -838,6 +838,10 @@ public static partial class ThaiBobaSetup
         farWalkers.pedestrianPrefab = spawner.npcPrefab;
         farWalkers.endA = refs.farEnds[0];
         farWalkers.endB = refs.farEnds[1];
+        FestivalActivities crowds = new GameObject("FestivalCrowds").AddComponent<FestivalActivities>();
+        crowds.pedestrianPrefab = spawner.npcPrefab;
+        crowds.endA = refs.farEnds[0];
+        crowds.endB = refs.farEnds[1];
         FxSet fx = CreateFxPrefabs();
         currentFx = fx;
         BuildTraffic(refs.root.transform);

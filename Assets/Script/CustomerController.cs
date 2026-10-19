@@ -48,6 +48,17 @@ public class CustomerController : MonoBehaviour
     bool countedIncoming;
     Quaternion faceRotation;
     public static CustomerController Front => Queue.Count > 0 ? Queue[0] : null;
+    // The player's customer: the first one in line the barista isn't looking after. The order card, the counter and
+    // the patience timer all follow this one, so the player never makes a drink the barista is already making.
+    public static CustomerController PlayerFront
+    {
+        get
+        {
+            foreach (CustomerController c in Queue)
+                if (c != null && c.claimedBy == null) return c;
+            return null;
+        }
+    }
     // Tutorial: nobody gets impatient while the player is learning
     // Patience stops while the tutorial runs or the story popup is open. Each owner keeps its own flag, so one
     // closing can never leave the other's freeze switched on (that left every customer waiting forever).
@@ -57,7 +68,7 @@ public class CustomerController : MonoBehaviour
 
     public float Patience { get; private set; }
     public float PatienceNormalized => maxPatience > 0 ? Mathf.Clamp01(Patience / maxPatience) : 1f;
-    public bool IsWaitingAtCounter => state == CustomerState.GoingToOrder && arrivedAtSlot && Front == this;
+    public bool IsWaitingAtCounter => state == CustomerState.GoingToOrder && arrivedAtSlot && PlayerFront == this;
     public CustomerProfiles.Profile Profile { get; private set; }
 
     private enum CustomerState
@@ -275,10 +286,11 @@ public class CustomerController : MonoBehaviour
             OnArrivedAtSlot(slot);
         }
 
-        // Only the customer being served (at the counter) loses patience; people further back in line just wait
-        if (slot == 0 && arrivedAtSlot && !PatienceFrozen)
+        // Only the player's customer loses patience; people further back, and whoever the barista is serving, just wait
+        bool mine = PlayerFront == this;
+        if (mine && arrivedAtSlot && !PatienceFrozen)
             Patience -= Time.deltaTime;
-        if (!warnedImpatient && slot == 0 && arrivedAtSlot && PatienceNormalized < 0.25f)
+        if (!warnedImpatient && mine && arrivedAtSlot && PatienceNormalized < 0.25f)
         {
             warnedImpatient = true;
             Emote(CustomerEmote.Kind.Angry, 2.5f);                       // hurry up!
