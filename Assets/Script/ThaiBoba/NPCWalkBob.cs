@@ -21,7 +21,7 @@ public class NPCWalkBob : MonoBehaviour
 
     void Update()
     {
-        float speed = agent != null ? agent.velocity.magnitude : 0f;
+        float speed = agent != null && agent.enabled ? agent.velocity.magnitude : 0f;
         float amount = Mathf.Clamp01(speed / 1.2f);
         phase += speed * stepsPerMeter * Mathf.PI * Time.deltaTime;
 

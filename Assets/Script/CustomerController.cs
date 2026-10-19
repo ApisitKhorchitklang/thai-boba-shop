@@ -77,6 +77,10 @@ public class CustomerController : MonoBehaviour
         GoingToOrder,
         GoingToExit,
         GoingToWaypoints,
+        GoingToSeat,          // NavMesh walk to the seat's door / approach point
+        SeatRouteIn,          // agent off: straight lines inside the shop to the stool
+        Seated,
+        SeatRouteOut,         // back out to the door, then off down the soi
         Finished
     }
 
@@ -133,6 +137,7 @@ public class CustomerController : MonoBehaviour
     {
         Queue.Remove(this);
         StopIncoming();
+        if (seat != null && seat.taken == this) seat.taken = null;
     }
 
     void StopIncoming()
@@ -193,6 +198,12 @@ public class CustomerController : MonoBehaviour
                     GoToWaypoints();
                 }
             }
+            return;
+        }
+
+        if (state >= CustomerState.GoingToSeat && state <= CustomerState.SeatRouteOut)
+        {
+            UpdateSeat();
             return;
         }
 
@@ -469,7 +480,13 @@ public class CustomerController : MonoBehaviour
 
     void LeaveForTheDay()
     {
-        if (state == CustomerState.GoingToExit || state == CustomerState.Finished) return;
+        if (state == CustomerState.GoingToExit || state == CustomerState.Finished || state == CustomerState.SeatRouteOut) return;
+        if (state >= CustomerState.GoingToSeat && state <= CustomerState.Seated)
+        {
+            Say(Loc.T("ร้านจะปิดแล้ว ไปก่อนนะ", "Closing time, see you!"), 3f);
+            StandUp();
+            return;
+        }
         Say(Loc.T("ร้านปิดแล้วเหรอ ไว้มาใหม่นะ", "Closed already? See you tomorrow!"), 3f);
         GoToExitArea();
     }
@@ -582,6 +599,149 @@ public class CustomerController : MonoBehaviour
         else
             Say(CustomerProfiles.Line(result.quality == ServeQuality.Perfect ? Profile.thanks : Profile.okay, order), 3f);
         Debug.Log("Order completed: " + result.quality);
-        GoToExitArea();
+        if (!TrySit()) GoToExitArea();
+    }
+
+    // ---------------------------------------------------------------- sitting down with the drink
+    // chance a served customer sits down when a seat is free (more when it rains)
+    public static float SitChance = 0.6f;
+    public static int SatDown;                          // read by tests
+    SeatSpot seat;
+    List<Vector3> seatPath;
+    int routeIndex;
+    float sitTimer;
+    float standDelay;
+    const float RouteSpeed = 1.1f;
+
+    public bool IsSeated => state == CustomerState.Seated;
+    public bool InSeatFlow => state >= CustomerState.GoingToSeat && state <= CustomerState.SeatRouteOut;
+    public SeatSpot Seat => seat;
+
+    bool TrySit()
+    {
+        if (agent == null || !agent.isOnNavMesh) return false;
+        bool rain = WeatherSystem.Instance != null && WeatherSystem.Instance.IsRaining;
+        if (Random.value > SitChance * (rain ? 1.35f : 1f)) return false;
+        SeatSpot s = SeatSpot.FindFree(transform.position);
+        if (s == null) return false;
+        Queue.Remove(this);
+        StopIncoming();
+        seat = s;
+        s.taken = this;
+        seatPath = s.Path();
+        agent.updateRotation = true;
+        agent.avoidancePriority = 55;
+        stuckTimer = 0f;
+        state = CustomerState.GoingToSeat;
+        agent.SetDestination(seatPath[0]);
+        return true;
+    }
+
+    void UpdateSeat()
+    {
+        switch (state)
+        {
+            case CustomerState.GoingToSeat:
+                Vector3 d = seatPath[0] - transform.position;
+                d.y = 0f;
+                bool there = d.magnitude < 0.35f || (!agent.pathPending && agent.remainingDistance < 0.3f && d.magnitude < 0.8f);
+                if (!there && StuckWalking()) there = true;              // blocked: step over to the door
+                if (!there) return;
+                agent.enabled = false;                                   // inside the shop: walk the route by hand
+                SetIndoors(seat.covered);
+                routeIndex = 1;
+                state = CustomerState.SeatRouteIn;
+                return;
+
+            case CustomerState.SeatRouteIn:
+                if (!WalkTo(seatPath[routeIndex])) return;
+                if (++routeIndex < seatPath.Count) return;
+                transform.position = seat.SeatPosition;
+                state = CustomerState.Seated;
+                SatDown++;
+                if (Anim != null) { Anim.SpeedOverride = 0f; Anim.Sitting = true; }
+                Gesture(NPCAnimDriver.Gesture.None);                     // settle onto the stool first, then sip
+                sitTimer = Random.Range(14f, 26f);
+                gestureTimer = 1.5f;
+                return;
+
+            case CustomerState.Seated:
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, seat.Facing, 300f * Time.deltaTime);
+                sitTimer -= Time.deltaTime;
+                gestureTimer -= Time.deltaTime;
+                if (gestureTimer <= 0f && Anim != null)
+                {
+                    float r = Random.value;                              // sip, scroll the phone, or just sit back
+                    if (r < 0.55f) { Gesture(NPCAnimDriver.Gesture.Sip, Random.Range(3f, 5f)); gestureTimer = Random.Range(6f, 9f); }
+                    else if (r < 0.8f) { Gesture(NPCAnimDriver.Gesture.Phone, Random.Range(4f, 7f)); gestureTimer = Random.Range(7f, 10f); }
+                    else gestureTimer = Random.Range(3f, 5f);
+                }
+                if (sitTimer <= 0f) StandUp();
+                return;
+
+            case CustomerState.SeatRouteOut:
+                if (standDelay > 0f) { standDelay -= Time.deltaTime; return; }   // getting up off the stool
+                if (!WalkTo(seatPath[routeIndex])) return;
+                if (--routeIndex >= 0) return;
+                LeaveSeat();
+                return;
+        }
+    }
+
+    void StandUp()
+    {
+        if (state == CustomerState.GoingToSeat)
+        {
+            ReleaseSeat();
+            GoToWaypoints();
+            return;
+        }
+        if (Anim != null) { Anim.Sitting = false; Gesture(NPCAnimDriver.Gesture.Sip); }
+        standDelay = state == CustomerState.Seated ? 0.45f : 0f;
+        routeIndex = state == CustomerState.Seated ? seatPath.Count - 2 : Mathf.Max(0, routeIndex - 1);
+        state = CustomerState.SeatRouteOut;
+    }
+
+    void LeaveSeat()
+    {
+        if (Anim != null) Anim.SpeedOverride = -1f;
+        SetIndoors(false);
+        ReleaseSeat();
+        agent.enabled = true;
+        agent.Warp(seatPath[0]);
+        agent.updateRotation = true;
+        stuckTimer = 0f;
+        GoToWaypoints();
+    }
+
+    void ReleaseSeat()
+    {
+        if (seat != null && seat.taken == this) seat.taken = null;
+        seat = null;
+    }
+
+    // straight-line walk with the agent off; true once there
+    bool WalkTo(Vector3 target)
+    {
+        Vector3 to = target - transform.position;
+        Vector3 flat = new Vector3(to.x, 0f, to.z);
+        float step = RouteSpeed * Time.deltaTime;
+        if (Anim != null) Anim.SpeedOverride = RouteSpeed;
+        if (flat.sqrMagnitude > 1e-4f)
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(flat.normalized), 420f * Time.deltaTime);
+        if (to.magnitude <= step)
+        {
+            transform.position = target;
+            if (Anim != null) Anim.SpeedOverride = 0f;
+            return true;
+        }
+        transform.position += to.normalized * step;
+        return false;
+    }
+
+    void SetIndoors(bool indoors)
+    {
+        NPCWeather w = GetComponentInChildren<NPCWeather>();
+        if (w != null) w.Indoors = indoors;
     }
 }

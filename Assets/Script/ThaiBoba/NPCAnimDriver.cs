@@ -22,6 +22,18 @@ public class NPCAnimDriver : MonoBehaviour
 
     public Gesture Current => gesture;
 
+    // walked by script with the agent off (customers inside the shop): speed for the walk cycle, < 0 = use the agent
+    [System.NonSerialized] public float SpeedOverride = -1f;
+    // on a stool (the controller's "Sit" state); gestures still play on the upper body
+    [System.NonSerialized] public bool Sitting;
+    bool hasSit;
+    // the Animator doesn't move the Hips bone on these Generic rigs (only rotations come through), so the pelvis
+    // drop onto the stool is applied here: the seated hips are sampled once from the Sit clip, then eased in / out
+    Transform hips;
+    Vector3 restHips, seatedHips;
+    bool seatedHipsKnown;
+    float sitBlend;
+
     static Material phoneMat, strawMat, lidMat, steelMat, woodMat;
 
     void Start()
@@ -49,12 +61,19 @@ public class NPCAnimDriver : MonoBehaviour
             if (animator == null) return;
             animator.applyRootMotion = false;
             if (prop != null) Destroy(prop);
+            hasSit = false;
+            hips = Find(animator.transform, "Hips");
+            if (hips != null) restHips = hips.localPosition;
+            seatedHipsKnown = false;
+            sitBlend = 0f;
+            foreach (AnimatorControllerParameter p in animator.parameters) if (p.name == "Sit") hasSit = true;
         }
 
         if (gestureUntil > 0f && Time.time > gestureUntil) { gesture = Gesture.None; gestureUntil = -1f; }
 
-        float speed = agent != null ? agent.velocity.magnitude : 0f;
+        float speed = SpeedOverride >= 0f ? SpeedOverride : agent != null && agent.enabled ? agent.velocity.magnitude : 0f;
         animator.SetFloat("Speed", speed);
+        if (hasSit) animator.SetBool("Sit", Sitting);
         animator.speed = speed > 0.2f ? Mathf.Clamp(speed / walkClipSpeed, 0.6f, 1.8f) : 1f;
 
         if (animator.layerCount > 1)
@@ -64,6 +83,24 @@ public class NPCAnimDriver : MonoBehaviour
             animator.SetLayerWeight(1, layerWeight);
         }
         UpdateProp();
+    }
+
+    void LateUpdate()
+    {
+        if (hips == null || animator == null) return;
+        if (Sitting && !seatedHipsKnown)
+        {
+            AnimationClip sit = null;
+            foreach (AnimationClip c in animator.runtimeAnimatorController.animationClips) if (c.name == "Sit") sit = c;
+            if (sit == null) return;
+            Quaternion keep = hips.localRotation;
+            sit.SampleAnimation(animator.gameObject, 0f);           // the Animator rewrites every rotation next frame
+            seatedHips = hips.localPosition;
+            hips.localRotation = keep;
+            seatedHipsKnown = true;
+        }
+        sitBlend = Mathf.MoveTowards(sitBlend, Sitting ? 1f : 0f, Time.deltaTime / 0.35f);    // same as the transition
+        if (seatedHipsKnown) hips.localPosition = Vector3.Lerp(restHips, seatedHips, Mathf.SmoothStep(0f, 1f, sitBlend));
     }
 
     // ---------------------------------------------------------------- props in the right hand

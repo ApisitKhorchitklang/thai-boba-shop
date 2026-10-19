@@ -1570,6 +1570,27 @@ def animate(arm, spec, J):
         a, hips = idle_pose(fr / 24.0, period=8.0)
         key_pose(arm, fr, a, hips=hips)
 
+    # ---- Sit: on a plastic stool (seat top 0.47 m) at the character's origin, feet planted in front, forearms on the
+    # thighs, breathing and looking around. The upper-body gestures (Sip, Phone) still play over it.
+    sit = bpy.data.actions.new("Sit")
+    sit.use_fake_user = True
+    made["Sit"] = sit
+    arm.animation_data.action = sit
+    thigh = (J["knee.L"] - J["hip.L"]).length
+    for fr in range(0, 193, 2):                              # 8 s loop
+        t = fr / 24.0
+        br = math.sin(2 * math.pi * t / 2.0)
+        look = math.sin(2 * math.pi * t / 8.0 + 0.4)
+        hips = (0.0, 0.04 * s, 0.47 + 0.13 * s - J["pelvis"].z + 0.002 * s * br)
+        a = {"Hips": (0.0, 0.0, 0.0), "Spine": (4.0, 0.0, 0.0), "Chest": (3.0 - 1.0 * br, 0.0, 0.0),
+             "Neck": (0.0, 0.0, 0.0), "Head": (-2.0 + 1.5 * math.sin(2 * math.pi * t / 4.0), 14 * look, 0.0)}
+        planted_legs(J, a, hips, feet_y={"L": -0.92 * thigh, "R": -0.92 * thigh})
+        for sd, sg in (("L", 1), ("R", -1)):
+            a["UpperArm." + sd] = (-22 + 1.2 * br, 0.0, -sg * 8)
+            a["LowerArm." + sd] = (-48, 0.0, 0.0)
+            a["Hand." + sd] = (-10, 0.0, 0.0)
+        key_pose(arm, fr, a, hips=hips)
+
     # ---- gestures: hands driven by IK toward animated targets, then baked
     H, C = J["head"], J["chest"]
 
@@ -2116,6 +2137,23 @@ def main():
         cam.rotation_euler = (R(89), 0, R(16))
         SC.render.filepath = os.path.join(REN, f"npc_face_{spec['name']}.png")
         bpy.ops.render.render(write_still=True)
+    # sitting check: everyone on a stool-height block, seen from the side-front
+    for i, (arm, body, J, spec) in enumerate(built):
+        arm.animation_data.action = CLIPSETS[arm.name]["Sit"]
+        stool = bpy.data.meshes.new("stool")
+        x0 = arm.location.x
+        stool.from_pydata([(x0 + dx, dy, z) for z in (0, 0.47) for (dx, dy) in ((-0.16, -0.16), (0.16, -0.16), (0.16, 0.16), (-0.16, 0.16))], [],
+                          [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)])
+        link_obj("stool", stool)
+    SC.frame_set(12)
+    cam.data.lens = 32
+    dist = max(2.6, len(built) * 0.55)
+    cam.location = (dist * 0.45, -dist, 0.9)
+    cam.rotation_euler = (R(84), 0, R(math.degrees(math.atan2(dist * 0.45, dist))))
+    SC.render.resolution_x, SC.render.resolution_y = 2000, 760
+    SC.render.filepath = os.path.join(REN, "npc_sit.png")
+    bpy.ops.render.render(write_still=True)
+    SC.render.resolution_x, SC.render.resolution_y = 1400, 800
     if seated:
         cam.data.lens = 35
         cam.location = (2.2, -1.2, 2.2)

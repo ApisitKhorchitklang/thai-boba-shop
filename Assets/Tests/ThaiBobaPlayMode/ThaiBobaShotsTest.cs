@@ -254,4 +254,73 @@ public class ThaiBobaShotsTest
         T("StatsSystem").GetMethod("EndTests").Invoke(null, null);
         Assert.Pass("screenshots written to " + dir);
     }
+
+    // the expansion: the knocked-through shop and the seating room next door with customers sitting at the tables
+    [UnityTest, Timeout(300000)]
+    public IEnumerator ChillZoneScreenshots()
+    {
+        T("StoryMode").GetField("AutoPopups").SetValue(null, false);
+        T("StatsSystem").GetMethod("ResetForTests").Invoke(null, null);
+#if UNITY_EDITOR
+        yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(
+            "Assets/Scenes/ThaiBobaStreet.unity", new LoadSceneParameters(LoadSceneMode.Single));
+#endif
+        yield return null;
+        yield return null;
+        Component menus = null;
+        for (int i = 0; i < 120 && menus == null; i++) { menus = Inst("GameMenus"); yield return null; }
+        Call(menus, "StartNewGame");
+        yield return null;
+        dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../BlenderSource/renders"));
+        GameObject camGo = new GameObject("ShotCam");
+        shot = camGo.AddComponent<Camera>();
+        shot.fieldOfView = 60f;
+        shot.nearClipPlane = 0.05f;
+        Type urpExt = Type.GetType("UnityEngine.Rendering.Universal.CameraExtensions, Unity.RenderPipelines.Universal.Runtime");
+        object camData = urpExt?.GetMethod("GetUniversalAdditionalCameraData")?.Invoke(null, new object[] { shot });
+        camData?.GetType().GetProperty("renderPostProcessing")?.SetValue(camData, true);
+        shot.enabled = false;
+        rt = new RenderTexture(1600, 900, 24);
+        tex = new Texture2D(1600, 900, TextureFormat.RGB24, false);
+        shot.targetTexture = rt;
+        T("PlanarReflection").GetField("ViewOverride").SetValue(null, shot);
+        T("RainFollow").GetField("ViewOverride").SetValue(null, shot);
+
+        Component gm = Find("GameManager");
+        gm.GetType().GetField("money").SetValue(gm, 20000);
+        Call(Inst("DecorShop"), "Buy", "expand");
+        Call(Inst("DecorShop"), "Buy", "plants");
+        Call(Find("UpgradeShop"), "Buy", "seating");
+        Call(Find("TimeCyc"), "SetTime", 15, 0);
+        Type cc = T("CustomerController");
+        cc.GetField("SitChance").SetValue(null, 1f);
+        Type bot = T("ThaiBobaAutoPlayer");
+        Component b = new GameObject("AutoPlayer").AddComponent(bot);
+        bot.GetField("customersToServe").SetValue(b, 6);
+        bot.GetField("endDayWhenDone").SetValue(b, false);
+        float t0 = Time.realtimeSinceStartup;
+        while ((int)Get(T("SeatSpot"), "Sitting") < 3 && Time.realtimeSinceStartup - t0 < 200f) yield return null;
+        UnityEngine.Object.Destroy(b);
+        yield return null;                                         // the bot puts timeScale back to 1 when destroyed
+        Time.timeScale = 0.2f;                                     // keep them seated while shooting
+        yield return Wait(1.5f);
+
+        Shoot("play_chill_front", P(-3.2f, -5.2f, 1.9f), P(-3.0f, 2.8f, 1.1f));
+        Shoot("play_chill_inside", P(-0.9f, 2.0f, 1.65f), P(-5.6f, 3.6f, 0.8f));
+        Shoot("play_chill_room", P(-3.0f, 0.4f, 1.7f), P(-5.4f, 5.0f, 0.7f));
+        foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None))
+        {
+            if (!(bool)Get(o, "IsSeated")) continue;
+            Transform t = ((Component)o).transform;
+            Shoot("play_chill_seated", t.position + t.forward * 1.6f + t.right * 0.7f + Vector3.up * 1.3f, t.position + Vector3.up * 0.75f);
+            break;
+        }
+        Time.timeScale = 1f;
+        T("PlanarReflection").GetField("ViewOverride").SetValue(null, null);
+        T("RainFollow").GetField("ViewOverride").SetValue(null, null);
+        UnityEngine.Object.Destroy(camGo);
+        T("StoryMode").GetField("AutoPopups").SetValue(null, true);
+        T("StatsSystem").GetMethod("EndTests").Invoke(null, null);
+        Assert.Pass("screenshots written to " + dir);
+    }
 }

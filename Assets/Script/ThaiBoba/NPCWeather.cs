@@ -21,6 +21,8 @@ public class NPCWeather : MonoBehaviour
     bool hurrying;
 
     public bool UmbrellaOpen => umbrella != null && umbrella.activeSelf;
+    // sitting under a roof / the market umbrella: no umbrella of their own
+    [System.NonSerialized] public bool Indoors;
 
     void Start()
     {
@@ -48,7 +50,8 @@ public class NPCWeather : MonoBehaviour
     void Update()
     {
         bool raining = WeatherSystem.Instance != null && WeatherSystem.Instance.IsRaining;
-        if (umbrella != null && umbrella.activeSelf != raining) umbrella.SetActive(raining);
+        bool open = raining && !Indoors;
+        if (umbrella != null && umbrella.activeSelf != open) umbrella.SetActive(open);
         bool hurry = raining && !hasUmbrella;
         if (agent != null && hurry != hurrying)
         {

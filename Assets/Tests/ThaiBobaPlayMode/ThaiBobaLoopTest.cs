@@ -815,6 +815,87 @@ public class ThaiBobaLoopTest
         Assert.AreEqual(12, hour);
     }
 
+    // After the expansion the party wall is knocked through, and served customers sit down with their drinks
+    // (at the annex tables and at the seating set out front), play the Sit animation, then get up and leave.
+    [UnityTest, Timeout(240000)]
+    public IEnumerator CustomersSitAfterTheExpansion()
+    {
+        yield return LoadScene();
+        Component gm = Find("GameManager");
+        gm.GetType().GetField("money").SetValue(gm, 20000);
+        // the wall between our shop and the shop next door: a ray from behind the counter toward the neighbour
+        Vector3 from = new Vector3(1.5f, 1.2f, -1.9f), dir = Vector3.right;
+        Assert.IsTrue(Physics.Raycast(from, dir, 2.6f, ~0, QueryTriggerInteraction.Ignore), "no wall next door before the expansion?");
+        Component ds = Inst("DecorShop");
+        Assert.IsTrue((bool)Call(ds, "Buy", "expand"), "could not expand");
+        Assert.IsTrue((bool)Call(Find("UpgradeShop"), "Buy", "seating"), "could not buy the seating set");
+        yield return null;
+        yield return new WaitForFixedUpdate();
+        GameObject open = GameObject.Find("SM_Shophouse_BobaShopOpen"), annex = GameObject.Find("SM_Shophouse_BobaAnnex");
+        Assert.IsTrue(open != null && annex != null, "the knocked-through shop is not shown");
+        Assert.IsNull(GameObject.Find("BeforeExpansion"), "the old shell / pharmacy are still there");
+        bool blocked = Physics.Raycast(from, dir, out RaycastHit hit, 2.6f, ~0, QueryTriggerInteraction.Ignore);
+        Assert.IsFalse(blocked, "the wall is still there: hit " + (blocked ? hit.collider.name : ""));
+        var seats = (System.Collections.IList)Get(T("SeatSpot"), "All");
+        Assert.AreEqual(11, seats.Count, "8 seats in the annex + 3 at the table out front");
+
+        // serve customers until one sits down
+        Type cc = T("CustomerController");
+        cc.GetField("SitChance").SetValue(null, 1f);
+        cc.GetField("SatDown").SetValue(null, 0);
+        Type bot = T("ThaiBobaAutoPlayer");
+        Component b = new GameObject("AutoPlayer").AddComponent(bot);
+        Set(b, "customersToServe", 3);
+        Set(b, "endDayWhenDone", false);
+        float t0 = Time.realtimeSinceStartup;
+        Component sitter = null;
+        while (sitter == null && Time.realtimeSinceStartup - t0 < 150f)
+        {
+            foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None))
+                if ((bool)Get(o, "IsSeated")) { sitter = (Component)o; break; }
+            yield return null;
+        }
+        Assert.IsNotNull(sitter, "nobody sat down after being served (" + bot.GetField("Report").GetValue(null) + ")");
+        yield return new WaitForSeconds(0.8f);                    // blend into the sitting pose
+        Component seat = (Component)Get(sitter, "Seat");
+        float off = Vector3.Distance(sitter.transform.position, seat.transform.position);
+        Animator anim = null;
+        foreach (Animator a in sitter.GetComponentsInChildren<Animator>()) if (a.isActiveAndEnabled) anim = a;
+        Assert.IsNotNull(anim, "seated customer has no animator");
+        Transform hips = null;
+        foreach (Transform t in anim.GetComponentsInChildren<Transform>()) if (t.name == "Hips") hips = t;
+        float hipsY = hips != null ? hips.position.y - sitter.transform.position.y : -1f;
+        bool sitState = anim.GetCurrentAnimatorStateInfo(0).IsName("Sit");
+        // the same model standing (rest pose of the rig) for comparison
+        float standY = -1f;
+        foreach (UnityEngine.Object o in UnityEngine.Object.FindObjectsByType(cc, FindObjectsSortMode.None))
+        {
+            Component c = (Component)o;
+            if (c == sitter || (bool)Get(o, "InSeatFlow")) continue;
+            foreach (Transform t in c.GetComponentsInChildren<Transform>())
+                if (t.name == "Hips" && t.gameObject.activeInHierarchy) { standY = t.position.y - c.transform.position.y; break; }
+            if (standY > 0f) break;
+        }
+        string where = seat.transform.parent != null ? seat.transform.parent.name : "?";
+        Debug.Log($"[TEST] sitting: {sitter.name} on {seat.name} ({where}), off {off:0.00} m, hips {hipsY:0.00} m (standing {standY:0.00} m), Sit state {sitState}, seats {seats.Count}");
+        Assert.Less(off, 0.05f, "not on the stool");
+        Assert.IsTrue(sitState, "Sit animation not playing");
+        Assert.IsTrue(hipsY > 0.4f && (standY < 0f || hipsY < standY - 0.2f), $"hips at {hipsY:0.00} m (standing {standY:0.00} m): not sitting on a stool");
+        Assert.IsTrue(sitter.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled == false, "agent should be off while seated");
+
+        // they get up after a while and walk off down the soi
+        t0 = Time.realtimeSinceStartup;
+        while (sitter != null && (bool)Get(sitter, "InSeatFlow") && Time.realtimeSinceStartup - t0 < 60f) yield return null;
+        Assert.IsTrue(sitter == null || !(bool)Get(sitter, "InSeatFlow"), "the customer never left the seat");
+        if (sitter != null)
+        {
+            Assert.IsTrue(sitter.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled, "agent not back on after leaving the seat");
+            Assert.IsNull(Get(seat, "taken"), "seat still reserved");
+        }
+        UnityEngine.Object.Destroy(b.gameObject);
+        Time.timeScale = 1f;
+    }
+
     [UnityTest, Timeout(120000)]
     public IEnumerator DecorateHireAndExpand()
     {

@@ -24,6 +24,9 @@ public static partial class ThaiBobaSetup
         o.center = new Vector3(0, size.y / 2f, 0);
     }
 
+    // tables in the annex (shophouse-local x, y), same as ANNEX_TABLES in thai_boba_assets.py (the lamps hang over them)
+    static readonly (float, float)[] AnnexTables = { (-1.25f, 2.0f), (0.35f, 2.8f), (-1.25f, 4.4f), (0.35f, 5.2f) };
+
     static void BuildDecor(StreetRefs r, Transform shop, Transform env)
     {
         // potted plants either side of the counter opening
@@ -64,17 +67,41 @@ public static partial class ThaiBobaSetup
         }
         helper.AddComponent<HelperStaff>();
 
-        // expansion: our second shophouse next door with tables and stools (replaces the pharmacy)
+        // expansion: the shophouse next door becomes our seating room ("chill zone"). Our own shell is swapped for
+        // one with the party wall knocked through at the front (the original + the pharmacy are hidden, see
+        // BuildStreet), and served customers walk in and sit at the tables with their drinks.
         GameObject exp = DecorGroup(r, env, "expand");
-        Place("SM_Shophouse_BobaShop", -4.6f, 0, 0, 0, exp.transform, Col.Mesh);
-        foreach (var (tx, ty) in new[] { (-5.4f, 2.0f), (-3.8f, 3.3f), (-5.3f, 4.4f) })
+        Place("SM_Shophouse_BobaShopOpen", 0, 0, 0, 0, exp.transform, Col.Mesh);
+        Place("SM_Shophouse_BobaAnnex", -4.6f, 0, 0, 0, exp.transform, Col.Mesh);
+        const float ax = -4.6f, aisle = 1.5f;                     // annex centre, walkway along the open side
+        Vector3 W(float lx, float ly) => exp.transform.TransformPoint(P(ax + lx, ly, 0));
+        Vector3 door = W(aisle, -0.45f);
+        foreach (var (tx, ty) in AnnexTables)
         {
-            Place("SM_SteelTable", tx, ty, 0, 0, exp.transform, Col.Box);
-            Place("SM_PlasticStool", tx - 0.55f, ty, 0, 0, exp.transform, Col.Box);
-            Place("SM_PlasticStool", tx + 0.55f, ty + 0.1f, 0, 25, exp.transform, Col.Box);
+            GameObject table = Place("SM_SteelTable", ax + tx, ty, 0, 0, exp.transform, Col.Box);
+            foreach (float dx in new[] { -0.55f, 0.55f })
+            {
+                GameObject stool = Place("SM_PlasticStool", ax + tx + dx, ty, 0, dx < 0 ? 0 : 25, exp.transform, Col.Box);
+                if (stool == null || table == null) continue;
+                SeatSpot seat = stool.AddComponent<SeatSpot>();
+                seat.table = table.transform;
+                seat.hasDoor = true;
+                seat.door = door;
+                float ay = ty - 0.55f;                            // the row in front of the stools (street side)
+                seat.route = new[] { W(aisle, 0.35f), W(aisle, ay), W(tx + dx, ay) };
+            }
         }
         Place("SM_FairyLights", -4.6f, -0.3f, 2.62f, 0, exp.transform, Col.None);
-        Place("SM_PottedPlant", -6.6f, 5.6f, 0, 0, exp.transform, Col.None);
+        Place("SM_PottedPlant", -6.55f, 6.4f, 0, 0, exp.transform, Col.None);
+        Place("SM_PottedPlant", -2.75f, 6.4f, 0, 30, exp.transform, Col.None);
+        GameObject lamp = new GameObject("AnnexLight");
+        lamp.transform.SetParent(exp.transform, false);
+        lamp.transform.localPosition = P(-4.6f, 3.6f, 3.0f);
+        Light l = lamp.AddComponent<Light>();
+        l.type = LightType.Point;
+        l.range = 6.5f;
+        l.intensity = 1.8f;
+        l.color = new Color(1f, 0.9f, 0.75f);                     // warmer than the counter side: a place to sit
 
         foreach (GameObject g in r.decor.Values) g.SetActive(false);
     }

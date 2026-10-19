@@ -251,13 +251,14 @@ public static partial class ThaiBobaSetup
         Directory.CreateDirectory(AnimDir);
         string path = AnimDir + model + ".controller";
         AssetDatabase.DeleteAsset(path);
-        AnimationClip walk = null, idle = null;
+        AnimationClip walk = null, idle = null, sit = null;
         var gestures = new Dictionary<string, AnimationClip>();
         foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(CharDir + model + ".fbx"))
             if (o is AnimationClip clip && !clip.name.StartsWith("__preview__"))
             {
                 if (clip.name == "Walk") walk = clip;
                 else if (clip.name == "Idle") idle = clip;
+                else if (clip.name == "Sit") sit = clip;
                 else gestures[clip.name] = clip;
             }
         var ctrl = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath(path);
@@ -278,6 +279,22 @@ public static partial class ThaiBobaSetup
         toIdle.hasExitTime = false;
         toIdle.duration = 0.2f;
         if (walk == null || idle == null) Debug.LogWarning("Missing Walk/Idle clip in " + model);
+        // customers sitting at the tables with their drink ("Sit" bool from NPCAnimDriver)
+        ctrl.AddParameter("Sit", AnimatorControllerParameterType.Bool);
+        if (sit != null)
+        {
+            var sitState = sm.AddState("Sit");
+            sitState.motion = sit;
+            var toSit = sm.AddAnyStateTransition(sitState);
+            toSit.AddCondition(UnityEditor.Animations.AnimatorConditionMode.If, 0f, "Sit");
+            toSit.hasExitTime = false;
+            toSit.duration = 0.35f;
+            toSit.canTransitionToSelf = false;
+            var up = sitState.AddTransition(idleState);
+            up.AddCondition(UnityEditor.Animations.AnimatorConditionMode.IfNot, 0f, "Sit");
+            up.hasExitTime = false;
+            up.duration = 0.35f;
+        }
 
         // gesture layer: weight driven by NPCAnimDriver (0 when no gesture, so the empty state never overrides)
         GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(CharDir + model + ".fbx");
@@ -541,8 +558,14 @@ public static partial class ThaiBobaSetup
         props.SetParent(root.transform, false);
 
         // buildings, sidewalk, road
-        Place("SM_Shophouse_BobaShop", 0, 0, 0, 0, env, Col.Mesh);
+        GameObject ourShell = Place("SM_Shophouse_BobaShop", 0, 0, 0, 0, env, Col.Mesh);
         BuildNeighbourhood(env, r);
+        // our shell and the pharmacy next door make way for the knocked-through shop when the expansion is bought
+        GameObject before = new GameObject("BeforeExpansion");
+        before.transform.SetParent(env, false);
+        if (ourShell != null) ourShell.transform.SetParent(before.transform, true);
+        if (r.neighbourLeft != null) r.neighbourLeft.transform.SetParent(before.transform, true);
+        r.neighbourLeft = before;
 
         // shop interior + drink stations
         GameObject counter = Place("SM_Counter", 0, 1.4f, 0, 0, shop, Col.Box);
@@ -662,6 +685,8 @@ public static partial class ThaiBobaSetup
         r.seating.Add(Place("SM_PlasticStool", 3.2f, -1.6f, 0, 30, props, Col.Box));
         r.seating.Add(Place("SM_PlasticStool", 2.6f, -1.0f, 0, 10, props, Col.Box));
         foreach (GameObject g in r.seating) Obstacle(g, new Vector3(0.45f, 1f, 0.45f));            // bought later: carve at runtime
+        for (int i = 1; i < r.seating.Count; i++)                                                    // customers sit here with their drink
+            if (r.seating[i] != null && r.seating[0] != null) r.seating[i].AddComponent<SeatSpot>().table = r.seating[0].transform;
         r.seating[0].GetComponent<UnityEngine.AI.NavMeshObstacle>().size = new Vector3(0.85f, 1f, 0.85f);
         r.seating.Add(Place("SM_MarketUmbrella", 2.6f, -1.7f, 0, 0, props, Col.None));
         // the table set moves as one piece in arrange mode

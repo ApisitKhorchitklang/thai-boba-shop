@@ -382,12 +382,25 @@ def build_shophouse(name, facade, open_front=True, style=None):
     top = z1 + H2 * (floors - 1)
     hw = W / 2
     rnd = random.Random(sum(map(ord, name)))
-    # shell
+    # shell. open_wall = (side, y0, y1): the ground-floor party wall on that side is knocked through between y0 and
+    # y1 (under a header beam), so two shophouses side by side become one shop
+    ow = st.get("open_wall")
+    hd = H1 - 0.35
     a.bmm(-hw, hw, 0, Dp, -0.1, 0, "tile_floor")
     for s in (-1, 1):
-        a.bmm(s * hw - (T if s > 0 else 0), s * hw + (0 if s > 0 else T), 0.2, Dp, 0, top + P, "plaster")
-    a.bmm(-hw + T, hw - T, Dp - T, Dp, 0, top, "plaster")
-    a.bmm(-hw + T, hw - T, Dp - T - 0.01, Dp - T, 0, 1.3, "tile_wall")
+        x0, x1 = s * hw - (T if s > 0 else 0), s * hw + (0 if s > 0 else T)
+        if ow and ow[0] == s:
+            a.bmm(x0, x1, 0.2, Dp, hd, top + P, "plaster")
+            if ow[1] > 0.2:
+                a.bmm(x0, x1, 0.2, ow[1], 0, hd, "plaster")
+            if ow[2] < Dp:
+                a.bmm(x0, x1, ow[2], Dp, 0, hd, "plaster")
+        else:
+            a.bmm(x0, x1, 0.2, Dp, 0, top + P, "plaster")
+    bx0 = -hw if ow and ow[0] < 0 and ow[2] >= Dp else -hw + T     # an open side's back corner is closed by the wall
+    bx1 = hw if ow and ow[0] > 0 and ow[2] >= Dp else hw - T
+    a.bmm(bx0, bx1, Dp - T, Dp, 0, top, "plaster")
+    a.bmm(bx0, bx1, Dp - T - 0.01, Dp - T, 0, 1.3, "tile_wall")
     for f in range(floors - 1):
         a.bmm(-hw, hw, 0.2, Dp, H1 + f * H2, z1 + f * H2, "plaster")
     a.bmm(-hw, hw, 0, Dp, top, top + 0.15, "concrete")
@@ -465,22 +478,32 @@ def build_shophouse(name, facade, open_front=True, style=None):
 
     # ground floor frame
     for s in (-1, 1):
+        if ow and ow[0] == s:
+            if s < 0:                                    # one slim column where the two shopfronts meet
+                a.bmm(-hw - 0.09, -hw + 0.09, -0.1, 0.2, 0, H1, facade)
+            continue
         a.bmm(s * hw - (0.4 if s > 0 else 0), s * hw + (0 if s > 0 else 0.4), -0.1, 0.2, 0, H1, facade)
         a.bmm(s * (hw - 0.45) - 0.03, s * (hw - 0.45) + 0.03, 0.05, 0.15, 0, H1 - 0.35, "shutter")
     a.bmm(-hw, hw, -0.1, 0.2, H1 - 0.35, H1, facade)
     a.bmm(-hw + 0.4, hw - 0.4, 0.2, 0.5, H1 - 0.62, H1 - 0.32, "shutter")
 
     front = st["front"]
-    if st["awning"] or front == "boba":
+    if st["awning"] or front in ("boba", "annex"):
         c1, c2 = st["awning"] or ("awning_red", "awning_white")
         N, aw = 10, W + 0.3
+        ax0 = st.get("awning_from", -aw / 2)             # the annex's awning stops where ours starts (no overlap)
+        aw = st.get("awning_to", aw / 2) - ax0
         for i in range(N):
-            x = -aw / 2 + aw * (i + 0.5) / N
+            x = ax0 + aw * (i + 0.5) / N
             c = c1 if i % 2 == 0 else c2
             a.box((aw / N, 1.45, 0.03), (x, -0.75, H1 - 0.3), c, rot=(19, 0, 0))
             a.box((aw / N, 0.03, 0.2), (x, -1.45, H1 - 0.62), c)
         for s in (-1, 1):
             a.tube((s * 2.1, 0, H1 - 1.0), (s * 2.1, -1.35, H1 - 0.55), 0.02, "steel_dark")
+
+    if front == "annex":
+        add_annex(a, hw, Dp, T, H1, z1)
+        return a.build()
 
     if front == "boba":
         a.bmm(-2.0, 2.0, -0.14, 0.0, z1 - 0.1, z1 + 0.75, "sign_pink", bevel=0.02)
@@ -565,6 +588,68 @@ def build_shophouse(name, facade, open_front=True, style=None):
         a.polyline([(-hw + 0.2 + i * (W - 0.4) / 11, -0.2, H1 - 0.05 - 0.25 * math.sin(i / 11 * math.pi))
                     for i in range(12)], 0.006, "black", seg=4)
     return a.build()
+
+
+def add_annex(a, hw, Dp, T, H1, z1):
+    """The shophouse next door after the expansion: our seating room ("chill zone"). Open front under the same
+    awning, wooden floor, mint dado, a big drinks mural on the back wall, photos + a neon sign + a plant shelf on the
+    side wall, pendant lamps over the tables (tables and stools are placed in Unity, where customers sit)."""
+    a.bmm(-2.0, 2.0, -0.14, 0.0, z1 - 0.1, z1 + 0.75, "sign_pink", bevel=0.02)
+    a.bmm(-2.05, 2.05, -0.12, -0.02, z1 - 0.15, z1 + 0.8, "white")
+    a.text("โซนนั่งชิล", 0.40, (0.1, -0.15, z1 + 0.42), "white", extrude=0.012)
+    a.text("BAAN BOBA  ·  CHILL ZONE", 0.14, (0.1, -0.15, z1 + 0.06), "sign_yellow", extrude=0.008)
+    for k, (x, z) in enumerate([(-1.75, z1 + 0.5), (1.72, z1 + 0.22)]):          # little neon dots on the sign
+        a.sphere(0.07, (x, -0.17, z), "neon_pink" if k == 0 else "neon_cyan", seg=10, rings=6)
+    # wooden floor, mint dado on the side wall
+    a.bmm(-hw + T, hw, 0.2, Dp - T, 0, 0.012, "wood")
+    for i in range(1, 12):                                                     # plank lines
+        x = -hw + T + i * (2 * hw - T) / 12
+        a.bmm(x - 0.006, x + 0.006, 0.2, Dp - T, 0.012, 0.014, "wood_dark")
+    a.bmm(-hw + T, -hw + T + 0.012, 0.2, Dp - T, 0, 1.05, "facade_mint")
+    a.bmm(-hw + T, -hw + T + 0.03, 0.2, Dp - T, 1.05, 1.1, "white")
+    # back wall: a big menu mural (cup + pearls)
+    yb = Dp - T - 0.03
+    a.bmm(-1.7, 1.7, yb, yb + 0.02, 1.55, 3.0, "sign_pink")
+    a.bmm(-1.76, 1.76, yb + 0.005, yb + 0.02, 1.49, 3.06, "white")
+    a.text("ชานมไข่มุก", 0.36, (0.45, yb - 0.005, 2.5), "white", extrude=0.01)
+    a.text("ดื่มเย็นๆ  นั่งชิลๆ", 0.17, (0.45, yb - 0.005, 2.05), "sign_yellow", extrude=0.006)
+    a.text("CHILL & SIP", 0.13, (0.45, yb - 0.005, 1.75), "white", extrude=0.006)
+    a.bmm(-1.36, -0.84, yb - 0.02, yb, 1.7, 2.75, "thai_tea")                  # a big cup of Thai tea
+    a.bmm(-1.4, -0.8, yb - 0.025, yb, 2.75, 2.82, "white")
+    a.tube((-1.0, yb - 0.03, 2.8), (-0.9, yb - 0.03, 3.0), 0.02, "red")
+    for k in range(7):
+        a.sphere(0.04, (-1.3 + (k % 4) * 0.12 + (k // 4) * 0.06, yb - 0.03, 1.78 + (k // 4) * 0.08), "black", seg=8, rings=5)
+    # side wall: framed photos, a neon "chill" sign and a shelf of plants
+    xs = -hw + T + 0.015
+    for (y, z, w, h, c) in [(1.3, 1.9, 0.5, 0.65, "blue_plastic"), (2.05, 2.15, 0.6, 0.45, "yellow"),
+                            (1.55, 1.45, 0.4, 0.3, "sign_pink")]:
+        a.bmm(xs, xs + 0.03, y - w / 2 - 0.03, y + w / 2 + 0.03, z - h / 2 - 0.03, z + h / 2 + 0.03, "wood_dark")
+        a.bmm(xs + 0.03, xs + 0.035, y - w / 2, y + w / 2, z - h / 2, z + h / 2, c)
+    a.text("chill", 0.42, (xs + 0.03, 3.6, 2.15), "neon_cyan", rot=(90, 0, 90), extrude=0.02, fnt=FONT_TH)
+    a.bmm(xs, xs + 0.24, 4.9, 6.3, 1.75, 1.79, "wood")
+    for y in (5.05, 6.15):
+        a.bmm(xs, xs + 0.2, y - 0.02, y + 0.02, 1.6, 1.75, "steel_dark")
+    for k, y in enumerate((5.1, 5.45, 5.8, 6.15)):
+        a.cyl(0.07, 0.12, (xs + 0.12, y, 1.85), "terracotta" if k % 2 == 0 else "white", r2=0.08, seg=10)
+        a.sphere(0.1, (xs + 0.12, y, 1.98), "leaf", scale=(1, 1, 0.8 + 0.2 * (k % 2)), seg=8, rings=5)
+        if k % 2:
+            for d in (-0.06, 0.06):
+                a.tube((xs + 0.12, y + d, 1.95), (xs + 0.13, y + d * 1.6, 1.55), 0.008, "leaf", seg=4)
+    # pendant lamps over the four tables, plus the ceiling tubes
+    for (x, y) in ANNEX_TABLES:
+        a.tube((x, y, H1), (x, y, 2.45), 0.006, "black", seg=4)
+        a.cyl(0.17, 0.18, (x, y, 2.36), "sign_yellow", r2=0.05, seg=16)
+        a.sphere(0.06, (x, y, 2.27), "light_tube", seg=10, rings=6)
+    for y in (2.0, 4.5):
+        a.bmm(-0.6, 0.6, y - 0.04, y + 0.04, H1 - 0.08, H1, "light_tube")
+    # planter box at the front left, leaving the doorway on the right open
+    a.bmm(-hw + T, -0.9, 0.22, 0.52, 0, 0.42, "wood_dark")
+    for k in range(5):
+        a.sphere(0.17, (-hw + T + 0.2 + k * 0.25, 0.37, 0.52 + 0.04 * (k % 2)), "leaf", scale=(1, 0.9, 0.8), seg=8, rings=5)
+
+
+# where Unity puts the annex tables (shophouse-local x, y); the pendant lamps hang over them
+ANNEX_TABLES = [(-1.25, 2.0), (0.35, 2.8), (-1.25, 4.4), (0.35, 5.2)]
 
 
 def build_condo(name, floors, width, color, seed):
@@ -1902,6 +1987,11 @@ exec(compile(open(os.path.join(SRC_DIR, "thai_extras.py"), encoding="utf-8").rea
 
 BUILDERS = [
     lambda: build_shophouse("SM_Shophouse_BobaShop", "facade_mint", True),
+    # after the expansion: our shop with the left party wall knocked through at the front, and the seating annex
+    lambda: build_shophouse("SM_Shophouse_BobaShopOpen", "facade_mint", True, style=dict(open_wall=(-1, 0.2, 2.45))),
+    lambda: build_shophouse("SM_Shophouse_BobaAnnex", "facade_mint", True,
+                            style=dict(front="annex", open_wall=(1, 0.2, 7.0), awning_from=-2.3, awning_to=2.15,
+                                       extras={"plants", "laundry"})),
     lambda: build_shophouse("SM_Shophouse_Closed", "facade_peach", False),
     *[(lambda n=n, v=v: build_shophouse(n, v[0], style=v[1])) for n, v in SHOP_STYLES.items()],
     lambda: build_condo("SM_Condo_A", 9, 16.0, "facade_cream", 11),
@@ -1947,8 +2037,10 @@ def export_fbx(root):
         use_mesh_modifiers=True, add_leaf_bones=False, bake_anim=False, path_mode='AUTO')
 
 
+ONLY_EXPORT = [n for n in os.environ.get("TB_ONLY", "").split(",") if n]     # e.g. TB_ONLY=SM_A,SM_B: export just these
 for root in ASSETS.values():
-    export_fbx(root)
+    if not ONLY_EXPORT or root.name in ONLY_EXPORT:
+        export_fbx(root)
 print("EXPORTED", len(ASSETS), "assets to", FBX_DIR)
 
 # ============================================================================= SHOWCASE SCENE
